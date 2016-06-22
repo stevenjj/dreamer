@@ -4,7 +4,7 @@
 
 // This file is part of Dreamer Head v0.4.
 // Travis Llado, travis@travisllado.com
-// Last modified 2016.06.20
+// Last modified 2016.06.21
 
 ////////////////////////////////////////////////////////////////////////////////
 // Dependencies
@@ -12,6 +12,8 @@
 #include <stdint.h>
 #include "config.h"
 #include "encoders.h"
+#include "estop.h"
+#include "lights.h"
 #include "motors.h"
 #include "PLL.h"
 #include "tm4c123gh6pm.h"
@@ -32,6 +34,10 @@ int32_t errP[NUM_DOFS] = {0};
 int32_t errI[NUM_DOFS] = {0};
 int32_t errD[NUM_DOFS] = {0};
 int32_t ctrlVar[NUM_DOFS] = {PWM_ZERO};
+int32_t ctrlZero[NUM_DOFS] = {PWM_ZERO};
+uint32_t runningColor = 0x00003F00;
+uint32_t softStoppedColor = 0x0000003F;
+uint32_t hardStoppedColor = 0x003F0000;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Internal Prototypes
@@ -53,6 +59,8 @@ int main(void) {
     // Initialize all hardware
     PLL_Init();
     encoderInit(posn);
+    eStopInit();
+    lightsInit();
     motorInit();
     Timer1_Init();
     UART_Init();
@@ -69,7 +77,7 @@ int main(void) {
 
 void calcErrP(void) {
     for(uint32_t i = 0; i < NUM_DOFS; i++)
-        errP[i] = desr[i] - posn[i];
+        errP[i] = posn[i] - desr[i];
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -77,7 +85,17 @@ void calcErrP(void) {
 // Calculates integral error.
 
 void calcErrI(void) {
-    // nothing currently
+    static int32_t pastErrP[NUM_DOFS][I_LENGTH] = {0};
+    static uint32_t next = 0;
+		static int32_t errIRaw[NUM_DOFS] = {0};
+
+    for(uint32_t i = 0; i < NUM_DOFS; i++) {
+        errIRaw[i] -= pastErrP[i][next];
+        errIRaw[i] += errP[i];
+        errI[i] = errIRaw[i]/CTRL_FREQ;
+        pastErrP[i][next] = errP[i];
+    }
+    next = (next + 1)%I_LENGTH;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -85,7 +103,14 @@ void calcErrI(void) {
 // Calculates derivative error.
 
 void calcErrD(void) {
-    // nothing currently
+    static int32_t pastErrP[NUM_DOFS][D_LENGTH] = {0};
+    static uint32_t next = 0;
+
+    for(uint32_t i = 0; i < NUM_DOFS; i++) {
+        errD[i] = (errP[i] - pastErrP[i][next])*CTRL_FREQ/D_LENGTH;
+        pastErrP[i][next] = errP[i];
+    }
+    next = (next + 1)%D_LENGTH;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -156,12 +181,17 @@ void Timer1A_Handler(void) {
 
     encoderRead();
     
-    UART_OutUDec(posn[0]);UART_OutChar(' ');UART_OutUDec(ctrlVar[0]);
-    UART_OutChar(CR);UART_OutChar(LF);
-    
-    PID();
-
-    motorUpdate(ctrlVar);
+    if(eStopHardRunning()) {
+        PID();
+        motorUpdate(ctrlVar);
+        lightsUpdate(runningColor);
+//        UART_OutUDec(posn[0]);UART_OutChar(' ');UART_OutString("running");UART_OutChar(CR);UART_OutChar(LF);
+    }
+    else {
+        motorUpdate(ctrlZero);
+        lightsUpdate(hardStoppedColor);
+//        UART_OutUDec(posn[0]);UART_OutChar(' ');UART_OutString("stopped");UART_OutChar(CR);UART_OutChar(LF);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

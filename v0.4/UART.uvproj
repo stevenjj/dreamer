@@ -7,7 +7,7 @@
 
   <Targets>
     <Target>
-      <TargetName>Dreamer v0.31</TargetName>
+      <TargetName>Dreamer v0.4</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
       <TargetOption>
@@ -434,6 +434,16 @@
               <FileName>startup.s</FileName>
               <FileType>2</FileType>
               <FilePath>.\startup.s</FilePath>
+            </File>
+            <File>
+              <FileName>lights.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\lights.c</FilePath>
+            </File>
+            <File>
+              <FileName>estop.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\estop.c</FilePath>
             </File>
           </Files>
         </Group>
