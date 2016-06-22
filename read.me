@@ -1,0 +1,35 @@
+Dreamer Head Redesign #....5?
+
+2016.06.19
+Started redesigning Dreamer's Head Control Systems a few days ago using TI TM4C
+chips instead of Arduinos. They're vastly more powerful, have many times more
+features, and are cheaper. Most importantly, it occurred to me on Friday that we
+don't need one MCU per one or two joints, as Meka used them. A single TM4C has
+enough features and speed to control all twelve joints for position control at
+several hundred hertz. It's nowhere near as fast as the Ethercat system Meka set
+up, but it doesn't need to be and it should work many, many times more reliably.
+v0.1 code was designed to prove all needed features. We have twelve PWM outputs
+for motor control of twelve joints and we use GPIO pins to read twelve encoders
+in parallel. We could add on MOSFETS, as Contelec recommends, or tristate
+buffers, as we did in past redesigns, but the TM4C is fast enough to just switch
+between output and input as needed, so we're planning on doing that and not
+requiring and additional hardware. All encoder signals are produced by bit
+banging, a thousand lines of timing control spins per message.
+v0.2 code is designed to use timer interrupts instead of spinning between signal
+changes. The only actual advantage to this is that the code is more attractive.
+There's nothing wrong with ugly bit banging.
+v0.3 code is a continuation of v0.1. After testing v0.2, it was found that nice,
+clean, well abstracted code was far too slow, and completely procedural bit
+banging was necessary. We'll be using this ugly but fast technique from now on.
+
+2016.06.21
+Did a lot of work on v0.3. Encoder reading and PWM writing is complete. Can do 12-dof P control at 2200Hz with no problems. Have a bit of code left to write. Need to create:
+-I and D error functions so we have proper PID control
+-interpreter to accept commands from external controller
+-ear lights control
+-read e-stop position
+Considering different options for D error calculation. Want it to be as fast as possible, under 5-10 cycles delay. Will try calculating and storing multiple point-to-point derivatives and running them through median filter.
+Interpreter needs to take position commands from controller and give status feedback to controller. Want to run TM4C at 2.2KHz in final form if possible, so will probably not do motion planning on board there. Will merely take position commands from master. Will provide feedback of joint positions, velocities, and head e-stop status.
+v0.3 is stable and complete in current form. Archiving, moving to v0.4.
+
+
