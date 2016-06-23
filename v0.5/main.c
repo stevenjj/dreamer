@@ -35,9 +35,9 @@ int32_t errI[NUM_DOFS] = {0};
 int32_t errD[NUM_DOFS] = {0};
 int32_t ctrlVar[NUM_DOFS] = {PWM_ZERO};
 int32_t ctrlZero[NUM_DOFS] = {PWM_ZERO};
-uint32_t runningColor = 0x001F0000;
+uint32_t runningColor = 0x00003F00;
 uint32_t softStoppedColor = 0x0000003F;
-uint32_t hardStoppedColor = 0x00001F00;
+uint32_t hardStoppedColor = 0x003F0000;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Internal Prototypes
@@ -45,6 +45,7 @@ uint32_t hardStoppedColor = 0x00001F00;
 void calcErrP(void);
 void calcErrI(void);
 void calcErrD(void);
+void parse(uint32_t command);
 void PID(void);
 void Timer1A_Handler(void);
 void Timer1_Init(void);
@@ -67,7 +68,7 @@ int main(void) {
 
     // Spin forever
     while(1) {
-        // Nothing here! All further actions performed by interrupt handlers.
+        parse(UART_InUDec()); // read commands from UART
     }
 }
 
@@ -87,7 +88,7 @@ void calcErrP(void) {
 void calcErrI(void) {
     static int32_t pastErrP[NUM_DOFS][I_LENGTH] = {0};
     static uint32_t next = 0;
-		static int32_t errIRaw[NUM_DOFS] = {0};
+        static int32_t errIRaw[NUM_DOFS] = {0};
 
     for(uint32_t i = 0; i < NUM_DOFS; i++) {
         errIRaw[i] -= pastErrP[i][next];
@@ -111,6 +112,50 @@ void calcErrD(void) {
         pastErrP[i][next] = errP[i];
     }
     next = (next + 1)%D_LENGTH;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// parse()
+// Reads incoming UART command and performs appropriate action.
+
+void parse(uint32_t command) {
+    uint32_t address = (command&0xF0000000)>>28;
+    uint32_t value = (command&0x0FFFFFFF);
+
+    if(address == MESSAGE_ESTOP) {
+        if(value == ESTOP_RUN)
+            eStopSoftRun();
+        else
+            eStopSoftStop();
+    }
+    else if(address == MESSAGE_J00_J01) {
+        desr[0] = (value&0x0FFFC000)>>14;
+        desr[1] = value&0x00003FFF;
+    }
+    else if(address == MESSAGE_J02_J03) {
+        desr[2] = (value&0x0FFFC000)>>14;
+        desr[3] = value&0x00003FFF;
+    }
+    else if(address == MESSAGE_J04_J05) {
+        desr[4] = (value&0x0FFFC000)>>14;
+        desr[5] = value&0x00003FFF;
+    }
+    else if(address == MESSAGE_J06_J07) {
+        desr[6] = (value&0x0FFFC000)>>14;
+        desr[7] = value&0x00003FFF;
+    }
+    else if(address == MESSAGE_J08_J09) {
+        desr[8] = (value&0x0FFFC000)>>14;
+        desr[9] = value&0x00003FFF;
+    }
+    else if(address == MESSAGE_J10_J11) {
+        desr[10] = (value&0x0FFFC000)>>14;
+        desr[11] = value&0x00003FFF;
+    }
+    else if(address == MESSAGE_LIGHTS) {
+        lightsUpdate(value);
+    }
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -180,20 +225,17 @@ void Timer1A_Handler(void) {
     TIMER1_ICR_R = 0x01;    // acknowledge timer1A timeout
 
     encoderRead();
-//    PID();
-//    motorUpdate(ctrlVar);
-//    lightsUpdate(runningColor);
-
+    
     if(eStopHardRunning()) {
         PID();
         motorUpdate(ctrlVar);
         lightsUpdate(runningColor);
-        UART_OutUDec(posn[0]);UART_OutChar(' ');UART_OutString("running");UART_OutChar(CR);UART_OutChar(LF);
+//        UART_OutUDec(posn[0]);UART_OutChar(' ');UART_OutString("running");UART_OutChar(CR);UART_OutChar(LF);
     }
     else {
         motorUpdate(ctrlZero);
         lightsUpdate(hardStoppedColor);
-        UART_OutUDec(posn[0]);UART_OutChar(' ');UART_OutString("stopped");UART_OutChar(CR);UART_OutChar(LF);
+//        UART_OutUDec(posn[0]);UART_OutChar(' ');UART_OutString("stopped");UART_OutChar(CR);UART_OutChar(LF);
     }
 }
 

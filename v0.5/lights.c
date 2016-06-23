@@ -85,8 +85,7 @@ void Timer3_Init(void) {
         TIMER3_IMR_R |= 0x01;               // arm timeout interrupt
         NVIC_PRI5_R = (NVIC_PRI5_R & 0x00FFFFFF) | (LIGHT_BIT_PRIORITY << 29);
                                             // set priority
-        NVIC_EN1_R = 1 << 3;               // enable interrupt 35 in NVIC
-					TIMER3_CTL_R = 0x01;
+        NVIC_EN0_R = 1 << 23;               // enable interrupt 23 in NVIC
     EnableInterrupts();
 }
 
@@ -97,19 +96,16 @@ void Timer3_Init(void) {
 void Timer3A_Handler(void) {
     volatile uint32_t delay = 0;
     uint32_t bitNum = bitCount%BITS_PER_LIGHT;
-    uint32_t nextBit = (newColor&(1<<bitNum))>>(bitNum - 4);
+    uint32_t nextBit = (newColor&(1<<bitNum))>>(bitNum - 3);
 
     TIMER3_ICR_R = 0x01;    // acknowledge timer3A timeout
     
     PC4 = 0xFF;         // write PC4 high
     PC5 = 0xFF;         // write PC5 high
-    delay=0;delay=0;delay=0;delay=0;delay=0;delay=0;delay=0;
-                        // delay remaining 0 time
+    delay=0;delay=0;delay=0;delay=0;delay=0;    // delay remaining 0 time
     PC4 = nextBit;      // write PC4 to message bit
     PC5 = nextBit<<1;   // write PC5 to message bit
-    delay=0;delay=0;delay=0;delay=0;delay=0;delay=0;delay=0;delay=0;delay=0;
-    delay=0;delay=0;delay=0;delay=0;delay=0;delay=0;delay=0;delay=0;delay=0;
-    delay=0;            // delay remaining 1 time
+    delay=0;delay=0;delay=0;delay=0;delay=0;    // delay remaining 1 time
     PC4 = 0x00;         // write PC4 low
     PC5 = 0x00;         // write PC5 low
 
