@@ -140,7 +140,7 @@ void Timer3A_Handler(void) {
     PC4 = nextBit1;     // write PC4 to message bit
     PC5 = nextBit2;     // write PC5 to message bit
     spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
                         // delay remaining 1 time
     PC4 = 0x00;         // write PC4 low
     PC5 = 0x00;         // write PC5 low
