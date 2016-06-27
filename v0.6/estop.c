@@ -24,7 +24,6 @@ void WaitForInterrupt(void);
 
 #define PC6 (*((volatile unsigned long *)0x40006100))   // senses button posn
 #define PC7 (*((volatile unsigned long *)0x40006200))   // controls relay
-uint32_t softStopState = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Internal Prototypes
@@ -37,37 +36,28 @@ void PortC_Init2(void);
 
 void eStopInit(void) {
     PortC_Init2();
-    softStop();
+    eStopSoftStop();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // lightsInit()
 
-uint32_t hardStopStatus(void) {
+void eStopSoftRun(void) {
+    PC7 = 0xFF;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// lightsInit()
+
+uint32_t eStopHardRunning(void) {
     return (GPIO_PORTC_DATA_R&0x40)>>5;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // lightsInit()
 
-void softRun(void) {
-    PC7 = 0xFF;
-    softStopState = 1;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// lightsInit()
-
-void softStop(void) {
+void eStopSoftStop(void) {
     PC7 = 0x00;
-    softStopState = 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// lightsInit()
-
-uint32_t softStopStatus(void) {
-    return softStopState;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

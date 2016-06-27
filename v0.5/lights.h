@@ -16,4 +16,4 @@ void lightsInit(void);
 // updateLights()
 // Performs actions to commence writing of current contents of LED[] to LEDs.
 
-void lightsUpdate(uint32_t color);
+void lightsUpdate(uint32_t hardStatus, uint32_t softStatus);

@@ -7,7 +7,7 @@
 
   <Targets>
     <Target>
-      <TargetName>Dreamer v0.4</TargetName>
+      <TargetName>Dreamer v0.5</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
       <TargetOption>

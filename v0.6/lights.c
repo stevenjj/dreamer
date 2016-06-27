@@ -24,11 +24,10 @@ void WaitForInterrupt(void);
 
 uint32_t bitCount = 0;
 uint32_t lightCount = 0;
-uint32_t color1 = 0;
-uint32_t color2 = 0;
+uint32_t newColor = 0;
 
-#define PC4 (*((volatile unsigned long *)0x40006040))
-#define PC5 (*((volatile unsigned long *)0x40006080))
+#define PC4 (*((volatile uint32_t *)0x40006040))
+#define PC5 (*((volatile uint32_t *)0x40006080))
 
 ////////////////////////////////////////////////////////////////////////////////
 // Internal Prototypes
@@ -46,30 +45,7 @@ void lightsInit(void) {
     PortC_Init();
     Timer3_Init();
 
-    lightsUpdate(0, 0);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// updateLights()
-// Performs actions to commence writing of current contents of LED[] to LEDs.
-
-void lightsUpdate(uint32_t hardStopRunning, uint32_t softStopRunning) {
-    lightCount++;
-
-    if(lightCount == LIGHT_FREQ) {
-        if(hardStopRunning)
-            color1 = RUN_COLOR;
-				else
-            color1 = HARD_STOP_COLOR;
-        if(softStopRunning)
-            color2 = RUN_COLOR;
-        else
-            color2 = SOFT_STOP_COLOR;
-				
-        lightCount = 0;
-        bitCount = LIGHT_SIGNAL_LENGTH - 1;   // reset message bit counter
-        TIMER3_CTL_R = 0x01;            // enable Timer 3A
-    }
+    lightsUpdate(0x001F1F1F);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -109,8 +85,7 @@ void Timer3_Init(void) {
         TIMER3_IMR_R |= 0x01;               // arm timeout interrupt
         NVIC_PRI5_R = (NVIC_PRI5_R & 0x00FFFFFF) | (LIGHT_BIT_PRIORITY << 29);
                                             // set priority
-        NVIC_EN1_R = 1 << 3;               // enable interrupt 35 in NVIC
-					TIMER3_CTL_R = 0x01;
+        NVIC_EN0_R = 1 << 23;               // enable interrupt 23 in NVIC
     EnableInterrupts();
 }
 
@@ -120,27 +95,18 @@ void Timer3_Init(void) {
 
 void Timer3A_Handler(void) {
     volatile uint32_t spin = 0;
-    int32_t bitNum = bitCount%BITS_PER_LIGHT;
-    uint32_t nextColor = color1;
-    uint32_t nextBit1;
-    uint32_t nextBit2;
+    uint32_t bitNum = bitCount%BITS_PER_LIGHT;
+    uint32_t nextBit = (newColor&(1<<bitNum))>>(bitNum - 3);
 
     TIMER3_ICR_R = 0x01;    // acknowledge timer3A timeout
-
-    if(bitNum > 3)
-        nextBit1	= (nextColor&(1<<bitNum))>>(bitNum - 4);
-    else
-        nextBit1	= (nextColor&(1<<bitNum))<<(4 - bitNum);
-    nextBit2 = nextBit1<<1;
     
     PC4 = 0xFF;         // write PC4 high
     PC5 = 0xFF;         // write PC5 high
-    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;
                         // delay remaining 0 time
-    PC4 = nextBit1;     // write PC4 to message bit
-    PC5 = nextBit2;     // write PC5 to message bit
-    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    PC4 = nextBit;      // write PC4 to message bit
+    PC5 = nextBit<<1;   // write PC5 to message bit
+    spin=0;spin=0;spin=0;spin=0;spin=0;
                         // delay remaining 1 time
     PC4 = 0x00;         // write PC4 low
     PC5 = 0x00;         // write PC5 low
@@ -148,4 +114,19 @@ void Timer3A_Handler(void) {
     bitCount--;
     if(bitCount == 0)           // after entire message is sent
         TIMER3_CTL_R = 0x00;    // disable Timer 3A
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// updateLights()
+// Performs actions to commence writing of current contents of LED[] to LEDs.
+
+void lightsUpdate(uint32_t color) {
+    lightCount++;
+
+    if(lightCount == LIGHT_FREQ) {
+        newColor = color;
+        lightCount = 0;
+        bitCount = LIGHT_SIGNAL_LENGTH - 1;   // reset message bit counter
+        TIMER3_CTL_R = 0x01;            // enable Timer 3A
+    }
 }

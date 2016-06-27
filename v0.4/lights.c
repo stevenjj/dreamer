@@ -49,6 +49,21 @@ void lightsInit(void) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// updateLights()
+// Performs actions to commence writing of current contents of LED[] to LEDs.
+
+void lightsUpdate(uint32_t color) {
+    lightCount++;
+
+    if(lightCount == LIGHT_FREQ) {
+        newColor = color;
+        lightCount = 0;
+        bitCount = LIGHT_SIGNAL_LENGTH - 1;   // reset message bit counter
+        TIMER3_CTL_R = 0x01;            // enable Timer 3A
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // PortC_Init()
 // Initializes PC4/5 as GPIO output.
 
@@ -116,19 +131,4 @@ void Timer3A_Handler(void) {
     bitCount--;
     if(bitCount == 0)           // after entire message is sent
         TIMER3_CTL_R = 0x00;    // disable Timer 3A
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// updateLights()
-// Performs actions to commence writing of current contents of LED[] to LEDs.
-
-void lightsUpdate(uint32_t color) {
-    lightCount++;
-
-    if(lightCount == LIGHT_FREQ) {
-        newColor = color;
-        lightCount = 0;
-        bitCount = LIGHT_SIGNAL_LENGTH - 1;   // reset message bit counter
-        TIMER3_CTL_R = 0x01;            // enable Timer 3A
-    }
 }

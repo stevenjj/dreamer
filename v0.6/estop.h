@@ -6,7 +6,6 @@
 // Last modified 2016.06.22
 
 void eStopInit(void);
-uint32_t hardStopStatus(void);
-void softRun(void);
-void softStop(void);
-uint32_t softStopStatus(void);
+uint32_t eStopHardRunning(void);
+void eStopSoftRun(void);
+void eStopSoftStop(void);

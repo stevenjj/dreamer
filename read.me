@@ -63,4 +63,6 @@ identifier at the beginning of each command.
 2016.06.23
    Finished testing current v0.5. lights and e-stop work perfectly. Will assemble single dof testbed, fix any bugs, then assemble entire head.
 
+2016.06.27
+   Updated ear lights bit timing code. Works, but isn't perfect. Individual bits are too slow. Instead of running at 800KHz as intended, runs at ~600KHz. Timer Handler function is already pretty well optimized for speed. Can't do much more there. Lights work fine now, showing single colors at 10-20Hz update rate. If we want multiple colors or more precise signal timing, we'll need to offload LED signals to SPI or I2C. We'll worry about that if it becomes a problem.
 

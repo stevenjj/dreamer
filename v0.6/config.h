@@ -6,7 +6,7 @@
 // Standard control loop frequencies are 550Hz and 2200KHz, according to
 // Contelec Vert-x13 user's manual
 #define CTRL_FREQ   550 // Hz
-#define LIGHT_FREQ  55  // fraction of CTRL_FREQ, 1/n
+#define LIGHT_FREQ  10  // fraction of CTRL_FREQ, 1/n
 
 #define D_LENGTH    10  // # cycles
 #define I_LENGTH    550 // # cycles (keep in mind, 100 cycles = 4.8KB)
@@ -126,18 +126,12 @@
 #define MESSAGE_ESTOP   0x10000000
 #define MESSAGE_J00_J01 0x20000000
 #define MESSAGE_J02_J03 0x30000000
-#define MESSAGE_J04_J05 0x40000000
-#define MESSAGE_J06_J07 0x50000000
-#define MESSAGE_J08_J09 0x60000000
-#define MESSAGE_J10_J11 0x70000000
+#define MESSAGE_J02_J03 0x40000000
+#define MESSAGE_J02_J03 0x50000000
+#define MESSAGE_J02_J03 0x60000000
+#define MESSAGE_J02_J03 0x70000000
 #define MESSAGE_LIGHTS  0x80000000
 #define ESTOP_RUN       0x0532AC00
-
-// Ear Light Colors
-
-#define HARD_STOP_COLOR 0x00001F00
-#define RUN_COLOR 0x001F0000
-#define SOFT_STOP_COLOR 0x001F1F00
 
 ////////////////////////////////////////////////////////////////////////////////
 // System Settings
