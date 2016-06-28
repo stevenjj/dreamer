@@ -1,0 +1,39 @@
+Dependencies for Project 'UART', Target 'Dreamer v0.5': (DO NOT MODIFY !)
+F (.\encoders.c)(0x5771D8E7)(-c --cpu Cortex-M4 -g -O0 --apcs=interwork --split_sections --signed_chars -I.. -I..\..\.. --C99-I C:\Keil\ARM\RV31\INC-I C:\Keil\ARM\CMSIS\Include-I C:\Keil\ARM\Inc\Luminary-Drvmdk -DPART_LM4F120H5QR-o .\encoders.o --omf_browse .\encoders.crf --depend .\encoders.d)
+I (C:\Keil\ARM\ARMCC\include\stdint.h)(0x51C88A34)
+I (config.h)(0x5771D91F)
+I (encoders.h)(0x5769E1F8)
+I (tm4c123gh6pm.h)(0x574E729C)
+F (.\main.c)(0x5771D6AE)(-c --cpu Cortex-M4 -g -O0 --apcs=interwork --split_sections --signed_chars -I.. -I..\..\.. --C99-I C:\Keil\ARM\RV31\INC-I C:\Keil\ARM\CMSIS\Include-I C:\Keil\ARM\Inc\Luminary-Drvmdk -DPART_LM4F120H5QR-o .\main.o --omf_browse .\main.crf --depend .\main.d)
+I (C:\Keil\ARM\ARMCC\include\stdint.h)(0x51C88A34)
+I (config.h)(0x5771D91F)
+I (encoders.h)(0x5769E1F8)
+I (estop.h)(0x57704106)
+I (lights.h)(0x577042C2)
+I (motors.h)(0x5769E1A2)
+I (PLL.h)(0x574E729C)
+I (tm4c123gh6pm.h)(0x574E729C)
+I (UART.h)(0x576890CF)
+F (.\motors.c)(0x5769E21D)(-c --cpu Cortex-M4 -g -O0 --apcs=interwork --split_sections --signed_chars -I.. -I..\..\.. --C99-I C:\Keil\ARM\RV31\INC-I C:\Keil\ARM\CMSIS\Include-I C:\Keil\ARM\Inc\Luminary-Drvmdk -DPART_LM4F120H5QR-o .\motors.o --omf_browse .\motors.crf --depend .\motors.d)
+I (C:\Keil\ARM\ARMCC\include\stdint.h)(0x51C88A34)
+I (config.h)(0x5771D91F)
+I (motors.h)(0x5769E1A2)
+I (tm4c123gh6pm.h)(0x574E729C)
+F (.\PLL.c)(0x5765C32F)(-c --cpu Cortex-M4 -g -O0 --apcs=interwork --split_sections --signed_chars -I.. -I..\..\.. --C99-I C:\Keil\ARM\RV31\INC-I C:\Keil\ARM\CMSIS\Include-I C:\Keil\ARM\Inc\Luminary-Drvmdk -DPART_LM4F120H5QR-o .\pll.o --omf_browse .\pll.crf --depend .\pll.d)
+I (PLL.h)(0x574E729C)
+F (.\UART.c)(0x57689FE4)(-c --cpu Cortex-M4 -g -O0 --apcs=interwork --split_sections --signed_chars -I.. -I..\..\.. --C99-I C:\Keil\ARM\RV31\INC-I C:\Keil\ARM\CMSIS\Include-I C:\Keil\ARM\Inc\Luminary-Drvmdk -DPART_LM4F120H5QR-o .\uart.o --omf_browse .\uart.crf --depend .\uart.d)
+I (C:\Keil\ARM\ARMCC\include\stdint.h)(0x51C88A34)
+I (config.h)(0x5771D91F)
+I (tm4c123gh6pm.h)(0x574E729C)
+I (UART.h)(0x576890CF)
+F (.\startup.s)(0x576890CF)(--cpu Cortex-M4 -g --apcs=interwork -I C:\Keil\ARM\RV31\INC-I C:\Keil\ARM\CMSIS\Include-I C:\Keil\ARM\Inc\Luminary--list .\startup.lst --xref -o .\startup.o --depend .\startup.d)
+F (.\lights.c)(0x5771BDD4)(-c --cpu Cortex-M4 -g -O0 --apcs=interwork --split_sections --signed_chars -I.. -I..\..\.. --C99-I C:\Keil\ARM\RV31\INC-I C:\Keil\ARM\CMSIS\Include-I C:\Keil\ARM\Inc\Luminary-Drvmdk -DPART_LM4F120H5QR-o .\lights.o --omf_browse .\lights.crf --depend .\lights.d)
+I (C:\Keil\ARM\ARMCC\include\stdint.h)(0x51C88A34)
+I (config.h)(0x5771D91F)
+I (lights.h)(0x577042C2)
+I (tm4c123gh6pm.h)(0x574E729C)
+F (.\estop.c)(0x57717E98)(-c --cpu Cortex-M4 -g -O0 --apcs=interwork --split_sections --signed_chars -I.. -I..\..\.. --C99-I C:\Keil\ARM\RV31\INC-I C:\Keil\ARM\CMSIS\Include-I C:\Keil\ARM\Inc\Luminary-Drvmdk -DPART_LM4F120H5QR-o .\estop.o --omf_browse .\estop.crf --depend .\estop.d)
+I (C:\Keil\ARM\ARMCC\include\stdint.h)(0x51C88A34)
+I (config.h)(0x5771D91F)
+I (estop.h)(0x57704106)
+I (tm4c123gh6pm.h)(0x574E729C)

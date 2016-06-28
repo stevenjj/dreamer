@@ -31,7 +31,7 @@ void WaitForInterrupt(void);
 int32_t ctrlVar[NUM_DOFS] = {PWM_ZERO};
 int32_t ctrlZero[NUM_DOFS] = {PWM_ZERO};
 // uint32_t desrColor = runningColor;
-int32_t desrPos[NUM_DOFS] = {ENC_CNTR};
+int32_t desrPos[NUM_DOFS] = {ENC_CNTR,ENC_CNTR,ENC_CNTR,ENC_CNTR,ENC_CNTR,ENC_CNTR,ENC_CNTR,ENC_CNTR,ENC_CNTR,ENC_CNTR,ENC_CNTR,ENC_CNTR};
 int32_t actlPos[NUM_DOFS] = {0};
 int32_t errP[NUM_DOFS] = {0};
 int32_t errI[NUM_DOFS] = {0};
@@ -173,52 +173,52 @@ void PID(void) {
 
     ctrlVar[0] = errP[0]*J00_KPn/J00_KPd
                + errI[0]*J00_KIn/J00_KId
-               + errD[0]*J00_KPn/J00_KPd
+               + errD[0]*J00_KDn/J00_KDd
                + PWM_ZERO;
-    ctrlVar[1] = PWM_ZERO
-               + errP[1]*J01_KPn/J01_KPd
+    ctrlVar[1] = errP[1]*J01_KPn/J01_KPd
                + errI[1]*J01_KIn/J01_KId
-               + errD[1]*J01_KPn/J01_KPd;
-    ctrlVar[2] = PWM_ZERO
-               + errP[2]*J02_KPn/J02_KPd
+               + errD[1]*J01_KDn/J01_KDd
+               + PWM_ZERO;
+    ctrlVar[2] = errP[2]*J02_KPn/J02_KPd
                + errI[2]*J02_KIn/J02_KId
-               + errD[2]*J02_KPn/J02_KPd;
-    ctrlVar[3] = PWM_ZERO
-               + errP[3]*J03_KPn/J03_KPd
+               + errD[2]*J02_KDn/J02_KDd
+               + PWM_ZERO;
+    ctrlVar[3] = errP[3]*J03_KPn/J03_KPd
                + errI[3]*J03_KIn/J03_KId
-               + errD[3]*J03_KPn/J03_KPd;
-    ctrlVar[4] = PWM_ZERO
-               + errP[4]*J04_KPn/J04_KPd
+               + errD[3]*J03_KDn/J03_KDd
+               + PWM_ZERO;
+    ctrlVar[4] = errP[4]*J04_KPn/J04_KPd
                + errI[4]*J04_KIn/J04_KId
-               + errD[4]*J04_KPn/J04_KPd;
-    ctrlVar[5] = PWM_ZERO
-               + errP[5]*J05_KPn/J05_KPd
+               + errD[4]*J04_KDn/J04_KDd
+               + PWM_ZERO;
+    ctrlVar[5] = errP[5]*J05_KPn/J05_KPd
                + errI[5]*J05_KIn/J05_KId
-               + errD[5]*J05_KPn/J05_KPd;
-    ctrlVar[6] = PWM_ZERO
-               + errP[6]*J06_KPn/J06_KPd
+               + errD[5]*J05_KDn/J05_KDd
+               + PWM_ZERO;
+    ctrlVar[6] = errP[6]*J06_KPn/J06_KPd
                + errI[6]*J06_KIn/J06_KId
-               + errD[6]*J06_KPn/J06_KPd;
-    ctrlVar[7] = PWM_ZERO
-               + errP[7]*J07_KPn/J07_KPd
+               + errD[6]*J06_KDn/J06_KDd
+               + PWM_ZERO;
+    ctrlVar[7] = errP[7]*J07_KPn/J07_KPd
                + errI[7]*J07_KIn/J07_KId
-               + errD[7]*J07_KPn/J07_KPd;
-    ctrlVar[8] = PWM_ZERO
-               + errP[8]*J08_KPn/J08_KPd
+               + errD[7]*J07_KDn/J07_KDd
+               + PWM_ZERO;
+    ctrlVar[8] = errP[8]*J08_KPn/J08_KPd
                + errI[8]*J08_KIn/J08_KId
-               + errD[8]*J08_KPn/J08_KPd;
-    ctrlVar[9] = PWM_ZERO
-               + errP[9]*J09_KPn/J09_KPd
+               + errD[8]*J08_KDn/J08_KDd
+               + PWM_ZERO;
+    ctrlVar[9] = errP[9]*J09_KPn/J09_KPd
                + errI[9]*J09_KIn/J09_KId
-               + errD[9]*J09_KPn/J09_KPd;
-    ctrlVar[10] = PWM_ZERO
-                + errP[10]*J10_KPn/J10_KPd
+               + errD[9]*J09_KDn/J09_KDd
+               + PWM_ZERO;
+    ctrlVar[10] = errP[10]*J10_KPn/J10_KPd
                 + errI[10]*J10_KIn/J10_KId
-                + errD[10]*J10_KPn/J10_KPd;
-    ctrlVar[11] = PWM_ZERO
-                + errP[11]*J11_KPn/J11_KPd
+                + errD[10]*J10_KDn/J10_KDd
+                + PWM_ZERO;
+    ctrlVar[11] = errP[11]*J11_KPn/J11_KPd
                 + errI[11]*J11_KIn/J11_KId
-                + errD[11]*J11_KPn/J11_KPd;
+                + errD[11]*J11_KDn/J11_KDd
+                + PWM_ZERO;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -235,13 +235,11 @@ void Timer1A_Handler(void) {
     if(hardStopPos) {
         PID();
         motorUpdate(ctrlVar);
-//        UART_OutUDec(posn[0]);UART_OutChar(' ');UART_OutString("running");UART_OutChar(CR);UART_OutChar(LF);
     }
-    else {
+    else
         motorUpdate(ctrlZero);
-//        UART_OutUDec(posn[0]);UART_OutChar(' ');UART_OutString("stopped");UART_OutChar(CR);UART_OutChar(LF);
-    }
-		
+    
+		UART_OutUDec(actlPos[8]);UART_OutChar(' ');UART_OutUDec(ctrlVar[8]);UART_OutChar(CR);UART_OutChar(LF);
 		lightsUpdate(hardStopPos, softStopPos);
 }
 

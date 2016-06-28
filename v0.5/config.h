@@ -6,7 +6,7 @@
 // Standard control loop frequencies are 550Hz and 2200KHz, according to
 // Contelec Vert-x13 user's manual
 #define CTRL_FREQ   550 // Hz
-#define LIGHT_FREQ  55  // fraction of CTRL_FREQ, 1/n
+#define LIGHT_FREQ  20  // fraction of CTRL_FREQ, 1/n
 
 #define D_LENGTH    10  // # cycles
 #define I_LENGTH    550 // # cycles (keep in mind, 100 cycles = 4.8KB)
@@ -15,7 +15,7 @@
 // Encoder Pin: PB0
 // Motor Pin:   PB6
 #define J00_KPn 1   // numerator
-#define J00_KPd 10  // denominator
+#define J00_KPd 5  // denominator
 #define J00_KIn 0
 #define J00_KId 1
 #define J00_KDn 0
@@ -24,7 +24,7 @@
 // Encoder Pin: PB1
 // Motor Pin:   PB7
 #define J01_KPn 1
-#define J01_KPd 1
+#define J01_KPd 5
 #define J01_KIn 0
 #define J01_KId 1
 #define J01_KDn 0
@@ -33,7 +33,7 @@
 // Encoder Pin: PB2
 // Motor Pin:   PB4
 #define J02_KPn 1
-#define J02_KPd 1
+#define J02_KPd 5
 #define J02_KIn 0
 #define J02_KId 1
 #define J02_KDn 0
@@ -42,7 +42,7 @@
 // Encoder Pin: PB3
 // Motor Pin:   PB5
 #define J03_KPn 1
-#define J03_KPd 1
+#define J03_KPd 5
 #define J03_KIn 0
 #define J03_KId 1
 #define J03_KDn 0
@@ -52,7 +52,7 @@
 // Encoder Pin: PD2
 // Motor Pin:   PE4
 #define J04_KPn 1
-#define J04_KPd 1
+#define J04_KPd 5
 #define J04_KIn 0
 #define J04_KId 1
 #define J04_KDn 0
@@ -61,7 +61,7 @@
 // Encoder Pin: PD3
 // Motor Pin:   PE5
 #define J05_KPn 1
-#define J05_KPd 1
+#define J05_KPd 5
 #define J05_KIn 0
 #define J05_KId 1
 #define J05_KDn 0
@@ -70,7 +70,7 @@
 // Encoder Pin: PD6
 // Motor Pin:   PD0
 #define J06_KPn 1
-#define J06_KPd 1
+#define J06_KPd 5
 #define J06_KIn 0
 #define J06_KId 1
 #define J06_KDn 0
@@ -79,7 +79,7 @@
 // Encoder Pin: PD7
 // Motor Pin:   PD1
 #define J07_KPn 1
-#define J07_KPd 1
+#define J07_KPd 5
 #define J07_KIn 0
 #define J07_KId 1
 #define J07_KDn 0
@@ -89,7 +89,7 @@
 // Encoder Pin: PE0
 // Motor Pin:   PA6
 #define J08_KPn 1
-#define J08_KPd 1
+#define J08_KPd 5
 #define J08_KIn 0
 #define J08_KId 1
 #define J08_KDn 0
@@ -98,7 +98,7 @@
 // Encoder Pin: PE1
 // Motor Pin:   PA7
 #define J09_KPn 1
-#define J09_KPd 1
+#define J09_KPd 5
 #define J09_KIn 0
 #define J09_KId 1
 #define J09_KDn 0
@@ -107,7 +107,7 @@
 // Encoder Pin: PE2
 // Motor Pin:   PF2
 #define J10_KPn 1
-#define J10_KPd 1
+#define J10_KPd 5
 #define J10_KIn 0
 #define J10_KId 1
 #define J10_KDn 0
@@ -116,7 +116,7 @@
 // Encoder Pin: PE3
 // Motor Pin:   PF3
 #define J11_KPn 1
-#define J11_KPd 1
+#define J11_KPd 5
 #define J11_KIn 0
 #define J11_KId 1
 #define J11_KDn 0
@@ -165,17 +165,17 @@
 #define PWM_MIN             MOT_PERIOD*1/10
 #define ENC_CNTR            (ENC_MAX - ENC_MIN)/2
 
-#define enc00   (*((volatile unsigned long *)0x40005004))   // PB0
-#define enc01   (*((volatile unsigned long *)0x40005008))   // PB1
-#define enc02   (*((volatile unsigned long *)0x40005010))   // PB2
-#define enc03   (*((volatile unsigned long *)0x40005020))   // PB3
-#define enc04   (*((volatile unsigned long *)0x40007010))   // PD2
-#define enc05   (*((volatile unsigned long *)0x40007020))   // PD3
-#define enc06   (*((volatile unsigned long *)0x40007100))   // PD6
-#define enc07   (*((volatile unsigned long *)0x40007200))   // PD7
-#define enc08   (*((volatile unsigned long *)0x40024004))   // PE0
-#define enc09   (*((volatile unsigned long *)0x40024008))   // PE1
-#define enc10   (*((volatile unsigned long *)0x40024010))   // PE2
-#define enc11   (*((volatile unsigned long *)0x40024020))   // PE3
-#define encSS   (*((volatile unsigned long *)0x40004040))   // PA4
-#define encCl   (*((volatile unsigned long *)0x40004080))   // PA5
+#define enc00   (*((volatile uint32_t *)0x40005004))   // PB0
+#define enc01   (*((volatile uint32_t *)0x40005008))   // PB1
+#define enc02   (*((volatile uint32_t *)0x40005010))   // PB2
+#define enc03   (*((volatile uint32_t *)0x40005020))   // PB3
+#define enc04   (*((volatile uint32_t *)0x40007010))   // PD2
+#define enc05   (*((volatile uint32_t *)0x40007020))   // PD3
+#define enc06   (*((volatile uint32_t *)0x40007100))   // PD6
+#define enc07   (*((volatile uint32_t *)0x40007200))   // PD7
+#define enc08   (*((volatile uint32_t *)0x40024004))   // PE0 not reading correctly
+#define enc09   (*((volatile uint32_t *)0x40024008))   // PE1
+#define enc10   (*((volatile uint32_t *)0x40024010))   // PE2
+#define enc11   (*((volatile uint32_t *)0x40024020))   // PE3
+#define encSS   (*((volatile uint32_t *)0x40004040))   // PA4
+#define encCl   (*((volatile uint32_t *)0x40004080))   // PA5

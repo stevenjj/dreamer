@@ -61,8 +61,23 @@ identifier at the beginning of each command.
    Archiving v0.4 even though lights are untested, moving to v0.5.
 
 2016.06.23
-   Finished testing current v0.5. lights and e-stop work perfectly. Will assemble single dof testbed, fix any bugs, then assemble entire head.
+   Finished testing current v0.5. lights and e-stop work well. Will assemble
+single dof testbed, fix any bugs, then assemble entire head.
 
 2016.06.27
-   Updated ear lights bit timing code. Works, but isn't perfect. Individual bits are too slow. Instead of running at 800KHz as intended, runs at ~600KHz. Timer Handler function is already pretty well optimized for speed. Can't do much more there. Lights work fine now, showing single colors at 10-20Hz update rate. If we want multiple colors or more precise signal timing, we'll need to offload LED signals to SPI or I2C. We'll worry about that if it becomes a problem.
+   Updated ear lights bit timing code. Works, but isn't perfect. Individual bits
+are too slow. Instead of running at 800KHz as intended, runs at ~600KHz. Timer 
+Handler function is already pretty well optimized for speed. Can't do much more 
+there. Lights work fine now, showing single colors at 10-20Hz update rate. If we
+want multiple colors or more precise signal timing, we'll need to offload LED 
+signals to SPI or I2C instead of bit banging via GPIO. We'll worry about that if
+it becomes a problem.
+   Fixed typos and truncation errors in a few places. Spent some time trying to 
+diagnose problems associated with PA6 and PE0. Realized these pins were damaged,
+worked fine on different boards.
+   Have now tested PID control on all twelve channels. EStop works, encoders 
+work, PID works, PWM works, controller is complete and ready to be installed.
+Have to 3d print some parts for ears and assemble optocoupler/level shifter PCB 
+to interface TM4C with Maxon drivers. After that's done, will install in 
+Dreamer's head.
 

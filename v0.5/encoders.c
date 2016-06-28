@@ -834,8 +834,8 @@ void PortA_Init(void) {
                                             // wait for clock to stabilize
         GPIO_PORTA_DIR_R |= 0x3C;           // make PA2-5 output
         GPIO_PORTA_AFSEL_R &= ~0x3C;        // disable alt funct on PA2-5
-        GPIO_PORTA_DEN_R |= 0x3C;           // enable digital I/O on PA2-5
         GPIO_PORTA_PCTL_R &= ~0x00FFFF00;   // configure PA2-5 as GPIO
+        GPIO_PORTA_DEN_R |= 0x3C;           // enable digital I/O on PA2-5
         GPIO_PORTA_AMSEL_R &= ~0x3C;        // disable analog funcs on PA2-5
     EnableInterrupts();
 }
@@ -852,8 +852,8 @@ void PortB_Init(void) {
                                             // wait for clock to stabilize
         GPIO_PORTB_DIR_R |= 0x0F;           // make PB0-3 output
         GPIO_PORTB_AFSEL_R &= ~0x0F;        // disable alt funct on PB0-3
-        GPIO_PORTB_DEN_R |= 0x0F;           // enable digital I/O on PB0-3
         GPIO_PORTB_PCTL_R &= ~0x0000FFFF;   // configure PB0-3 as GPIO
+        GPIO_PORTB_DEN_R |= 0x0F;           // enable digital I/O on PB0-3
         GPIO_PORTB_AMSEL_R &= ~0x0F;        // disable analog funcs on PB0-3
     EnableInterrupts();
 }
@@ -872,8 +872,8 @@ void PortD_Init(void) {
         GPIO_PORTD_CR_R |= 0x80;            // enable commit for PD7
         GPIO_PORTD_DIR_R |= 0xCC;           // make PD2,3,6,7 output
         GPIO_PORTD_AFSEL_R &= ~0xCC;        // disable alt funct on PD2,3,6,7
-        GPIO_PORTD_DEN_R |= 0xCC;           // enable digital I/O on PD2,3,6,7
         GPIO_PORTD_PCTL_R &= ~0xFF00FF00;   // configure PD2,3,6,7 as GPIO
+        GPIO_PORTD_DEN_R |= 0xCC;           // enable digital I/O on PD2,3,6,7
         GPIO_PORTD_AMSEL_R &= ~0xCC;        // disable analog funcs on PD2,3,6,7
     EnableInterrupts();
 }
@@ -890,8 +890,8 @@ void PortE_Init(void) {
                                             // wait for clock to stabilize
         GPIO_PORTE_DIR_R |= 0x0F;           // make PE0-3 output
         GPIO_PORTE_AFSEL_R &= ~0x0F;        // disable alt funct on PE0-3
-        GPIO_PORTE_DEN_R |= 0x0F;           // enable digital I/O on PE0-3
         GPIO_PORTE_PCTL_R &= ~0x0000FFFF;   // configure PE0-3 as GPIO
+        GPIO_PORTE_DEN_R |= 0x0F;           // enable digital I/O on PE0-3
         GPIO_PORTE_AMSEL_R &= ~0x0F;        // disable analog funcs on PE0-3
     EnableInterrupts();
 }
