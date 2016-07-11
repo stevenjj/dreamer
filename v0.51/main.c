@@ -12,6 +12,8 @@
 #include <stdint.h>
 #include "config.h"
 #include "encoders.h"
+#include "estop.h"
+#include "lights.h"
 #include "motors.h"
 #include "PLL.h"
 #include "tm4c123gh6pm.h"
@@ -59,14 +61,18 @@ void Timer1_Init(void);
 int main(void) {
     // Initialize all hardware
     PLL_Init();
+    eStopInit();
     encoderInit(actlPos);
     motorInit();
-    Timer1_Init();
+    lightsInit();
     UART_Init();
+    Timer1_Init();
 
     // Spin forever
     while(1) {
         parse(UART_InUDec()); // read commands from UART
+
+        // All other functions performed by Timer 1 interrupt handler
     }
 }
 
@@ -216,7 +222,17 @@ void Timer1A_Handler(void) {
     encoderRead();
     PID();
     motorUpdate(ctrlVar);
-    UART_OutUDec(actlPos[8]);UART_OutChar(' ');UART_OutUDec(ctrlVar[8]);UART_OutChar(CR);UART_OutChar(LF);
+
+    lightsUpdateCounter++;
+    if(lightsUpdateCounter = LIGHT_UPDATE_PERIOD) {
+        if(hardStopStatus == RUNNING)
+            lightsUpdate(RUN_COLOR);
+        else
+            lightsUpdate(HARD_STOP_COLOR);
+        lightsUpdateCounter = 0;
+    }
+
+    // UART_OutUDec(actlPos[10]);UART_OutChar(' ');UART_OutUDec(actlPos[11]);UART_OutChar(CR);UART_OutChar(LF);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
