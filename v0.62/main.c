@@ -4,7 +4,7 @@
 
 // This file is part of Dreamer Head v0.4.
 // Travis Llado, travis@travisllado.com
-// Last modified 2016.06.21
+// Last modified 2016.09.04
 
 ////////////////////////////////////////////////////////////////////////////////
 // Dependencies
@@ -50,6 +50,8 @@ uint32_t lightsUpdateCounter = 0;
 void calcErrP(void);
 void calcErrI(void);
 void calcErrD(void);
+void encoderFailsafe(void);
+void motionPlan(void);
 void parse(uint32_t command);
 void PID(void);
 void Timer1A_Handler(void);
@@ -70,6 +72,7 @@ int main(void) {
     lightsInit();
     UART_Init();
     Timer1_Init();
+    softRun();
 
     // Spin forever
     while(1) {
@@ -122,9 +125,21 @@ void calcErrD(void) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// encoderFailsafe()
+// Stops all motion if any encoders reads out of bounds.
+
+void encoderFailsafe(void) {
+    for(uint32_t i = 0; i < NUM_DOFS; i++) {
+        if(actlPos[i] == 0 || actlPos[i] == 16383)
+            ctrlVar[i] = PWM_ZERO;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // motionPlan()
 // Moves the head around randomly so it looks less creepy
 
+// tuning parameters; these define motion plan, spacially and temporally
 const int32_t focusMax = 300;   // default = 300
 const int32_t focusMin = -750;// default = -750
 const int32_t yawMax = 3000;    // default = 3000
@@ -138,16 +153,18 @@ const int32_t moveLength_d = 3;
 const int32_t movePeriod = CTRL_FREQ*moveLength_n/moveLength_d;
 const uint32_t blinkPeriodMin = 1;
 const uint32_t blinkPeriodMax = 10;
-const uint32_t blinkLength_n = 2;
+const uint32_t blinkLength_n = 1;
 const uint32_t blinkLength_d = 3;
-const int32_t blinkPeriod2 = CTRL_FREQ*blinkLength_n/blinkLength_d;
-const int32_t eyelidsMax = J09_Max - 200;
-const int32_t eyelidsMin = J09_Min - 150;
+const int32_t blinkLength = CTRL_FREQ*blinkLength_n/blinkLength_d;
+const int32_t eyelidsMax = J07_Max - 700;
+const int32_t eyelidsMin = J07_Min;
+const int32_t restartDelay = CTRL_FREQ/2;
 
+// intermediate variables
 uint32_t lookCount = 1;
 int32_t moveCount = 1;
-uint32_t blinkCount = 1;
-int32_t blinkCount2 = blinkPeriod2;
+uint32_t blinkCount1 = CTRL_FREQ*blinkPeriodMin;
+int32_t blinkCount2 = blinkLength;
 int32_t gazeFocus = 0;
 int32_t gazePitch = 0;
 int32_t gazeYaw = 0;
@@ -159,88 +176,91 @@ int32_t desrNew[NUM_DOFS] = {
     J00_Cnt,  J01_Cnt,  J02_Cnt,  J03_Cnt,  J04_Cnt,  J05_Cnt,
     J06_Cnt,  J07_Cnt,  J08_Cnt,  J09_Cnt,  J10_Cnt,  J11_Cnt};
 
-        int32_t change = 0;
+int32_t change = 0;
+int32_t outputNum = 0;
+
 void motionPlan() {
     // if gaze transition is in progress, ...
     if(lookCount == 0) {
         // if gaze transition is just starting, pick new gaze target
         if(moveCount == movePeriod) {
-            desrOld[0] = desrNew[0];
-            desrOld[1] = desrNew[1];
-            desrOld[2] = desrNew[2];
-            desrOld[3] = desrNew[3];
-            desrOld[4] = desrNew[4];
-            desrOld[6] = desrNew[6];
-            desrOld[9] = desrNew[9];
-            desrOld[10]= desrNew[10];
+            // store old positions
+            for(uint32_t i = 0; i < NUM_DOFS; i++)
+                desrOld[i] = desrNew[i];
             
+            // calculate new gaze parameters, independent from previous gaze
             gazeFocus = rand()%(focusMax - focusMin) + focusMin;
             gazePitch = rand()%(pitchMax - pitchMin) + pitchMin;
             gazeYaw = rand()%(yawMax - yawMin) + yawMin;
 
-            desrNew[0] = J00_Cnt + gazeFocus;
-            desrNew[1] = J01_Cnt + gazeYaw*1/2;
-            desrNew[2] = J02_Cnt - gazeYaw*1/4;
-            desrNew[3] = J03_Cnt + gazePitch*1/2 + gazeFocus;
-            desrNew[4] = J04_Cnt - gazeYaw*1/2;
-            desrNew[6] = J06_Cnt - gazeYaw*1/2;
-            desrNew[9] = eyelidsMax + 5*(gazeFocus - focusMax);
-            desrNew[10]= J10_Cnt - gazePitch*1/2;
+            // convert gaze parameters to joint positions
+            desrNew[0] = J00_Cnt + gazeFocus;       // neck pitch
+            desrNew[1] = J01_Cnt + gazeYaw*1/2;     // head rotation
+            desrNew[2] = J02_Cnt - gazeYaw*1/4;     // head roll
+            desrNew[3] = J03_Cnt + gazePitch*2/3 + gazeFocus;
+            desrNew[4] = J04_Cnt - gazePitch*1/3;   // eye pitch
+            desrNew[5] = J05_Cnt - gazeYaw*1/2;     // left eye yaw
+            desrNew[6] = J06_Cnt - gazeYaw*1/2;     // right eye yaw
+            desrNew[7] = eyelidsMax + 4*(gazeFocus - focusMax); // eyelids
+            desrNew[8] = J08_Cnt + gazePitch*4;     // right ear rotation
+            desrNew[9] = J09_Cnt + gazeFocus*4;     // right ear extension
+            desrNew[10] = J10_Cnt - gazePitch*4;    // left ear rotation
+            desrNew[11] = J11_Cnt + gazeFocus*4;    // left ear extension
+            
             moveCount--;
         }
         // if gaze transition is complete, reset counters
         else if(moveCount == 0) {
-            desrPos[0] = desrNew[0];
-            desrPos[1] = desrNew[1];
-            desrPos[2] = desrNew[2];
-            desrPos[3] = desrNew[3];
-            desrPos[4] = desrNew[4];
-            desrPos[6] = desrNew[6];
-            desrPos[9] = desrNew[9];
-            desrPos[10]= desrNew[10];
-            lookCount = rand()%(CTRL_FREQ*(lookPeriodMax - lookPeriodMin)) + CTRL_FREQ*lookPeriodMin;
+            // store new values directly as desired values, instead of
+            // interpolating
+            for(uint32_t i = 0; i < NUM_DOFS; i++)
+                desrPos[i] = desrNew[i];
+
+            // pick random time for next gaze transition
+            lookCount = rand()%(CTRL_FREQ*(lookPeriodMax - lookPeriodMin)) 
+                        + CTRL_FREQ*lookPeriodMin;
+
+            // reset transition counter
             moveCount = movePeriod;
         }
         // if gaze is in progress, interpolate between previous and next
         else {
-            desrPos[0] = desrOld[0] + (desrNew[0] - desrOld[0])*moveSine[moveCount]/1000;
-            desrPos[1] = desrOld[1] + (desrNew[1] - desrOld[1])*moveSine[moveCount]/1000;
-            desrPos[2] = desrOld[2] + (desrNew[2] - desrOld[2])*moveSine[moveCount]/1000;
-            desrPos[3] = desrOld[3] + (desrNew[3] - desrOld[3])*moveSine[moveCount]/1000;
-            desrPos[4] = desrOld[4] + (desrNew[4] - desrOld[4])*moveSine[moveCount]/1000;
-            desrPos[6] = desrOld[6] + (desrNew[6] - desrOld[6])*moveSine[moveCount]/1000;
-            desrPos[9] = desrOld[9] + (desrNew[9] - desrOld[9])*moveSine[moveCount]/1000;
-            desrPos[10]= desrOld[10]+ (desrNew[10]- desrOld[10])*moveSine[moveCount]/1000;
+            uint32_t sinPos = sine1[1000*moveCount/movePeriod];
+            for(uint32_t i = 0; i < NUM_DOFS; i++)
+                desrPos[i] = desrOld[i] + (desrNew[i] - desrOld[i])*sinPos/1000;
+
             moveCount--;
         }
     }
     // if gaze transition is not in progress, decrement counter
-    else
+    else {
+        desrPos[7] = desrNew[7];
         lookCount--;
+    }
 
+    // Blink Planner
     // if blink is in progress, ...
-    if(blinkCount == 0) {
+    if(blinkCount1 == 0) {
         // if blink is completed, reset counters
         if(blinkCount2 == 0) {
-            blinkCount = rand()%(CTRL_FREQ*(blinkPeriodMax - blinkPeriodMin)) + CTRL_FREQ*blinkPeriodMin;
-            blinkCount2 = blinkPeriod2;
+            blinkCount1 = rand()%(CTRL_FREQ*(blinkPeriodMax - blinkPeriodMin)) 
+                          + CTRL_FREQ*blinkPeriodMin;
+            blinkCount2 = blinkLength;
         }
         else {
-            // if in second half of blink, interpolate from closed to open
-            if(blinkCount2 > blinkPeriod2/2) {
-                desrPos[9] = eyelidsMin + (desrPos[9] - eyelidsMin)*(blinkCount2 - blinkPeriod2/2)/(blinkPeriod2/2);
-                blinkCount2--;
-            }
             // if in first half of blink, interpolate from open to closed
-            else {
-                desrPos[9] = desrPos[9] - (desrPos[9] - eyelidsMin)*(blinkCount2)/(blinkPeriod2/2);
-                blinkCount2--;
-            }
+            if(blinkCount2 > blinkLength/2)
+                desrPos[7] = eyelidsMin + (desrPos[7] - eyelidsMin)             \
+                             *(blinkCount2 - blinkLength/2)/(blinkLength/2);
+            // if in second half of blink, interpolate from closed to open
+            else
+                desrPos[7] = eyelidsMin + (desrPos[7] - eyelidsMin)             \
+                             *(blinkLength/2 - blinkCount2)/(blinkLength/2);
         }
+        blinkCount2--;
     }
-    // if blink is not in progress, decrement counter
     else
-        blinkCount--;
+        blinkCount1--;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -327,14 +347,14 @@ void PID(void) {
                + errI[9]*J09_KIn/J09_KId
                + errD[9]*J09_KDn/J09_KDd
                + PWM_ZERO;
-    ctrlVar[10] = errP[10]*J10_KPn/J10_KPd
-                + errI[10]*J10_KIn/J10_KId
-                + errD[10]*J10_KDn/J10_KDd
-                + PWM_ZERO;
-    ctrlVar[11] = errP[11]*J11_KPn/J11_KPd
-                + errI[11]*J11_KIn/J11_KId
-                + errD[11]*J11_KDn/J11_KDd
-                + PWM_ZERO;
+    ctrlVar[10]= errP[10]*J10_KPn/J10_KPd
+               + errI[10]*J10_KIn/J10_KId
+               + errD[10]*J10_KDn/J10_KDd
+               + PWM_ZERO;
+    ctrlVar[11]= errP[11]*J11_KPn/J11_KPd
+               + errI[11]*J11_KIn/J11_KId
+               + errD[11]*J11_KDn/J11_KDd
+               + PWM_ZERO;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -346,42 +366,48 @@ void Timer1A_Handler(void) {
 
     encoderRead();
     PID();
+    encoderFailsafe();
     motorUpdate(ctrlVar);
-    uint32_t eStopStatus = hardStopStatus();
+    int32_t eStopStatus = STOPPED;
+    int32_t nextColor = 0;
+
+    if(hardStopStatus() == STOPPED)
+        nextColor = HARD_STOP_COLOR;
+    else if(softStopStatus() == STOPPED)
+        nextColor = SOFT_STOP_COLOR;
+    else {
+        nextColor = RUN_COLOR;
+        eStopStatus = RUNNING;
+    }
 
     lightsUpdateCounter++;
     if(lightsUpdateCounter == LIGHT_UPDATE_PERIOD) {
-        if(eStopStatus == RUNNING)
-            lightsUpdate(RUN_COLOR);
-        else
-            lightsUpdate(HARD_STOP_COLOR);
+        lightsUpdate(nextColor);
         lightsUpdateCounter = 0;
     }
 
     if(eStopStatus == RUNNING)
         motionPlan();
+    // if EStop is stopped, ...
     else {
-        desrNew[0] = actlPos[0];
-        desrNew[1] = actlPos[1];
-        desrNew[2] = actlPos[2];
-        desrNew[3] = actlPos[3];
-        desrNew[4] = actlPos[4];
-        desrNew[6] = actlPos[6];
-        desrNew[9] = actlPos[9];
-        desrNew[10] = actlPos[10];
-        desrPos[0] = desrNew[0];
-        desrPos[1] = desrNew[1];
-        desrPos[2] = desrNew[2];
-        desrPos[3] = desrNew[3];
-        desrPos[4] = desrNew[4];
-        desrPos[6] = desrNew[6];
-        desrPos[10] = desrNew[10];
-        lookCount = 275;
+        // store current (unactuated) position as desired for controller and 
+        // planner
+        for(uint32_t i = 0; i < NUM_DOFS; i++) {
+            desrNew[i] = actlPos[i];
+            desrPos[0] = desrNew[0];
+        }
+
+        // When EStop is re-started, set timer to hold current position, then 
+        // perform gaze transition after short delay
+        lookCount = restartDelay;
         moveCount = movePeriod;
-        blinkCount = 1;
+        blinkCount1 = 1;
     }
 
-    UART_OutUDec(actlPos[9]);UART_OutChar(' ');UART_OutUDec(desrPos[9]);UART_OutChar(CR);UART_OutChar(LF);
+    UART_OutUDec(actlPos[2]);
+    UART_OutChar(' ');
+    UART_OutUDec(actlPos[3]);
+    UART_OutChar(CR);UART_OutChar(LF);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

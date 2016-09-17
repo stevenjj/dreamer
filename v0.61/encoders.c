@@ -954,18 +954,18 @@ void PortE_Init(void) {
 // Transform raw gpio reads into encoder values.
 
 void transform(void) {
-    position[0] = new00;
-    position[1] = new01;
-    position[2] = new02;
-    position[3] = new03;
-    position[4] = new04;
-    position[5] = new05;
-    position[6] = new06;
-    position[7] = new07;
-    position[8] = new08;
-    position[9] = new09;
-    position[10] = new10;
-    position[11] = new11;
+    position[0] = new04;
+    position[1] = new05;
+    position[2] = new06;
+    position[3] = new07;
+    position[4] = new08;
+    position[5] = new02;
+    position[6] = new09;
+    position[7] = new03;
+    position[8] = new11;
+    position[9] = new10;
+    position[10] = new00;
+    position[11] = new01;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

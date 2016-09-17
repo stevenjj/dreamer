@@ -51,16 +51,16 @@ uint32_t hardStopStatus(void) {
 // lightsInit()
 
 void softRun(void) {
-    PC7 = 0xFF;
-    softStopState = 1;
+    PC7 = 0x00;
+    softStopState = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // lightsInit()
 
 void softStop(void) {
-    PC7 = 0x00;
-    softStopState = 0;
+    PC7 = 0xFF;
+    softStopState = 1;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

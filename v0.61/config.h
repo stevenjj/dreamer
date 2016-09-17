@@ -9,10 +9,10 @@
 // J00: Lower Neck Pitch
 // Encoder Pin: PB0
 // Motor Pin:   PB6
-#define J00_Min 10070
-#define J00_Max 12785
-#define J00_Cnt 11985
-#define J00_KPn 30    // numerator
+#define J00_Min 4490
+#define J00_Max 7325
+#define J00_Cnt 6500
+#define J00_KPn 30   // numerator
 #define J00_KPd 1   // denominator
 #define J00_KIn 1
 #define J00_KId 1
@@ -21,8 +21,8 @@
 // J01: Neck Rotation
 // Encoder Pin: PB1
 // Motor Pin:   PB7
-#define J01_Min 3265
-#define J01_Max 10725
+#define J01_Min 7100
+#define J01_Max 14675
 #define J01_Cnt (J01_Min + J01_Max)/2
 #define J01_KPn 20
 #define J01_KPd 1
@@ -33,8 +33,8 @@
 // J02: Neck Roll
 // Encoder Pin: PB2
 // Motor Pin:   PB4
-#define J02_Min 4950
-#define J02_Max 6540
+#define J02_Min 430
+#define J02_Max 1965
 #define J02_Cnt (J02_Min + J02_Max)/2
 #define J02_KPn 20
 #define J02_KPd 1
@@ -45,110 +45,110 @@
 // J03: Upper Neck Pitch
 // Encoder Pin: PB3
 // Motor Pin:   PB5
-#define J03_Min 6240
-#define J03_Max 8585
-#define J03_Cnt 7555
-#define J03_KPn 20
+#define J03_Min 12735
+#define J03_Max 15060
+#define J03_Cnt 14080
+#define J03_KPn 10
 #define J03_KPd 1
-#define J03_KIn 1
+#define J03_KIn 0
 #define J03_KId 1
-#define J03_KDn 1
-#define J03_KDd 3
+#define J03_KDn 0
+#define J03_KDd 1
 
-// J04: Eye Pitch				Currently J6
+// J04: Eye Pitch
 // Encoder Pin: PD2
 // Motor Pin:   PE4
-#define J04_Min 920
-#define J04_Max 4120
-#define J04_Cnt 2365
+#define J04_Min 10035
+#define J04_Max 12350
+#define J04_Cnt 11300
 #define J04_KPn 5
 #define J04_KPd 1
 #define J04_KIn 2
 #define J04_KId 1
 #define J04_KDn 0
 #define J04_KDd 1
-// J05: Right Eye Yaw
+// J05: Left Eye Yaw
 // Encoder Pin: PD3
 // Motor Pin:   PE5
-#define J05_Min 12380
-#define J05_Max 15485
-#define J05_Cnt 14035
-#define J05_KPn 0
+
+#define J05_Min 105
+#define J05_Max 3305
+#define J05_Cnt 1790
+#define J05_KPn 5
 #define J05_KPd 1
-#define J05_KIn 0
+#define J05_KIn 2
 #define J05_KId 1
-#define J05_KDn 0
-#define J05_KDd 1
-// J06: Left Eye Yaw			Currently J5
+#define J05_KDn 1
+#define J05_KDd 10
+// J06: Right Eye Yaw
 // Encoder Pin: PD6
 // Motor Pin:   PD0
-#define J06_Min 12380
-#define J06_Max 15485
-#define J06_Cnt 13800
+#define J06_Min 8100
+#define J06_Max 11245
+#define J06_Cnt 9625
 #define J06_KPn 5
 #define J06_KPd 1
 #define J06_KIn 2
 #define J06_KId 1
-#define J06_KDn 0
-#define J06_KDd 1
+#define J06_KDn 1
+#define J06_KDd 10
 // J07: Eyelids
 // Encoder Pin: PD7
 // Motor Pin:   PD1
-#define J07_Min 12380
-#define J07_Max 15485
-#define J07_Cnt 14035
-#define J07_KPn 0
+#define J07_Min 3400
+#define J07_Max 10880
+#define J07_Cnt 9000
+#define J07_KPn 10
 #define J07_KPd 1
-#define J07_KIn 0
+#define J07_KIn 5
 #define J07_KId 1
-#define J07_KDn 0
-#define J07_KDd 1
+#define J07_KDn 1
+#define J07_KDd 5
 // J08: Right Ear Rotation
 // Encoder Pin: PE0
 // Motor Pin:   PA6
-#define J08_Min 8191
-#define J08_Max 8191
+#define J08_Min 7210
+#define J08_Max 14405
 #define J08_Cnt (J08_Min + J08_Max)/2
-#define J08_KPn 0
+#define J08_KPn 10
 #define J08_KPd 1
-#define J08_KIn 0
+#define J08_KIn 2
 #define J08_KId 1
-#define J08_KDn 0
-#define J08_KDd 1
-// J09: Right Ear Extension			Currenly eyelids
+#define J08_KDn 1
+#define J08_KDd 10
+// J09: Right Ear Extension
 // Encoder Pin: PE1
 // Motor Pin:   PA7
-#define J09_Min 1950
-#define J09_Max 10510
-#define J09_Cnt 8500
-#define J09_KPn 10
+#define J09_Min 1800
+#define J09_Max 15485
+#define J09_Cnt (J09_Min + J09_Max)/2
+#define J09_KPn 1
 #define J09_KPd 1
-#define J09_KIn 10
+#define J09_KIn 0
 #define J09_KId 1
 #define J09_KDn 0
 #define J09_KDd 1
-// J10: Left Ear Rotation				Currently eye pitch
+// J10: Left Ear Rotation
 // Encoder Pin: PE2
 // Motor Pin:   PF2
-#define J10_Min 10085
-#define J10_Max 13260
+#define J10_Min 1980
+#define J10_Max 9210
 #define J10_Cnt (J10_Min + J10_Max)/2
-#define J10_KPn 5
+#define J10_KPn 10
 #define J10_KPd 1
 #define J10_KIn 2
 #define J10_KId 1
-#define J10_KDn 0
-#define J10_KDd 1
+#define J10_KDn 1
+#define J10_KDd 10
 // J11: Left Ear Extension
 // Encoder Pin: PE3
 // Motor Pin:   PF3
-// Joint Range: 275, AVG, 13940
-#define J11_Min 275
-#define J11_Max 13940
+#define J11_Min 1740
+#define J11_Max 15310
 #define J11_Cnt (J11_Min + J11_Max)/2
-#define J11_KPn 0
+#define J11_KPn 10
 #define J11_KPd 1
-#define J11_KIn 0
+#define J11_KIn 2
 #define J11_KId 1
 #define J11_KDn 0
 #define J11_KDd 1

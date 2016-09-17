@@ -1,5 +1,22 @@
 Dreamer Head Redesign v57.0
 
+2016.09.16
+   Wow, haven't updated this in a long time. We finished the PCB design (good
+enough), manufactured, assembled, and installed them, and now we're removing
+final bugs. We have a problem with the ear lights in that the bit banging code
+isn't running fast enough and the end of the signal is getting cut off. We will
+attempt to fix that by rewriting the signal generation code in assembly. We are
+also in the middle of repainting the head. We have mounted the head back on top
+of the torso, routed all cables through the neck/torso/base, and almost finished
+physically integrating the two systems. The head/torso are still completely
+separate robots as far as software and controls are concerned.
+   For the past few days we've been working on the eyes. The cameras are up and
+running, but we do not yet know how to interface them with other software. They
+appear as a different type of hardware than most other webcams and we will have
+to figure out how to read them with OpenCV and ROS. The immediate goal is to
+have Dreamer doing face tracking within the next week. That's essentially the
+baseline demo we've wanted for the past several years. It's very close.
+
 2016.07.10
    Did a lot more testing, debugging, redesigning, etc. At this point, 
 everything works. We have twelve DOFs running at a determininstic 550Hz. We're 

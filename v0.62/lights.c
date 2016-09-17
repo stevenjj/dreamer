@@ -27,8 +27,8 @@ uint32_t lightCount = 0;
 uint32_t color1 = 0;
 uint32_t color2 = 0;
 
-#define PC4 (*((volatile unsigned long *)0x40006040))
-#define PC5 (*((volatile unsigned long *)0x40006080))
+#define LEFT_LIGHTS (*((volatile uint32_t *)0x40006040))    // PC4
+#define RIGHT_LIGHTS (*((volatile uint32_t *)0x40006080))    // PC5
 
 ////////////////////////////////////////////////////////////////////////////////
 // Internal Prototypes
@@ -55,7 +55,7 @@ void lightsInit(void) {
 
 void lightsUpdate(uint32_t newColor) {
     color1 = newColor;
-	
+    
     bitCount = LIGHT_SIGNAL_LENGTH - 1; // reset message bit counter
     TIMER3_CTL_R = 0x01;                // enable Timer 3A
 }
@@ -98,7 +98,7 @@ void Timer3_Init(void) {
         NVIC_PRI5_R = (NVIC_PRI5_R & 0x00FFFFFF) | (LIGHT_BIT_PRIORITY << 29);
                                             // set priority
         NVIC_EN1_R = 1 << 3;               // enable interrupt 35 in NVIC
-					TIMER3_CTL_R = 0x01;
+                    TIMER3_CTL_R = 0x01;
     EnableInterrupts();
 }
 
@@ -107,31 +107,31 @@ void Timer3_Init(void) {
 // Writes single bit to all LED strings
 
 void Timer3A_Handler(void) {
-    volatile uint32_t spin = 0;
     int32_t bitNum = bitCount%BITS_PER_LIGHT;
-    uint32_t nextColor = color1;
+    volatile uint32_t spin = 0;
     uint32_t nextBit1;
-    uint32_t nextBit2;
-
+    uint32_t nextBit2; 
     TIMER3_ICR_R = 0x01;    // acknowledge timer3A timeout
 
     if(bitNum > 3)
-        nextBit1	= (nextColor&(1<<bitNum))>>(bitNum - 4);
+        nextBit1  = (color1&(1<<bitNum))>>(bitNum - 4);
     else
-        nextBit1	= (nextColor&(1<<bitNum))<<(4 - bitNum);
+        nextBit1  = (color1&(1<<bitNum))<<(4 - bitNum);
     nextBit2 = nextBit1<<1;
     
-    PC4 = 0xFF;         // write PC4 high
-    PC5 = 0xFF;         // write PC5 high
+    LEFT_LIGHTS = 0xFF;         // write PC4 high
+    RIGHT_LIGHTS = 0xFF;         // write PC5 high
     spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
                         // delay remaining 0 time
-    PC4 = nextBit1;     // write PC4 to message bit
-    PC5 = nextBit2;     // write PC5 to message bit
+    LEFT_LIGHTS = nextBit1;     // write PC4 to message bit
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    RIGHT_LIGHTS = nextBit2;     // write PC5 to message bit
     spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;
                         // delay remaining 1 time
-    PC4 = 0x00;         // write PC4 low
-    PC5 = 0x00;         // write PC5 low
+    LEFT_LIGHTS = 0x00;         // write PC4 low
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    RIGHT_LIGHTS = 0x00;         // write PC5 low
 
     bitCount--;
     if(bitCount == 0)           // after entire message is sent
