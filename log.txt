@@ -1,5 +1,15 @@
 Dreamer Head Redesign v57.0
 
+2016.09.19
+   Several updates, mostly fixes of bugs previously mentioned. Rewrote ear light
+code in ASM, runs exactly at timing recommendations and within requirements. 
+Need to improve code so we can pass arbitrary color value, instead of current
+system that writes predefined values.
+   Changed build naming system. "Version x.x" will only be used for polished
+releases. "TestBuildxxxx" will be used for rough test builds, with 'a' of
+"TestBuildaxxx" being most recent polished release number.This makes keeping
+track of version number much easier.
+
 2016.09.16
    Wow, haven't updated this in a long time. We finished the PCB design (good
 enough), manufactured, assembled, and installed them, and now we're removing
