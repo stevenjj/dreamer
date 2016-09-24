@@ -1,5 +1,13 @@
 Dreamer Head Redesign v57.0
 
+2016.09.24
+   Posted release build v0.9. This version is very stable and includes all
+essential control features plus random movement demo. Does not include a
+generic motion controller or interpreter allowing for remote control. That will
+be the next thing to develop. In order to do anything involving vision, we'll
+need to cede motion control to an external computer, which will require a
+completed interpreter.
+
 2016.09.19
    Several updates, mostly fixes of bugs previously mentioned. Rewrote ear light
 code in ASM, runs exactly at timing recommendations and within requirements. 

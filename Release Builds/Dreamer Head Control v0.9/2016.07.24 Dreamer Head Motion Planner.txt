@@ -1,0 +1,42 @@
+2016.09.09 Dreamer head operational, debugging last few problems and upgrading motion planner
+
+As of a few days ago, Dreamer's head is ~99% operational. All twelve DOFs are running smoothly and the ear lights mostly work. We still have a problem with the bitbanging timing in the light control signals.
+The next thing we're going to do is add to the motion planner, making it sort of a "fuzzy" motion planner. In other words, we send a command to the motors, but an intermediate task adds a random deviation to that order. This deviation is a vector that changes smoothly and continuously, causing the head to do a small, slow random walk around its desired gaze. Since this is a purely heuristic feature, it will require a lot of tuning. We'll work on creating a kinematically correct gaze motion planner (a motion planner that produces head motions based on the actual dimensions of the head, so that the eyes actually focus on the correct point, instead of looking forward roughly parallel, as they currently do; technically, they're not actually parallel, they're just close to parallel, we haven't measured their angles directly, just their joint ranges) in the near future. That will probably run on an external PC, not on the embedded MCU, at least at first. If we produce a kinematically correct planner with low computational requirements, we can put that on the head as the default demo.
+Of course, the ultimate goal will be to have the head react to visual data, so motion planning and high level control will be performed completely by an external PC, since we currently have no way of connecting the cameras to an embedded PC.
+
+
+
+
+2016.07.24 Dreamer Head Motion Planner
+
+Blinking is random, independent from other actions
+All other actions are built around gaze
+Gaze utilizes three variable: pitch, yaw, and focal length
+
+J00 (neck pitch)
+    Neck pitch is function of focal length only. Neck leans forward as focal length increases.
+J01 (head yaw)
+    Head yaw = 2/3 of gaze yaw.
+J02 (head roll)
+    Head rolls ~= 1/3 gaze yaw. Head rolls left as head yaws right, and vice versa.
+J03 (head pitch)
+    Head pitch = 2/3 gaze pitch
+J04 (eye pitch)
+    Eye pitch = 1/3 gaze pitch
+J05 (right eye yaw)
+    Right eye yaw = 1/3 of gaze yaw.
+J06 (left eye yaw)
+    Left eye yaw = 1/3 of gaze yaw.
+J07 (eyelid position)
+    Eyelid position is function of focal length only. Eyelids close as focal length increases.
+
+J0pos = atan((max_focus - min_focus)*random + min_focus);
+J1pos = 2*gaze_yaw/3;
+J2pos = -gaze_yaw/3;
+J3pos = 2*gaze_pitch/3;
+J4pos = gaze_pitch/3;
+J5pos = gaze_yaw/3;
+J6pos = gaze_yaw/3;
+J7pos = atan()
+
+focal length transformation: atan(pi*x/3 - 3)/pi + 0.4

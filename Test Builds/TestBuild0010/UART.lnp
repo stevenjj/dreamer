@@ -1,0 +1,13 @@
+--cpu Cortex-M4
+".\encoders.o"
+".\estop.o"
+".\lights.o"
+".\main.o"
+".\motors.o"
+".\pll.o"
+".\uart.o"
+".\startup.o"
+".\lightsasm.o"
+--ro-base 0x00000000 --entry 0x00000000 --rw-base 0x20000000 --entry Reset_Handler --first __Vectors --strict --summary_stderr --info summarysizes --map --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list ".\UART.map" -o .\UART.axf

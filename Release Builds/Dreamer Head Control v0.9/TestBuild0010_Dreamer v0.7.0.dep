@@ -1,0 +1,43 @@
+Dependencies for Project 'TestBuild0010', Target 'Dreamer v0.7.0': (DO NOT MODIFY !)
+F (.\encoders.c)(0x57CBB58A)(-c --cpu Cortex-M4 -D__EVAL -g -O0 --apcs=interwork --split_sections --signed_chars -I .. -I ..\..\.. --C99-I C:\Keil_v5\ARM\RV31\INC-I C:\Keil_v5\ARM\CMSIS\Include-I C:\Keil_v5\ARM\Inc\Luminary-D__UVISION_VERSION="520" -Drvmdk -DPART_LM4F120H5QR-o .\encoders.o --omf_browse .\encoders.crf --depend .\encoders.d)
+I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x56FEF9AE)
+I (config.h)(0x57E51BDB)
+I (encoders.h)(0x5769E1F8)
+I (tm4c123gh6pm.h)(0x574E729C)
+F (.\estop.c)(0x57CB59B2)(-c --cpu Cortex-M4 -D__EVAL -g -O0 --apcs=interwork --split_sections --signed_chars -I .. -I ..\..\.. --C99-I C:\Keil_v5\ARM\RV31\INC-I C:\Keil_v5\ARM\CMSIS\Include-I C:\Keil_v5\ARM\Inc\Luminary-D__UVISION_VERSION="520" -Drvmdk -DPART_LM4F120H5QR-o .\estop.o --omf_browse .\estop.crf --depend .\estop.d)
+I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x56FEF9AE)
+I (config.h)(0x57E51BDB)
+I (estop.h)(0x579570CF)
+I (tm4c123gh6pm.h)(0x574E729C)
+F (.\lights.c)(0x57E0C1EA)(-c --cpu Cortex-M4 -D__EVAL -g -O0 --apcs=interwork --split_sections --signed_chars -I .. -I ..\..\.. --C99-I C:\Keil_v5\ARM\RV31\INC-I C:\Keil_v5\ARM\CMSIS\Include-I C:\Keil_v5\ARM\Inc\Luminary-D__UVISION_VERSION="520" -Drvmdk -DPART_LM4F120H5QR-o .\lights.o --omf_browse .\lights.crf --depend .\lights.d)
+I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x56FEF9AE)
+I (config.h)(0x57E51BDB)
+I (lights.h)(0x57E08ACF)
+I (tm4c123gh6pm.h)(0x574E729C)
+F (.\main.c)(0x57E51B67)(-c --cpu Cortex-M4 -D__EVAL -g -O0 --apcs=interwork --split_sections --signed_chars -I .. -I ..\..\.. --C99-I C:\Keil_v5\ARM\RV31\INC-I C:\Keil_v5\ARM\CMSIS\Include-I C:\Keil_v5\ARM\Inc\Luminary-D__UVISION_VERSION="520" -Drvmdk -DPART_LM4F120H5QR-o .\main.o --omf_browse .\main.crf --depend .\main.d)
+I (C:\Keil_v5\ARM\ARMCC\include\cstdlib)(0x56FEF9A6)
+I (C:\Keil_v5\ARM\ARMCC\include\stdlib.h)(0x56FEF9AE)
+I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x56FEF9AE)
+I (config.h)(0x57E51BDB)
+I (cosines.h)(0x57DDE192)
+I (encoders.h)(0x5769E1F8)
+I (estop.h)(0x579570CF)
+I (lights.h)(0x57E08ACF)
+I (motors.h)(0x5769E1A2)
+I (PLL.h)(0x574E729C)
+I (tm4c123gh6pm.h)(0x574E729C)
+I (UART.h)(0x576890CF)
+F (.\motors.c)(0x57CBB19C)(-c --cpu Cortex-M4 -D__EVAL -g -O0 --apcs=interwork --split_sections --signed_chars -I .. -I ..\..\.. --C99-I C:\Keil_v5\ARM\RV31\INC-I C:\Keil_v5\ARM\CMSIS\Include-I C:\Keil_v5\ARM\Inc\Luminary-D__UVISION_VERSION="520" -Drvmdk -DPART_LM4F120H5QR-o .\motors.o --omf_browse .\motors.crf --depend .\motors.d)
+I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x56FEF9AE)
+I (config.h)(0x57E51BDB)
+I (motors.h)(0x5769E1A2)
+I (tm4c123gh6pm.h)(0x574E729C)
+F (.\PLL.c)(0x5765C32F)(-c --cpu Cortex-M4 -D__EVAL -g -O0 --apcs=interwork --split_sections --signed_chars -I .. -I ..\..\.. --C99-I C:\Keil_v5\ARM\RV31\INC-I C:\Keil_v5\ARM\CMSIS\Include-I C:\Keil_v5\ARM\Inc\Luminary-D__UVISION_VERSION="520" -Drvmdk -DPART_LM4F120H5QR-o .\pll.o --omf_browse .\pll.crf --depend .\pll.d)
+I (PLL.h)(0x574E729C)
+F (.\UART.c)(0x57689FE4)(-c --cpu Cortex-M4 -D__EVAL -g -O0 --apcs=interwork --split_sections --signed_chars -I .. -I ..\..\.. --C99-I C:\Keil_v5\ARM\RV31\INC-I C:\Keil_v5\ARM\CMSIS\Include-I C:\Keil_v5\ARM\Inc\Luminary-D__UVISION_VERSION="520" -Drvmdk -DPART_LM4F120H5QR-o .\uart.o --omf_browse .\uart.crf --depend .\uart.d)
+I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x56FEF9AE)
+I (config.h)(0x57E51BDB)
+I (tm4c123gh6pm.h)(0x574E729C)
+I (UART.h)(0x576890CF)
+F (.\startup.s)(0x57E0BBDF)(--cpu Cortex-M4 --pd "__EVAL SETA 1" -g --apcs=interwork -I C:\Keil_v5\ARM\RV31\INC-I C:\Keil_v5\ARM\CMSIS\Include-I C:\Keil_v5\ARM\Inc\Luminary--pd "__UVISION_VERSION SETA 520"--list .\startup.lst --xref -o .\startup.o --depend .\startup.d)
+F (.\lightsASM.s)(0x57E1A855)(--cpu Cortex-M4 --pd "__EVAL SETA 1" -g --apcs=interwork -I C:\Keil_v5\ARM\RV31\INC-I C:\Keil_v5\ARM\CMSIS\Include-I C:\Keil_v5\ARM\Inc\Luminary--pd "__UVISION_VERSION SETA 520"--list .\lightsasm.lst --xref -o .\lightsasm.o --depend .\lightsasm.d)
