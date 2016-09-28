@@ -1,5 +1,26 @@
 Dreamer Head Redesign v57.0
 
+2016.09.27
+   Modified v0.9 to enable interpreter control. Interpreter works just fine, 
+receives and processes with no problems observed. Remote control was implemented
+by receiving gaze parameters from remote, then inserting those into random gaze 
+parameter generation function in motion planner. Motion planner look counter is 
+also modifed so that it does not decrement naturally. Instead, it is set to zero
+when new gaze commands are received. Head then holds ordered position until new 
+commands are received. This change can be implemented with only a few changed 
+lines of code.
+   For future use, remote control should be a standard feature available at any 
+time without reprogramming of the Tiva MCU. We should program the interpreter to
+take input of program start/stop commands. The random gaze planner would then 
+run automatically at startup, but could be stopped and replaced by remote 
+control or anything else at any future point via a serial command. The most 
+sophisticated way to do this would be to essentially replace the existing 
+program with an OS, and the various motion controllers as threads running on 
+that OS, but since the only two programs we currently have planned are the 
+default random motion and occassional remote control, we'll just use that for 
+now. We can put the few lines of modified code inside conditional statements and
+control the switch that way.
+
 2016.09.24
    Posted release build v0.9. This version is very stable and includes all
 essential control features plus random movement demo. Does not include a
