@@ -1,5 +1,10 @@
 Dreamer Head Redesign v57.0
 
+2016.09.28
+   Working on lights.s, changing lightsUpdate() to take input of arbitrary new
+color. This requires rewriting of most existing file. Also, moving lightsInit()
+to assembly, since it's the only thing left in lights.c. Will test and debug tomorrow.
+
 2016.09.27
    Modified v0.9 to enable interpreter control. Interpreter works just fine, 
 receives and processes with no problems observed. Remote control was implemented
