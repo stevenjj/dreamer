@@ -1,10 +1,10 @@
 // main.c
-// Main program for operation of joints in Dreamer's head. Contains all controls
+// Main program for operation of joints in Dreamer's head. Contains all control
 // functions.
- 
-// This file is part of Dreamer Head v0.7.0.
+
+// This file is part of Dreamer Head t0901.
 // Travis Llado, travis@travisllado.com
-// Last modified 2016.09.17
+// Last modified 2016.09.27
  
 ////////////////////////////////////////////////////////////////////////////////
 // Dependencies
