@@ -1,16 +1,28 @@
+import serial
 import numpy as np
 import cv2
 
-# multiple cascades: https://github.com/Itseez/opencv/tree/master/data/haarcascades
+xgain = 0.01
+ygain = 0.01
+xres = 1300
+yres = 700
 
+gazeKey = 0xA7
+gazeFocus = 128
+gazePitch = 128
+gazeYaw = 128
+x0 = xres/2
+y0 = yres/2
+
+# ser = serial.Serial('COM12', 115200, parity='N')
+
+# multiple cascades: https://github.com/Itseez/opencv/tree/master/data/haarcascades
 #https://github.com/Itseez/opencv/blob/master/data/haarcascades/haarcascade_frontalface_default.xml
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 #https://github.com/Itseez/opencv/blob/master/data/haarcascades/haarcascade_eye.xml
 eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
 
 cap = cv2.VideoCapture(0)
-xc=425
-yc=250
 
 while 1:
     ret, img = cap.read()
@@ -20,8 +32,8 @@ while 1:
     for (x,y,w,h) in faces:
         x0=x+w/2
         y0=y+h/2
-        print(128+(x0-xc)*127/450, 128+(y0-yc)*127/250)
-        cv2.rectangle(img,(x0-2,y0-2),(x0+2,y0+2),(255,0,0),2)
+
+        cv2.rectangle(img,(x0-5,y0-5),(x0+5,y0+5),(255,0,0),2)
         roi_gray = gray[y:y+h, x:x+w]
         roi_color = img[y:y+h, x:x+w]
         
@@ -33,6 +45,15 @@ while 1:
     k = cv2.waitKey(30) & 0xff
     if k == 27:
         break
+
+    gazePitch += (x0 - xres/2)*xgain
+    gazeYaw += (y0 - yres/2)*ygain
+
+    newCommand = gazeKey*0x1000000 + gazeFocus*0x10000 + gazePitch*0x100 + gazeYaw
+    newMessage = str(newCommand) + "\r"
+#    ser.write(newMessage)
+    print gazePitch, gazeYaw
+#    print newMessage
 
 cap.release()
 cv2.destroyAllWindows()
