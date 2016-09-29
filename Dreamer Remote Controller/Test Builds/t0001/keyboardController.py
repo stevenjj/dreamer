@@ -45,6 +45,8 @@ while True:
         break
     elif key == 13: #Enter
         select()
+    elif key == 32: #spacebar
+        lookCenter();
     elif key == 224: #Special keys (arrows, f keys, ins, del, etc.)
         key = ord(getch())
         if key == 80: #Down arrow
