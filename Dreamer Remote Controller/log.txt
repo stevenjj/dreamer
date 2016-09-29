@@ -1,0 +1,6 @@
+Dreamer Remote Controller
+
+2016.09.28
+   We've started work on remote control options for Dreamer's new head. The first thing we're putting together is a very simple position controller that allows the user to move the head to a variety of predetermined positions in realtime. keyboardController.py reads the host PC's keyboard's arrow keys and moves the head to any of four predetermined positions as the keys are pressed. We've button mashed the keys and have not yet observed any dangerous behavior.
+
+
