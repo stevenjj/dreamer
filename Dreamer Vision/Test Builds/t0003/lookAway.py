@@ -35,17 +35,11 @@ while 1:
         y0=y+h/2
 
         gazeFocus = 128
-        gazeYaw = int((x0+600)*8/50)-20
-        gazePitch = int(y0*2/3)
+        gazeYaw = int((x0+600)*8/50)-20+128
+        gazePitch = int(y0*2/3)+128
 
-        if gazePitch > 255:
-            gazePitch = 255
-        elif gazePitch < 0:
-            gazePitch = 0
-        if gazeYaw > 255:
-            gazeYaw = 255
-        elif gazeYaw < 0:
-            gazeYaw = 0
+        gazeYaw %= 255
+        gazePitch %= 255
 
         newCommand = gazeKey*0x1000000 + gazeFocus*0x10000 + gazePitch*0x100 + gazeYaw
         newMessage = str(newCommand) + "\r"

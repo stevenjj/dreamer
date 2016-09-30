@@ -151,9 +151,9 @@ const int32_t pitchMax = 500;   // default = 500
 const int32_t pitchMin = -1000; // default = -1000
 const uint32_t lookPeriodMin = 2;
 const uint32_t lookPeriodMax = 6;
-const int32_t moveLength_n = 2;
-const int32_t moveLength_d = 3;
-const int32_t movePeriod = CTRL_FREQ*moveLength_n/moveLength_d;
+const int32_t moveLength_n = 1;
+const int32_t moveLength_d = 4;
+const int32_t movePeriod = MOVE_LENGTH;
 const uint32_t blinkPeriodMin = 1;
 const uint32_t blinkPeriodMax = 10;
 const uint32_t blinkLength_n = 1;
