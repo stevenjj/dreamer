@@ -15,7 +15,7 @@ NUMLEDS             EQU 0x00000028  ; number of WS2812 LEDs in series
         EXPORT  orangeLights
         EXPORT  blueLights
 
-zeroPulse           		f; generate 0 pulse (0.5us high, 2.0us low)
+zeroPulse           		; generate 0 pulse (0.5us high, 2.0us low)
     STR R1, [R0]    		; set PC4-5 high
     NOP             		; no operation
     NOP             		; no operation

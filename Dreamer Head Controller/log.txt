@@ -1,5 +1,8 @@
 Dreamer Head Redesign v57.0
 
+2016.10.12
+   Finally got lights.s working completely as desired, meaning that we can send arbitrary color values at any time. One eventual modification might be to make two update functions, one that takes 1xuint32_t for all lights, and a second that takes 2x40xuint32_t that can update all lights individually. That's a luxury goal for the future.
+
 2016.09.28
    Working on lights.s, changing lightsUpdate() to take input of arbitrary new
 color. This requires rewriting of most existing file. Also, moving lightsInit()

@@ -174,17 +174,17 @@
 #define ESTOP_RUN       0x0532AC00
 
 // Ear Light Colors
-
-#define COLOR_RED       0x00001F00
-#define COLOR_ORANGE    0x000F1F00
-#define COLOR_YELLOW    0x001F1F00
+#define COLOR_BLUE      0x0000001F
+#define COLOR_BLUEGREEN 0x00070017
 #define COLOR_GREEN     0x001F0000
-#define COLOR_BLUE      0x000F001F
-#define COLOR_PURPLE    0x00001F1F
-#define COLOR_WHITE     0x001F1F1F
-#define COLOR_PINK      0x000F1F0F
+#define COLOR_MAGENTA   0x00000F0F
+#define COLOR_ORANGE    0x00071700
+#define COLOR_PINK      0x00051505
+#define COLOR_PURPLE    0x00000B14
+#define COLOR_RED       0x00001F00
+#define COLOR_WHITE     0x000F0F0F
+#define COLOR_YELLOW    0x00171700
 
-#define INIT_COLOR      COLOR_RED
 #define HARD_STOP_COLOR COLOR_BLUE
 #define RUN_COLOR 		COLOR_ORANGE
 #define SOFT_STOP_COLOR COLOR_YELLOW
@@ -202,17 +202,11 @@
 #define NUM_DOFS            12
 #define ENC_MIN             0
 #define ENC_MAX             16383
-#define LIGHT_BIT_FREQ      800000      // Hz
-#define BITS_PER_LIGHT      24
-#define LIGHTS_PER_STRING   40
-#define LIGHT_BIT_PRIORITY  1
 
 #define MOT_PERIOD          SYS_FREQ/PWM_DIV/MOT_FREQ
 #define CTRL_PERIOD         SYS_FREQ/CTRL_FREQ
 #define ENC_BIT_PERIOD      SYS_FREQ/ENC_FREQ
-#define LIGHT_UPDATE_PERIOD CTRL_FREQ/10                      // 10 FPS
-#define LIGHT_BIT_PERIOD    SYS_FREQ/LIGHT_BIT_FREQ
-#define LIGHT_SIGNAL_LENGTH LIGHTS_PER_STRING*BITS_PER_LIGHT
+#define LIGHT_UPDATE_PERIOD CTRL_FREQ/20                      // 20 FPS
 #define PWM_RANGE           MOT_PERIOD*4/10
 #define PWM_ZERO            MOT_PERIOD/2
 #define PWM_MAX             MOT_PERIOD*89/100

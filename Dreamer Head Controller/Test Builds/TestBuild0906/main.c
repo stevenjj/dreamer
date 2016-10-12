@@ -2,9 +2,9 @@
 // Main program for operation of joints in Dreamer's head. Contains all control
 // functions.
 
-// This file is part of Dreamer Head t0901.
+// This file is part of Dreamer Head t0906
 // Travis Llado, travis@travisllado.com
-// Last modified 2016.09.27
+// Last modified 2016.10.12
  
 ////////////////////////////////////////////////////////////////////////////////
 // Dependencies
@@ -26,16 +26,7 @@ long StartCritical (void);
 void EndCritical(long sr);
 void WaitForInterrupt(void);
 void lightsInit(void);
-void lightsBlue(void);
-void lightsBlueGreen(void);
-void lightsGreen(void);
-void lightsMagenta(void);
-void lightsOrange(void);
-void lightsPink(void);
-void lightsPurple(void);
-void lightsRed(void);
-void lightsWhite(void);
-void lightsYellow(void);
+void lightsUpdate(uint32_t);
  
 ////////////////////////////////////////////////////////////////////////////////
 // Global Variables
@@ -71,7 +62,7 @@ void Timer1_Init(void);
 // Main program for operation of Dreamer's Head. Initializes hardware required
 // for reading of encoders and control of motors, then runs an infinite loop as
 // all further actions are performed by interrupt handlers.
-
+ 
 int main(void) {
     // Initialize all hardware
     PLL_Init();
@@ -79,6 +70,7 @@ int main(void) {
     encoderInit(actlPos);
     motorInit();
     lightsInit();
+    lightsUpdate(COLOR_RED);
     UART_Init();
     Timer1_Init();
     softRun();
@@ -162,9 +154,7 @@ const int32_t pitchMax = 500;   // default = 500
 const int32_t pitchMin = -1000; // default = -1000
 const uint32_t lookPeriodMin = 2;
 const uint32_t lookPeriodMax = 6;
-const int32_t moveLength_n = 2;
-const int32_t moveLength_d = 3;
-const int32_t movePeriod = CTRL_FREQ*moveLength_n/moveLength_d;
+const int32_t movePeriod = MOVE_LENGTH;
 const uint32_t blinkPeriodMin = 1;
 const uint32_t blinkPeriodMax = 10;
 const uint32_t blinkLength_n = 1;
@@ -176,7 +166,7 @@ const int32_t restartDelay = CTRL_FREQ/2;
 int32_t gazeLock = 0x000000A7;
 int32_t gazeKey = 0;
 int32_t focusCommand = 128;
-int32_t pitchCommand = 128
+int32_t pitchCommand = 128;
 int32_t yawCommand = 128;
  
 // intermediate variables
@@ -264,11 +254,11 @@ void motionPlan() {
         else {
             // if in first half of blink, interpolate from open to closed
             if(blinkCount2 > blinkLength/2)
-                desrPos[7] = eyelidsMin + (desrPos[7] - eyelidsMin)             \
+                desrPos[7] = eyelidsMin + (desrPos[7] - eyelidsMin)            \
                              *(blinkCount2 - blinkLength/2)/(blinkLength/2);
             // if in second half of blink, interpolate from closed to open
             else
-                desrPos[7] = eyelidsMin + (desrPos[7] - eyelidsMin)             \
+                desrPos[7] = eyelidsMin + (desrPos[7] - eyelidsMin)            \
                              *(blinkLength/2 - blinkCount2)/(blinkLength/2);
         }
         blinkCount2--;
@@ -281,6 +271,7 @@ void motionPlan() {
 // parse()
 // Reads incoming UART command and performs appropriate action.
  
+
 void parse(uint32_t command) {
     gazeKey = (command&0xFF000000)>>24;
     if(gazeKey == gazeLock) {
@@ -289,15 +280,14 @@ void parse(uint32_t command) {
         yawCommand = command&0x000000FF;
         lookCount = 0;
     
-        UART_OutChar(' ');
-        UART_OutUDec((uint32_t)focusCommand);
-        UART_OutChar(' ');
-        UART_OutUDec((uint32_t)pitchCommand);
-        UART_OutChar(' ');
-        UART_OutUDec((uint32_t)yawCommand);
+//        UART_OutChar(' ');
+//        UART_OutUDec((uint32_t)focusCommand);
+//        UART_OutChar(' ');
+//        UART_OutUDec((uint32_t)pitchCommand);
+//        UART_OutChar(' ');
+//        UART_OutUDec((uint32_t)yawCommand);
     }
-    
-    UART_OutChar(CR);UART_OutChar(LF);
+//    UART_OutChar(CR);UART_OutChar(LF);
 }
  
 ////////////////////////////////////////////////////////////////////////////////
@@ -371,31 +361,21 @@ void Timer1A_Handler(void) {
     encoderFailsafe();
     motorUpdate(ctrlVar);
     int32_t eStopStatus = STOPPED;
-//    uint32_t nextColor = 0;
+    uint32_t nextColor = HARD_STOP_COLOR;
  
-    if(hardStopStatus() == STOPPED) {
-//        nextColor = HARD_STOP_COLOR;
-        if(lightsUpdateCounter == 0) {
-            lightsBlueGreen();
-            lightsUpdateCounter = LIGHT_UPDATE_PERIOD;
-        }
-    }
-    else if(softStopStatus() == STOPPED) {
-//        nextColor = SOFT_STOP_COLOR;
-        if(lightsUpdateCounter == 0) {
-            lightsYellow();
-            lightsUpdateCounter = LIGHT_UPDATE_PERIOD;
-        }
-    }
+    if(hardStopStatus() == STOPPED)
+        nextColor = HARD_STOP_COLOR;
+    else if(softStopStatus() == STOPPED)
+        nextColor = SOFT_STOP_COLOR;
     else {
-//        nextColor = RUN_COLOR;
+        nextColor = RUN_COLOR;
         eStopStatus = RUNNING;
-        if(lightsUpdateCounter == 0) {
-            lightsOrange();
-            lightsUpdateCounter = LIGHT_UPDATE_PERIOD;
-        }
     }
- 
+    
+    if(lightsUpdateCounter == 0) {
+        lightsUpdate(nextColor);
+        lightsUpdateCounter = LIGHT_UPDATE_PERIOD;
+    }
     lightsUpdateCounter--;
  
     if(eStopStatus == RUNNING)
@@ -416,11 +396,11 @@ void Timer1A_Handler(void) {
         blinkCount1 = 1;
     }
  
-      // Diagnostic Output
-    UART_OutUDec(actlPos[0]);
-    UART_OutChar(' ');
-    UART_OutUDec(actlPos[1]);
-    UART_OutChar(CR);UART_OutChar(LF);
+        // Diagnostic Output
+//    UART_OutUDec(actlPos[5]);
+//    UART_OutChar(' ');
+//    UART_OutUDec(actlPos[6]);
+//    UART_OutChar(CR);UART_OutChar(LF);
 }
  
 ////////////////////////////////////////////////////////////////////////////////

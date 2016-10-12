@@ -7,7 +7,7 @@
 
   <Targets>
     <Target>
-      <TargetName>Dreamer v0.7.0</TargetName>
+      <TargetName>Dreamer t0010</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
       <pCCUsed>5060183::V5.06 update 2 (build 183)::ARMCC</pCCUsed>

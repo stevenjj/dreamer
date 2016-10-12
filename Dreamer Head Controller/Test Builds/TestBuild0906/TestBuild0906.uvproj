@@ -7,7 +7,7 @@
 
   <Targets>
     <Target>
-      <TargetName>Dreamer t0901</TargetName>
+      <TargetName>Dreamer t0906</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
       <pCCUsed>5060183::V5.06 update 2 (build 183)::ARMCC</pCCUsed>
@@ -427,11 +427,6 @@
               <FilePath>.\estop.c</FilePath>
             </File>
             <File>
-              <FileName>lights.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\lights.c</FilePath>
-            </File>
-            <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\main.c</FilePath>
@@ -457,9 +452,9 @@
               <FilePath>.\startup.s</FilePath>
             </File>
             <File>
-              <FileName>lightsASM.s</FileName>
+              <FileName>lights.s</FileName>
               <FileType>2</FileType>
-              <FilePath>.\lightsASM.s</FilePath>
+              <FilePath>.\lights.s</FilePath>
             </File>
           </Files>
         </Group>

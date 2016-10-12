@@ -2,7 +2,8 @@
 // Main program for operation of joints in Dreamer's head. Contains all controls
 // functions.
  
-// This file is part of Dreamer Head v0.7.0.
+// This file is part of Dreamer Head Release v0.9.0.
+// "Release" means it's fairly decent and it's worth archiving
 // Travis Llado, travis@travisllado.com
 // Last modified 2016.09.17
  
