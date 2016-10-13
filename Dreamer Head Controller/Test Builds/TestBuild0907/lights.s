@@ -1,4 +1,3 @@
-
 ; lights.s
 ; Contains code that generates control signals for WS2812 LEDs.
 

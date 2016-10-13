@@ -87,29 +87,29 @@ void bitBang(void) {
     spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
     spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
     spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		// Compensating for the fact that SS pin drops low much more slowly
-		// than all other pins. Need to find out why that is. Pullup still in
-		// place?
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
-		spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    // Compensating for the fact that SS pin drops low much more slowly
+    // than all other pins. Need to find out why that is. Pullup still in
+    // place?
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
+    spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;spin=0;
 
     // Write Byte 1
     // Tick 01
@@ -849,19 +849,19 @@ void filter(void) {
 // returns the median of a 3-element array.
 
 uint32_t median(uint32_t *data) {
-		uint32_t sort[3] = {0};
-		uint32_t temp = 0;
+    uint32_t sort[3] = {0};
+    uint32_t temp = 0;
     
-		sort[0] = data[0];
-		sort[1] = data[1];
-		sort[2] = data[2];
-		
-		if(sort[0] > sort[1]) {
+    sort[0] = data[0];
+    sort[1] = data[1];
+    sort[2] = data[2];
+    
+    if(sort[0] > sort[1]) {
         temp = sort[0];
         sort[0] = sort[1];
         sort[1] = temp;
     }
-		if(sort[1] > sort[2]) {
+    if(sort[1] > sort[2]) {
         temp = sort[1];
         sort[1] = sort[2];
         sort[2] = temp;

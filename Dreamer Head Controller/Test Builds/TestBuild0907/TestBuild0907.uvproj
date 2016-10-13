@@ -7,7 +7,7 @@
 
   <Targets>
     <Target>
-      <TargetName>Dreamer t0906</TargetName>
+      <TargetName>Dreamer t0907</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
       <pCCUsed>5060183::V5.06 update 2 (build 183)::ARMCC</pCCUsed>
@@ -416,6 +416,11 @@
         <Group>
           <GroupName>Source</GroupName>
           <Files>
+            <File>
+              <FileName>eightBitTrig.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\eightBitTrig.c</FilePath>
+            </File>
             <File>
               <FileName>encoders.c</FileName>
               <FileType>1</FileType>

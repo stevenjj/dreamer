@@ -1,4 +1,4 @@
 Test Build 0906
 
-This build replaces cosines.c/h, which was just a big precalculated array of predetermined size, with eightBitSine.c/h, which uses a quarter-wave lookup table to produce 8bit sine waves that are as accurate as any other 8bit calculation method but much faster.
+This build replaces cosines.c/h, which was just a big precalculated array of predetermined size, with eightBitTrig.c/h. eightBitTrig uses small lookup tables, reflected and repeated, to produce sine/cosine/tangent values at a scale of 128±127 and integer resolution.
 If we have need in the future, we might write a 16-bit or 32-bit method that uses a larger lookup table or polynomials combined with interpolation. However, we don't expect to need that. Since we're working on a 32-bit system, doing multiple-then-divide scaling means we're limited to ~8bit resolution for our numerators to begin with. We don't expect this to be a problem.

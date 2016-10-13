@@ -30,16 +30,14 @@ void lightsUpdate(uint32_t);
 ////////////////////////////////////////////////////////////////////////////////
 // Global Variables
  
+int32_t actlPos[NUM_DOFS] = {0};
 int32_t ctrlVar[NUM_DOFS] = {PWM_ZERO};
-int32_t ctrlZero[NUM_DOFS] = {PWM_ZERO};
 int32_t desrPos[NUM_DOFS] = {
     J00_Cnt,  J01_Cnt,  J02_Cnt,  J03_Cnt,  J04_Cnt,  J05_Cnt,
     J06_Cnt,  J07_Cnt,  J08_Cnt,  J09_Cnt,  J10_Cnt,  J11_Cnt};
-int32_t actlPos[NUM_DOFS] = {0};
 int32_t errP[NUM_DOFS] = {0};
 int32_t errI[NUM_DOFS] = {0};
 int32_t errD[NUM_DOFS] = {0};
-uint32_t lightsUpdateCounter = 0;
  
 ////////////////////////////////////////////////////////////////////////////////
 // Internal Prototypes
@@ -131,12 +129,10 @@ void calcErrD(void) {
 ////////////////////////////////////////////////////////////////////////////////
 // encoderFailsafe()
 // Stops all motion if any encoders reads out of bounds.
-uint32_t encoderMax = 16383;
-uint32_t encoderMin = 0;
  
 void encoderFailsafe(void) {
     for(uint32_t i = 0; i < NUM_DOFS; i++) {
-        if(actlPos[i] == encoderMax || actlPos[i] == encoderMin)
+        if(actlPos[i] == ENC_MIN || actlPos[i] == ENC_MAX)
             ctrlVar[i] = PWM_ZERO;
     }
 }
@@ -163,7 +159,7 @@ const uint32_t blinkLength_d = 3;
 const int32_t eyelidsMax = J07_Max - 700;
 const int32_t eyelidsMin = J07_Min;
 const int32_t restartDelay = CTRL_FREQ/2;
-int32_t gazeLock = 0x000000A7;
+const int32_t gazeLock = 0x000000A7;
 int32_t gazeKey = 0;
 int32_t focusCommand = 128;
 int32_t pitchCommand = 128;
@@ -191,7 +187,7 @@ void motionPlan() {
     // if gaze transition is in progress, ...
     if(lookCount == 0) {
         // if gaze transition is just starting, pick new gaze target
-        if(moveCount == movePeriod) {
+        if(moveCount == moveLength) {
             // store old positions
             for(uint32_t i = 0; i < NUM_DOFS; i++)
                 desrOld[i] = desrNew[i];
@@ -229,13 +225,13 @@ void motionPlan() {
                         + CTRL_FREQ*lookPeriodMin;
  
             // reset transition counter
-            moveCount = movePeriod;
+            moveCount = moveLength;
         }
         // if gaze is in progress, interpolate between previous and next
         else {
-            uint32_t moveScalar = eightBitSine(moveCount*255/moveLength + 192);
+            int32_t moveScalar = eightBitSine(moveCount*128/moveLength + 64);
             for(uint32_t i = 0; i < NUM_DOFS; i++)
-                desrPos[i] = desrOld[i] + (desrNew[i] - desrOld[i])*moveScalar/255;
+                desrPos[i] = desrOld[i] + (desrNew[i]-desrOld[i])*moveScalar/255;
  
             moveCount--;
         }
@@ -273,7 +269,6 @@ void motionPlan() {
 ////////////////////////////////////////////////////////////////////////////////
 // parse()
 // Reads incoming UART command and performs appropriate action.
- 
 
 void parse(uint32_t command) {
     gazeKey = (command&0xFF000000)>>24;
@@ -302,76 +297,78 @@ void PID(void) {
     calcErrI();
     calcErrD();
     
-    ctrlVar[0] = errP[0]*J00_KPn/J00_KPd
-               + errI[0]*J00_KIn/J00_KId
-               + errD[0]*J00_KDn/J00_KDd
-               + PWM_ZERO;
-    ctrlVar[1] = errP[1]*J01_KPn/J01_KPd
-               + errI[1]*J01_KIn/J01_KId
-               + errD[1]*J01_KDn/J01_KDd
-               + PWM_ZERO;
-    ctrlVar[2] = errP[2]*J02_KPn/J02_KPd
-               + errI[2]*J02_KIn/J02_KId
-               + errD[2]*J02_KDn/J02_KDd
-               + PWM_ZERO;
-    ctrlVar[3] = errP[3]*J03_KPn/J03_KPd
-               + errI[3]*J03_KIn/J03_KId
-               + errD[3]*J03_KDn/J03_KDd
-               + PWM_ZERO;
-    ctrlVar[4] = errP[4]*J04_KPn/J04_KPd
-               + errI[4]*J04_KIn/J04_KId
-               + errD[4]*J04_KDn/J04_KDd
-               + PWM_ZERO;
-    ctrlVar[5] = errP[5]*J05_KPn/J05_KPd
-               + errI[5]*J05_KIn/J05_KId
-               + errD[5]*J05_KDn/J05_KDd
-               + PWM_ZERO;
-    ctrlVar[6] = errP[6]*J06_KPn/J06_KPd
-               + errI[6]*J06_KIn/J06_KId
-               + errD[6]*J06_KDn/J06_KDd
-               + PWM_ZERO;
-    ctrlVar[7] = errP[7]*J07_KPn/J07_KPd
-               + errI[7]*J07_KIn/J07_KId
-               + errD[7]*J07_KDn/J07_KDd
-               + PWM_ZERO;
-    ctrlVar[8] = errP[8]*J08_KPn/J08_KPd
-               + errI[8]*J08_KIn/J08_KId
-               + errD[8]*J08_KDn/J08_KDd
-               + PWM_ZERO;
-    ctrlVar[9] = errP[9]*J09_KPn/J09_KPd
-               + errI[9]*J09_KIn/J09_KId
-               + errD[9]*J09_KDn/J09_KDd
-               + PWM_ZERO;
-    ctrlVar[10]= errP[10]*J10_KPn/J10_KPd
-               + errI[10]*J10_KIn/J10_KId
-               + errD[10]*J10_KDn/J10_KDd
-               + PWM_ZERO;
-    ctrlVar[11]= errP[11]*J11_KPn/J11_KPd
-               + errI[11]*J11_KIn/J11_KId
-               + errD[11]*J11_KDn/J11_KDd
-               + PWM_ZERO;
+    ctrlVar[0] = (errP[0]*J00_KPn/J00_KPd
+                + errI[0]*J00_KIn/J00_KId
+                + errD[0]*J00_KDn/J00_KDd)*GAINS_ACTIVE
+                + PWM_ZERO;
+    ctrlVar[1] = (errP[1]*J01_KPn/J01_KPd
+                + errI[1]*J01_KIn/J01_KId
+                + errD[1]*J01_KDn/J01_KDd)*GAINS_ACTIVE
+                + PWM_ZERO;
+    ctrlVar[2] = (errP[2]*J02_KPn/J02_KPd
+                + errI[2]*J02_KIn/J02_KId
+                + errD[2]*J02_KDn/J02_KDd)*GAINS_ACTIVE
+                + PWM_ZERO;
+    ctrlVar[3] = (errP[3]*J03_KPn/J03_KPd
+                + errI[3]*J03_KIn/J03_KId
+                + errD[3]*J03_KDn/J03_KDd)*GAINS_ACTIVE
+                + PWM_ZERO;
+    ctrlVar[4] = (errP[4]*J04_KPn/J04_KPd
+                + errI[4]*J04_KIn/J04_KId
+                + errD[4]*J04_KDn/J04_KDd)*GAINS_ACTIVE
+                + PWM_ZERO;
+    ctrlVar[5] = (errP[5]*J05_KPn/J05_KPd
+                + errI[5]*J05_KIn/J05_KId
+                + errD[5]*J05_KDn/J05_KDd)*GAINS_ACTIVE
+                + PWM_ZERO;
+    ctrlVar[6] = (errP[6]*J06_KPn/J06_KPd
+                + errI[6]*J06_KIn/J06_KId
+                + errD[6]*J06_KDn/J06_KDd)*GAINS_ACTIVE
+                + PWM_ZERO;
+    ctrlVar[7] = (errP[7]*J07_KPn/J07_KPd
+                + errI[7]*J07_KIn/J07_KId
+                + errD[7]*J07_KDn/J07_KDd)*GAINS_ACTIVE
+                + PWM_ZERO;
+    ctrlVar[8] = (errP[8]*J08_KPn/J08_KPd
+                + errI[8]*J08_KIn/J08_KId
+                + errD[8]*J08_KDn/J08_KDd)*GAINS_ACTIVE
+                + PWM_ZERO;
+    ctrlVar[9] = (errP[9]*J09_KPn/J09_KPd
+                + errI[9]*J09_KIn/J09_KId
+                + errD[9]*J09_KDn/J09_KDd)*GAINS_ACTIVE
+                + PWM_ZERO;
+    ctrlVar[10]= (errP[10]*J10_KPn/J10_KPd
+                + errI[10]*J10_KIn/J10_KId
+                + errD[10]*J10_KDn/J10_KDd)*GAINS_ACTIVE
+                + PWM_ZERO;
+    ctrlVar[11]= (errP[11]*J11_KPn/J11_KPd
+                + errI[11]*J11_KIn/J11_KId
+                + errD[11]*J11_KDn/J11_KDd)*GAINS_ACTIVE
+                + PWM_ZERO;
 }
  
 ////////////////////////////////////////////////////////////////////////////////
 // pulsingLights()
 // Varies ear light brightness as a sinusoid.
 
-void pulsingLights(uint32_t color) {
-    static uint32_t counter = 0;
+const uint32_t increment = 3;
+uint32_t lightsCounter = 0;
 
-    uint32_t modValue = eightBitSine(counter);
+void pulsingLights(uint32_t color) {
+
+    uint32_t modValue = eightBitSine(lightsCounter);
     uint32_t green = (color&0x00FF0000)>>16;
     uint32_t red = (color&0x0000FF00)>>8;
     uint32_t blue = (color&0x000000FF);
 
-    green *= (modValue+256)/511;
-    red *= (modValue+256)/511;
-    blue *= (modValue+256)/511;
+    green = green*(modValue+256)/511;
+    red = red*(modValue+256)/511;
+    blue = blue*(modValue+256)/511;
     modValue = (green<<16) + (red<<8) + blue;
 
     lightsUpdate(modValue);
 
-    counter++;
+    lightsCounter = lightsCounter + increment;
 }
  
 ////////////////////////////////////////////////////////////////////////////////
@@ -380,14 +377,16 @@ void pulsingLights(uint32_t color) {
  
 void Timer1A_Handler(void) {
     TIMER1_ICR_R = 0x01;    // acknowledge timer1A timeout
- 
+
+    static uint32_t lightsUpdateCounter = 0;
+    int32_t eStopStatus = STOPPED;
+    uint32_t nextColor = HARD_STOP_COLOR;
+
     encoderRead();
     PID();
     encoderFailsafe();
     motorUpdate(ctrlVar);
-    int32_t eStopStatus = STOPPED;
-    uint32_t nextColor = HARD_STOP_COLOR;
- 
+
     if(hardStopStatus() == STOPPED)
         nextColor = HARD_STOP_COLOR;
     else if(softStopStatus() == STOPPED)
@@ -398,8 +397,8 @@ void Timer1A_Handler(void) {
     }
     
     if(lightsUpdateCounter == 0) {
-        lightsUpdate(nextColor);
-        lightsUpdateCounter = LIGHT_UPDATE_PERIOD;
+        pulsingLights(nextColor);
+        lightsUpdateCounter = CTRL_FREQ/LIGHT_FREQ;
     }
     lightsUpdateCounter--;
  
@@ -417,14 +416,14 @@ void Timer1A_Handler(void) {
         // When EStop is re-started, set timer to hold current position, then 
         // perform gaze transition after short delay
         lookCount = 0;
-        moveCount = movePeriod;
+        moveCount = moveLength;
         blinkCount1 = 1;
     }
  
         // Diagnostic Output
-//    UART_OutUDec(actlPos[5]);
+//    UART_OutUDec(actlPos[0]);
 //    UART_OutChar(' ');
-//    UART_OutUDec(actlPos[6]);
+//    UART_OutUDec(desrPos[0]);
 //    UART_OutChar(CR);UART_OutChar(LF);
 }
  

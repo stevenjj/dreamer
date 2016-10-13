@@ -9,6 +9,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 // User Settings
 
+#define GAINS_ACTIVE    1   // debug variable, lets us set all gains to zero
+
 #define D_LENGTH    10  // # cycles
 #define I_LENGTH    550 // # cycles (keep in mind, 100 cycles = 4.8KB)
 
@@ -159,20 +161,6 @@
 #define J11_KDn 0
 #define J11_KDd 1
 
-// UART Commands
-#define CMD_LEN 10
-#define PREFIX_MASK		0xF0000000
-#define MESSAGE_MASK	0x0FFFFFFF
-#define MESSAGE_ESTOP   0x10000000
-#define MESSAGE_J00_J01 0x20000000
-#define MESSAGE_J02_J03 0x30000000
-#define MESSAGE_J04_J05 0x40000000
-#define MESSAGE_J06_J07 0x50000000
-#define MESSAGE_J08_J09 0x60000000
-#define MESSAGE_J10_J11 0x70000000
-#define MESSAGE_LIGHTS  0x80000000
-#define ESTOP_RUN       0x0532AC00
-
 // Ear Light Colors
 #define COLOR_BLUE      0x0000001F
 #define COLOR_BLUEGREEN 0x00070017
@@ -185,28 +173,29 @@
 #define COLOR_WHITE     0x000F0F0F
 #define COLOR_YELLOW    0x00171700
 
-#define HARD_STOP_COLOR COLOR_BLUE
+#define LIGHT_FREQ		60          	// FPS
+#define HARD_STOP_COLOR COLOR_BLUEGREEN
 #define RUN_COLOR 		COLOR_ORANGE
 #define SOFT_STOP_COLOR COLOR_YELLOW
 
 ////////////////////////////////////////////////////////////////////////////////
 // System Settings
 
-#define SYS_FREQ            80000000    // Hz
-#define MOT_FREQ            1000        // Hz
-#define ENC_FREQ            400000      // Hz
-#define CTRL_FREQ           550         // Hz
+#define SYS_FREQ    80000000    // Hz, for CPU
+#define MOT_FREQ    1000        // Hz, for PWM
+#define ENC_FREQ    400000      // Hz, for encoder signal
+#define CTRL_FREQ   550         // Hz, for control loop
     // Standard control loop frequencies are 550Hz and 2200KHz, according to
     // Contelec Vert-x13 user's manual
-#define PWM_DIV             2           // System Clock ticks per PWM Clock tick
-#define NUM_DOFS            12
-#define ENC_MIN             0
-#define ENC_MAX             16383
+
+#define PWM_DIV     2           // System Clock ticks per PWM Clock tick
+#define NUM_DOFS   	12
+#define ENC_MIN     0
+#define ENC_MAX     16383
 
 #define MOT_PERIOD          SYS_FREQ/PWM_DIV/MOT_FREQ
 #define CTRL_PERIOD         SYS_FREQ/CTRL_FREQ
 #define ENC_BIT_PERIOD      SYS_FREQ/ENC_FREQ
-#define LIGHT_UPDATE_PERIOD CTRL_FREQ/20                      // 20 FPS
 #define PWM_RANGE           MOT_PERIOD*4/10
 #define PWM_ZERO            MOT_PERIOD/2
 #define PWM_MAX             MOT_PERIOD*89/100
@@ -227,3 +216,17 @@
 #define enc11   (*((volatile uint32_t *)0x40024020))   // PE3  green   brown
 #define encSS   (*((volatile uint32_t *)0x40004040))   // PA4  yellow  yellow
 #define encCl   (*((volatile uint32_t *)0x40004080))   // PA5  white   green
+
+// UART Commands
+#define CMD_LEN 10
+#define PREFIX_MASK		0xF0000000
+#define MESSAGE_MASK	0x0FFFFFFF
+#define MESSAGE_ESTOP   0x10000000
+#define MESSAGE_J00_J01 0x20000000
+#define MESSAGE_J02_J03 0x30000000
+#define MESSAGE_J04_J05 0x40000000
+#define MESSAGE_J06_J07 0x50000000
+#define MESSAGE_J08_J09 0x60000000
+#define MESSAGE_J10_J11 0x70000000
+#define MESSAGE_LIGHTS  0x80000000
+#define ESTOP_RUN       0x0532AC00	// random number, acts as a key
