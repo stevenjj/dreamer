@@ -2,7 +2,7 @@
 // Main program for operation of joints in Dreamer's head. Contains all control
 // functions.
 
-// This file is part of Dreamer Head t0906
+// This file is part of Dreamer Head t0907
 // Travis Llado, travis@travisllado.com
 // Last modified 2016.10.12
  
@@ -12,7 +12,7 @@
 #include <cstdlib>
 #include <stdint.h>
 #include "config.h"
-#include "cosines.h"
+#include "eightBitSine.h"
 #include "encoders.h"
 #include "estop.h"
 #include "motors.h"
@@ -131,10 +131,12 @@ void calcErrD(void) {
 ////////////////////////////////////////////////////////////////////////////////
 // encoderFailsafe()
 // Stops all motion if any encoders reads out of bounds.
+uint32_t encoderMax = 16383;
+uint32_t encoderMin = 0;
  
 void encoderFailsafe(void) {
     for(uint32_t i = 0; i < NUM_DOFS; i++) {
-        if(actlPos[i] == 0 || actlPos[i] == 16383)
+        if(actlPos[i] == encoderMax || actlPos[i] == encoderMin)
             ctrlVar[i] = PWM_ZERO;
     }
 }
@@ -152,12 +154,12 @@ const int32_t pitchMax = 500;   // default = 500
 const int32_t pitchMin = -1000; // default = -1000
 const uint32_t lookPeriodMin = 2;
 const uint32_t lookPeriodMax = 6;
-const int32_t movePeriod = MOVE_LENGTH;
+const int32_t movePeriod_n = 1;
+const int32_t movePeriod_d = 2;
 const uint32_t blinkPeriodMin = 1;
 const uint32_t blinkPeriodMax = 10;
 const uint32_t blinkLength_n = 1;
 const uint32_t blinkLength_d = 3;
-const int32_t blinkLength = CTRL_FREQ*blinkLength_n/blinkLength_d;
 const int32_t eyelidsMax = J07_Max - 700;
 const int32_t eyelidsMin = J07_Min;
 const int32_t restartDelay = CTRL_FREQ/2;
@@ -168,6 +170,8 @@ int32_t pitchCommand = 128;
 int32_t yawCommand = 128;
  
 // intermediate variables
+const int32_t moveLength = CTRL_FREQ*movePeriod_n/movePeriod_d;
+const int32_t blinkLength = CTRL_FREQ*blinkLength_n/blinkLength_d;
 uint32_t lookCount = 1;
 int32_t moveCount = 1;
 uint32_t blinkCount1 = CTRL_FREQ*blinkPeriodMin;
@@ -229,8 +233,9 @@ void motionPlan() {
         }
         // if gaze is in progress, interpolate between previous and next
         else {
+            uint32_t moveScalar = eightBitSine(moveCount*255/moveLength + 192);
             for(uint32_t i = 0; i < NUM_DOFS; i++)
-                desrPos[i] = desrOld[i] + (desrNew[i] - desrOld[i])*moveSine[moveCount]/1000;
+                desrPos[i] = desrOld[i] + (desrNew[i] - desrOld[i])*moveScalar/255;
  
             moveCount--;
         }
@@ -352,7 +357,7 @@ void PID(void) {
 // Varies ear light brightness as a sinusoid.
 
 void pulsingLights(uint32_t color) {
-    static counter = 0;
+    static uint32_t counter = 0;
 
     uint32_t modValue = eightBitSine(counter);
     uint32_t green = (color&0x00FF0000)>>16;

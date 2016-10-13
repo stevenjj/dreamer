@@ -1,6 +1,8 @@
 import serial
 from msvcrt import getch
 
+increment = 10;
+
 gazeKey = 0xA7
 gazeFocus = 128
 gazePitch = 128
@@ -15,33 +17,33 @@ def lookCenter():
     print "center", gazePitch, gazeYaw
 
 def lookRight():
-    global gazeYaw    
-    gazeYaw += 5
+    global gazeYaw
+    gazeYaw += increment
     print "right", gazePitch, gazeYaw
 
 def lookLeft():
-    global gazeYaw        
-    gazeYaw -= 5
+    global gazeYaw
+    gazeYaw -= increment
     print "left", gazePitch, gazeYaw
 
 def lookUp():
     global gazePitch
-    gazePitch -= 5
+    gazePitch -= increment
     print "up", gazePitch, gazeYaw
 
 def lookDown():
-    global gazePitch        
-    gazePitch += 5
+    global gazePitch
+    gazePitch += increment
     print "down", gazePitch, gazeYaw
 
 def lookForward():
-    global gazePitch, gazeYaw    
+    global gazePitch, gazeYaw
     gazePitch = 128
     gazeYaw = 128
     print "forward", gazePitch, gazeYaw
 
 def lookBackward():
-    global gazePitch, gazeYaw    
+    global gazePitch, gazeYaw
     gazePitch = 128
     gazeYaw = 128
     print "backward", gazePitch, gazeYaw
@@ -74,4 +76,4 @@ while True:
 
     newCommand = gazeKey*0x1000000 + gazeFocus*0x10000 + gazePitch*0x100 + gazeYaw
     newMessage = str(newCommand) + "\r"
-    ser.write(newMessage)            
+    ser.write(newMessage)
