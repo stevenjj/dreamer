@@ -12,7 +12,7 @@
 #include <cstdlib>
 #include <stdint.h>
 #include "config.h"
-#include "eightBitSine.h"
+#include "eightBitTrig.h"
 #include "encoders.h"
 #include "estop.h"
 #include "motors.h"
