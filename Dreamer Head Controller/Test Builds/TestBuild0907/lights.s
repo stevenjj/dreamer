@@ -5,26 +5,30 @@
 ; Travis Llado, travis@travisllado.com
 ; Last modified 2016.10.12
 
-PTC_DIR_R           EQU 0x40006400  ; GPIO direction
-PTC_AFSEL_R         EQU 0x40006420  ; alternate functions
-PTC_DEN_R           EQU 0x4000651C  ; GPIO select
-PTC_AMSEL_R         EQU 0x40006528  ; analog functions
-PTC_PCTL_R          EQU 0x4000652C  ; port control
-RCGCGPIO_R          EQU 0x400FE608  ; port C clock
-RCGC2_GPIOC         EQU 0x00000004  ; port C Clock Gating Control
-LEDS                EQU 0x400060C0  ; access PC4-5
-PINS_HIGH           EQU 0x00000030  ; write PC4-5 high
-PINS_LOW            EQU 0x00000000  ; write PC4-5 low
-NUM_LEDS            EQU 0x00000028  ; number of WS2812 LEDs in series (40)
-BIT_MASK            EQU 0x00800000  ; masks bit 24, first bit of LED signal
-ZERO_HIGH           EQU 0x00000004  ; number of loops pins stay high for zero
-ONE_HIGH            EQU 0x0000000A  ; number of loops pins stay high for one
-BOTH_LOW            EQU 0x00000008  ; number of loops pins stay low for either
+PTC_DIR_R   EQU 0x40006400  ; GPIO direction
+PTC_AFSEL_R EQU 0x40006420  ; alternate functions
+PTC_DEN_R   EQU 0x4000651C  ; GPIO select
+PTC_AMSEL_R EQU 0x40006528  ; analog functions
+PTC_PCTL_R  EQU 0x4000652C  ; port control
+RCGCGPIO_R  EQU 0x400FE608  ; port C clock
+RCGC2_GPIOC EQU 0x00000004  ; port C Clock Gating Control
+LEDS        EQU 0x400060C0  ; access PC4-5
+PINS_HIGH   EQU 0x00000030  ; write PC4-5 high
+PINS_LOW    EQU 0x00000000  ; write PC4-5 low
+NUM_LEDS    EQU 0x00000028  ; number of WS2812 LEDs in series (40)
+BIT_MASK    EQU 0x00800000  ; masks bit # 24, first bit of LED signal
+ZERO_HIGH   EQU 0x00000004  ; number of loops pins stay high for zero
+ONE_HIGH    EQU 0x0000000A  ; number of loops pins stay high for one
+BOTH_LOW    EQU 0x00000008  ; number of loops pins stay low for either
 
-        AREA    |.text|, CODE, READONLY, ALIGN=2
-        THUMB
-        EXPORT  lightsInit
-        EXPORT  lightsUpdate
+    AREA    |.text|, CODE, READONLY, ALIGN=2
+    THUMB
+    EXPORT  lightsInit
+    EXPORT  lightsUpdate
+
+; lightsInit
+; Initializes all hardware registers needed to operate PC4, PC5 as GPIO pins.
+; Takes no input. Gives no output.
 
 lightsInit
     PUSH    {R4-R11, LR}            ; push current LR to stack
@@ -63,6 +67,10 @@ lightsInit
     ; Return
     POP     {R4-R11, LR}            ; pull previous LR from stack
     BX      LR                      ; return
+
+; lightsUpdate
+; Writes a single value to all LEDs in each string.
+; Takes input of one uint32 that is color value to be written.
 
 lightsUpdate                ; write arbitrary color value to all ear lights
     PUSH    {R4-R11, LR}    ; push previous R4-R11, LR values to stack

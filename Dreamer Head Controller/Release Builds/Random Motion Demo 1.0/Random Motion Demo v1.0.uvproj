@@ -7,7 +7,7 @@
 
   <Targets>
     <Target>
-      <TargetName>Dreamer t0908</TargetName>
+      <TargetName>Random Motion Demo v1.0</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
       <pCCUsed>5060183::V5.06 update 2 (build 183)::ARMCC</pCCUsed>

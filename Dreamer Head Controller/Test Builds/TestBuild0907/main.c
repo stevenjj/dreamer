@@ -421,10 +421,10 @@ void Timer1A_Handler(void) {
     }
  
         // Diagnostic Output
-//    UART_OutUDec(actlPos[0]);
-//    UART_OutChar(' ');
-//    UART_OutUDec(desrPos[0]);
-//    UART_OutChar(CR);UART_OutChar(LF);
+    UART_OutUDec(actlPos[2]);
+    UART_OutChar(' ');
+    UART_OutUDec(ctrlVar[2]);
+    UART_OutChar(CR);UART_OutChar(LF);
 }
  
 ////////////////////////////////////////////////////////////////////////////////

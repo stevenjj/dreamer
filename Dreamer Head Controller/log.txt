@@ -1,5 +1,9 @@
 Dreamer Head Redesign v57.0
 
+2016.11.11
+   Started writing new version of lights.s that would include two separate Update functions. One would take input of a single color value and write that to all lights. The other would take input of a pointer to an array of 40 color values for individual lights. Decided I don't really need that. Individual LEDs are too small and densely positioned to make individual coloring useful. Will stick to current single-color system unless a need arises.
+   Finished testing of new ear prototype actuators. Working very well. Have assembled one each of ear rotation and ear extension joints. Remaining problems include rubbing of plastic parts where misshapen and eccentricity of ear extension pulley. Redesigning most parts to include motor shrouds. When final parts are printed, rotating parts will be drilled in a lathe to ensure concentricity. Lots of code updates still desired. These are listed in todo.txt in root folder.
+
 2016.10.12
    Finally got lights.s working completely as desired, meaning that we can send arbitrary color values at any time. One eventual modification might be to make two update functions, one that takes 1xuint32_t for all lights, and a second that takes 2x40xuint32_t that can update all lights individually. That's a luxury goal for the future.
 
