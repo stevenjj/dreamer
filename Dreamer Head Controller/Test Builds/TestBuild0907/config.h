@@ -130,7 +130,7 @@
 #define J09_Min 650
 #define J09_Max 14900
 #define J09_Cnt (J09_Min + J09_Max)/2
-#define J09_KPn 1
+#define J09_KPn 0
 #define J09_KPd 1
 #define J09_KIn 0
 #define J09_KId 1

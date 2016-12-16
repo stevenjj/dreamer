@@ -421,7 +421,7 @@ void Timer1A_Handler(void) {
     }
  
         // Diagnostic Output
-    UART_OutUDec(actlPos[2]);
+    UART_OutUDec(eStopStatus);
     UART_OutChar(' ');
     UART_OutUDec(ctrlVar[2]);
     UART_OutChar(CR);UART_OutChar(LF);

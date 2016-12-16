@@ -8,7 +8,7 @@ gazeFocus = 128
 gazePitch = 128
 gazeYaw = 128
 
-ser = serial.Serial('COM12', 115200, parity='N')
+ser = serial.Serial('COM14', 115200, parity='N')
 
 def lookCenter():
     global gazePitch, gazeYaw

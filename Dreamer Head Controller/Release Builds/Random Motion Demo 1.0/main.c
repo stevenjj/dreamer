@@ -12,9 +12,9 @@
 #include <cstdlib>
 #include <stdint.h>
 #include "config.h"
-#include "eightBitTrig.h"
 #include "encoders.h"
 #include "estop.h"
+#include "fastTrig.h"
 #include "motors.h"
 #include "PLL.h"
 #include "tm4c123gh6pm.h"
@@ -229,7 +229,7 @@ void motionPlan() {
         }
         // if gaze is in progress, interpolate between previous and next
         else {
-            int32_t moveScalar = eightBitSine(moveCount*128/moveLength + 64);
+            int32_t moveScalar = sin8(moveCount*128/moveLength + 64);
             for(uint32_t i = 0; i < NUM_DOFS; i++)
                 desrPos[i] = desrOld[i] + (desrNew[i]-desrOld[i])*moveScalar/255;
  
@@ -356,7 +356,7 @@ uint32_t lightsCounter = 0;
 
 void pulsingLights(uint32_t color) {
 
-    uint32_t modValue = eightBitSine(lightsCounter);
+    uint32_t modValue = sin8(lightsCounter);
     uint32_t green = (color&0x00FF0000)>>16;
     uint32_t red = (color&0x0000FF00)>>8;
     uint32_t blue = (color&0x000000FF);
@@ -423,7 +423,7 @@ void Timer1A_Handler(void) {
         // Diagnostic Output
 //    UART_OutUDec(actlPos[0]);
 //    UART_OutChar(' ');
-//    UART_OutUDec(desrPos[0]);
+//    UART_OutUDec(actlPos[1]);
 //    UART_OutChar(CR);UART_OutChar(LF);
 }
  

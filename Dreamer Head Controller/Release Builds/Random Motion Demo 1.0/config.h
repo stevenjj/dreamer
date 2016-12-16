@@ -41,8 +41,8 @@
 // J02: Neck Roll
 // Encoder Pin: PB2
 // Motor Pin:   PB4
-#define J02_Min 14700
-#define J02_Max 16295
+#define J02_Min 4035
+#define J02_Max 5610
 #define J02_Cnt (J02_Min + J02_Max)/2
 #define J02_KPn 20
 #define J02_KPd 1
@@ -62,7 +62,6 @@
 #define J03_KId 1
 #define J03_KDn 1
 #define J03_KDd 1
-
 // J04: Eye Pitch
 // Encoder Pin: PD2
 // Motor Pin:   PE4
@@ -78,7 +77,6 @@
 // J05: Left Eye Yaw
 // Encoder Pin: PD3
 // Motor Pin:   PE5
-
 #define J05_Min 105
 #define J05_Max 3305
 #define J05_Cnt 1790
@@ -106,11 +104,11 @@
 #define J07_Min 3400
 #define J07_Max 10880
 #define J07_Cnt 9000
-#define J07_KPn 10
+#define J07_KPn 0
 #define J07_KPd 1
-#define J07_KIn 5
+#define J07_KIn 0
 #define J07_KId 1
-#define J07_KDn 1
+#define J07_KDn 0
 #define J07_KDd 5
 // J08: Right Ear Rotation
 // Encoder Pin: PE0
@@ -118,11 +116,11 @@
 #define J08_Min 1350
 #define J08_Max 14840
 #define J08_Cnt (J08_Min + J08_Max)/2
-#define J08_KPn 1
+#define J08_KPn 0
 #define J08_KPd 1
 #define J08_KIn 0
 #define J08_KId 1
-#define J08_KDn 1
+#define J08_KDn 0
 #define J08_KDd 50
 // J09: Right Ear Extension
 // Encoder Pin: PE1
@@ -130,11 +128,11 @@
 #define J09_Min 650
 #define J09_Max 14900
 #define J09_Cnt (J09_Min + J09_Max)/2
-#define J09_KPn 1
+#define J09_KPn 0
 #define J09_KPd 1
 #define J09_KIn 0
 #define J09_KId 1
-#define J09_KDn 1
+#define J09_KDn 0
 #define J09_KDd 10
 // J10: Left Ear Rotation
 // Encoder Pin: PE2

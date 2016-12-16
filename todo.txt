@@ -1,11 +1,9 @@
 To Do
 
 Software:
+Data collection system
 Include parity bits or other error checking in position command signals
 Convert existing 0-255 joint space coordinates to something more useful
-Complement existing sinusoidal interpolator lookup table with calculated sin values
-Write linear interpolator, allow remote to choose which method is used for each command, or switch between as desired
-Maybe something clever built around minimum jerk?
 Startup handshake that allows PC to automatically find head
 Combine all existing code into single class that lets us switch between control actions using keyboard and GUI
 Include max velocities and accelerations in head code
@@ -14,9 +12,8 @@ Set random motion demo as default, maybe starts running after a delay or if a bu
 Create feedback side of interpreter, sends out status and position values either periodically or when polled
 
 Electronics:
-Put microUSB and RJ-45 plugs on Dreamer back panel for head control and e-stop
-Assemble interface PCB to move all necessary parts inside Dreamer torso
-Replace all original encoder wiring
 
 Hardware:
-Finish rebuilding ears and eyelids
+Trim front face interference
+Design string clasps and tensioners for ears and eyelids
+
