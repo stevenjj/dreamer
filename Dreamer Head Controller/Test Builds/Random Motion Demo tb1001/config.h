@@ -101,63 +101,63 @@
 // J07: Eyelids
 // Encoder Pin: PD7
 // Motor Pin:   PD1
-#define J07_Min 3400
-#define J07_Max 10880
-#define J07_Cnt 9000
-#define J07_KPn 0	// 10
+#define J07_Min 2400
+#define J07_Max 14350
+#define J07_Cnt 12000
+#define J07_KPn 3
 #define J07_KPd 1
-#define J07_KIn 0	// 5
-#define J07_KId 1
-#define J07_KDn 0	// 1
-#define J07_KDd 5
+#define J07_KIn 1
+#define J07_KId 10
+#define J07_KDn 1
+#define J07_KDd 10
 // J08: Right Ear Rotation
 // Encoder Pin: PE0
 // Motor Pin:   PA6
-#define J08_Min 1350
-#define J08_Max 14840
+#define J08_Min 640
+#define J08_Max 14350
 #define J08_Cnt (J08_Min + J08_Max)/2
-#define J08_KPn 0	// 1
+#define J08_KPn 5
 #define J08_KPd 1
-#define J08_KIn 0
-#define J08_KId 1
-#define J08_KDn 0
-#define J08_KDd 50
+#define J08_KIn 1
+#define J08_KId 10
+#define J08_KDn 1
+#define J08_KDd 10
 // J09: Right Ear Extension
 // Encoder Pin: PE1
 // Motor Pin:   PA7
-#define J09_Min 650
-#define J09_Max 14900
+#define J09_Min 1950
+#define J09_Max 16080
 #define J09_Cnt (J09_Min + J09_Max)/2
-#define J09_KPn 0	// 1
+#define J09_KPn 5
 #define J09_KPd 1
-#define J09_KIn 0
-#define J09_KId 1
-#define J09_KDn 0
+#define J09_KIn 1
+#define J09_KId 10
+#define J09_KDn 1
 #define J09_KDd 10
 // J10: Left Ear Rotation
 // Encoder Pin: PE2
 // Motor Pin:   PF2
-#define J10_Min 1980
-#define J10_Max 9210
+#define J10_Min 1015
+#define J10_Max 14690
 #define J10_Cnt (J10_Min + J10_Max)/2
-#define J10_KPn 0	// 1
+#define J10_KPn 5
 #define J10_KPd 1
-#define J10_KIn 0
-#define J10_KId 1
-#define J10_KDn 0
-#define J10_KDd 1
+#define J10_KIn 1
+#define J10_KId 10
+#define J10_KDn 1
+#define J10_KDd 10
 // J11: Left Ear Extension
 // Encoder Pin: PE3
 // Motor Pin:   PF3
-#define J11_Min 1740
-#define J11_Max 15310
+#define J11_Min 1850
+#define J11_Max 16030
 #define J11_Cnt (J11_Min + J11_Max)/2
-#define J11_KPn 0	// 1
+#define J11_KPn 5
 #define J11_KPd 1
-#define J11_KIn 0
-#define J11_KId 1
-#define J11_KDn 0
-#define J11_KDd 1
+#define J11_KIn 1
+#define J11_KId 10
+#define J11_KDn 1
+#define J11_KDd 10
 
 // Ear Light Colors
 #define COLOR_BLUE      0x0000001F
