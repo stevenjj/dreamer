@@ -1,1 +1,0 @@
-.\lights.o: lights.s

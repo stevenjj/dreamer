@@ -1,43 +1,0 @@
-Dependencies for Project 'Dreamer Release v0.9.0', Target 'Dreamer v0.9.1': (DO NOT MODIFY !)
-F (.\encoders.c)(0x57CBA77A)(-c --cpu Cortex-M4 -D__EVAL -g -O0 --apcs=interwork --split_sections --signed_chars -I.. -I..\..\.. --C99-I C:\Keil\ARM\RV31\INC-I C:\Keil\ARM\CMSIS\Include-I C:\Keil\ARM\Inc\Luminary-Drvmdk -DPART_LM4F120H5QR-o .\encoders.o --omf_browse .\encoders.crf --depend .\encoders.d)
-I (C:\Keil\ARM\ARMCC\include\stdint.h)(0x51C87C24)
-I (config.h)(0x5894E255)
-I (encoders.h)(0x5769D3E8)
-I (tm4c123gh6pm.h)(0x574E648C)
-F (.\estop.c)(0x57CB4BA2)(-c --cpu Cortex-M4 -D__EVAL -g -O0 --apcs=interwork --split_sections --signed_chars -I.. -I..\..\.. --C99-I C:\Keil\ARM\RV31\INC-I C:\Keil\ARM\CMSIS\Include-I C:\Keil\ARM\Inc\Luminary-Drvmdk -DPART_LM4F120H5QR-o .\estop.o --omf_browse .\estop.crf --depend .\estop.d)
-I (C:\Keil\ARM\ARMCC\include\stdint.h)(0x51C87C24)
-I (config.h)(0x5894E255)
-I (estop.h)(0x579562BF)
-I (tm4c123gh6pm.h)(0x574E648C)
-F (.\lights.c)(0x57E0B3DA)(-c --cpu Cortex-M4 -D__EVAL -g -O0 --apcs=interwork --split_sections --signed_chars -I.. -I..\..\.. --C99-I C:\Keil\ARM\RV31\INC-I C:\Keil\ARM\CMSIS\Include-I C:\Keil\ARM\Inc\Luminary-Drvmdk -DPART_LM4F120H5QR-o .\lights.o --omf_browse .\lights.crf --depend .\lights.d)
-I (C:\Keil\ARM\ARMCC\include\stdint.h)(0x51C87C24)
-I (config.h)(0x5894E255)
-I (lights.h)(0x57E07CBF)
-I (tm4c123gh6pm.h)(0x574E648C)
-F (.\main.c)(0x57FD4032)(-c --cpu Cortex-M4 -D__EVAL -g -O0 --apcs=interwork --split_sections --signed_chars -I.. -I..\..\.. --C99-I C:\Keil\ARM\RV31\INC-I C:\Keil\ARM\CMSIS\Include-I C:\Keil\ARM\Inc\Luminary-Drvmdk -DPART_LM4F120H5QR-o .\main.o --omf_browse .\main.crf --depend .\main.d)
-I (C:\Keil\ARM\ARMCC\include\cstdlib)(0x51C87C24)
-I (C:\Keil\ARM\ARMCC\include\stdlib.h)(0x51C87C24)
-I (C:\Keil\ARM\ARMCC\include\stdint.h)(0x51C87C24)
-I (config.h)(0x5894E255)
-I (cosines.h)(0x57DDD382)
-I (encoders.h)(0x5769D3E8)
-I (estop.h)(0x579562BF)
-I (lights.h)(0x57E07CBF)
-I (motors.h)(0x5769D392)
-I (PLL.h)(0x574E648C)
-I (tm4c123gh6pm.h)(0x574E648C)
-I (UART.h)(0x576882BF)
-F (.\motors.c)(0x57CBA38C)(-c --cpu Cortex-M4 -D__EVAL -g -O0 --apcs=interwork --split_sections --signed_chars -I.. -I..\..\.. --C99-I C:\Keil\ARM\RV31\INC-I C:\Keil\ARM\CMSIS\Include-I C:\Keil\ARM\Inc\Luminary-Drvmdk -DPART_LM4F120H5QR-o .\motors.o --omf_browse .\motors.crf --depend .\motors.d)
-I (C:\Keil\ARM\ARMCC\include\stdint.h)(0x51C87C24)
-I (config.h)(0x5894E255)
-I (motors.h)(0x5769D392)
-I (tm4c123gh6pm.h)(0x574E648C)
-F (.\PLL.c)(0x5765B51F)(-c --cpu Cortex-M4 -D__EVAL -g -O0 --apcs=interwork --split_sections --signed_chars -I.. -I..\..\.. --C99-I C:\Keil\ARM\RV31\INC-I C:\Keil\ARM\CMSIS\Include-I C:\Keil\ARM\Inc\Luminary-Drvmdk -DPART_LM4F120H5QR-o .\pll.o --omf_browse .\pll.crf --depend .\pll.d)
-I (PLL.h)(0x574E648C)
-F (.\UART.c)(0x576891D4)(-c --cpu Cortex-M4 -D__EVAL -g -O0 --apcs=interwork --split_sections --signed_chars -I.. -I..\..\.. --C99-I C:\Keil\ARM\RV31\INC-I C:\Keil\ARM\CMSIS\Include-I C:\Keil\ARM\Inc\Luminary-Drvmdk -DPART_LM4F120H5QR-o .\uart.o --omf_browse .\uart.crf --depend .\uart.d)
-I (C:\Keil\ARM\ARMCC\include\stdint.h)(0x51C87C24)
-I (config.h)(0x5894E255)
-I (tm4c123gh6pm.h)(0x574E648C)
-I (UART.h)(0x576882BF)
-F (.\startup.s)(0x57E0ADCF)(--cpu Cortex-M4 --pd "__EVAL SETA 1" -g --apcs=interwork -I C:\Keil\ARM\RV31\INC-I C:\Keil\ARM\CMSIS\Include-I C:\Keil\ARM\Inc\Luminary--list .\startup.lst --xref -o .\startup.o --depend .\startup.d)
-F (.\lightsASM.s)(0x57FD401D)(--cpu Cortex-M4 --pd "__EVAL SETA 1" -g --apcs=interwork -I C:\Keil\ARM\RV31\INC-I C:\Keil\ARM\CMSIS\Include-I C:\Keil\ARM\Inc\Luminary--list .\lightsasm.lst --xref -o .\lightsasm.o --depend .\lightsasm.d)
