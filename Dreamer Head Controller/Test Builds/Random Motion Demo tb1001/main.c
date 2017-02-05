@@ -2,9 +2,9 @@
 // Main program for operation of joints in Dreamer's head. Contains all control
 // functions.
 
-// This file is part of Dreamer Head t0907
+// This file is part of Dreamer Head t1002
 // Travis Llado, travis@travisllado.com
-// Last modified 2016.10.12
+// Last modified 2017.02.04
  
 ////////////////////////////////////////////////////////////////////////////////
 // Dependencies
@@ -290,7 +290,7 @@ void motionPlan() {
     // if gaze transition is not in progress, decrement counter
     else {
         desrPos[7] = desrNew[7];
-        lookCount--;
+        // lookCount--;
     }
  
     // if blink is in progress, ...

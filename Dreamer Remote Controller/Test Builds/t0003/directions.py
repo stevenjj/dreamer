@@ -66,13 +66,13 @@ while True:
             lookUp()
 
     if gazePitch > 255:
-        gazePitch = 255
+        gazePitch = 248
     elif gazePitch < 0:
-        gazePitch = 0
+        gazePitch = 8
     if gazeYaw > 255:
-        gazeYaw = 255
+        gazeYaw = 248
     elif gazeYaw < 0:
-        gazeYaw = 0
+        gazeYaw = 8
 
     newCommand = gazeKey*0x1000000 + gazeFocus*0x10000 + gazePitch*0x100 + gazeYaw
     newMessage = str(newCommand) + "\r"

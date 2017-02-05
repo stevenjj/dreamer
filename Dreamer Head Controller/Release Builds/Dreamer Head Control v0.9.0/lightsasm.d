@@ -1,0 +1,1 @@
+.\lightsasm.o: lightsASM.s
