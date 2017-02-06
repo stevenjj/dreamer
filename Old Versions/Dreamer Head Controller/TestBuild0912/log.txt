@@ -1,0 +1,11 @@
+Test Build 0912
+
+The past several test builds were never completed. At this point, everything is fairly robust and stable, but too spaghetti-like. Now that everything is written, we need to reorganize our code entirely, modularize it.
+
+We can't separate controls and motion planning. Making a well organized data flow scheme there would slow everything down too much. Our $13 MCU couldn't handle it. Global variables will probably be required as long as we're using this MCU. Not a major problem, if it's reliable and future code is deployed on remote PCs.
+
+We've implemented a feed forward minimum jerk controller, which is essentially just a precalculated trajectory that is scaled between desired states. We've also written and tested a feedback minimum jerk controller, but it requires acceleration values, and when we calculate those with double differentiation the resulting performance is awful. We'll continue to work on that. We might try replanning to minimum jerk trajectory every 10 cycles instead of every one, which lets us do 10x as much filtering on velocity and acceleration.
+
+The next thing we need is a data collection system. We're going to write some basic python scripts that read data from UART and plot in realtime. We can't send much at 115200 and 500Hz. That's less than 26 characters per cycle, after packaging is considered If we want timestamps for reliability, two other signals max. We'll work on it.
+
+After we get realtime data collection, we'll be able to do data-based tuning, hopefully removing the problems we're having with vibration in pretty much all joints. If we can remove low-leve noise, that might allow us to use the one-cycle MJC. We'll see.

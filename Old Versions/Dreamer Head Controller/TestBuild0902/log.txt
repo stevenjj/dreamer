@@ -1,0 +1,4 @@
+Test Build 0902
+
+This test build was created to develop the assembly code needed to write arbitrary color values to Dreamer's ear lights. Most of it is working currently, but the lightsUpdate function is not returning. This is very strange because it returns the first time it's run, when it is called from lightsInit, but not when it is subsequently run directly. Also, when we run lightsInit a second time, it fails to return. Working on this.
+
