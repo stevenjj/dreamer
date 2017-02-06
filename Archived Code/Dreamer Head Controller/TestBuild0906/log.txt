@@ -1,3 +1,0 @@
-Test Build 0906
-
-This build combines the motion planner from t0904 with the working lights.s from t0905.

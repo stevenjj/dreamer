@@ -1,4 +1,0 @@
-Test Build 0904
-
-This build tests out basic code for passing arguments from C to ASM during function calls. This shouldn't be that difficult, but none of our code is working robustly.
-

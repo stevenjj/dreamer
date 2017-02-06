@@ -1,4 +1,0 @@
-Test Build 0904
-
-This build combines the gave-up-complete assembly code of t0902 with the manual motion planning via UART of t0903. We really have to figure out that bug with argument passing. It shouldn't be this difficult.
-
