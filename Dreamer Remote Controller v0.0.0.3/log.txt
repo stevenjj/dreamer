@@ -1,0 +1,7 @@
+Test Build 0002
+
+2016.09.28
+   Test Build 0002 plays around with the previous haar cascade face detection
+system. We're currently printing the face center coordinates to the screen, and
+we'll use these to send position correction commands to the head.
+
