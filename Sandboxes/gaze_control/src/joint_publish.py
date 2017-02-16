@@ -125,7 +125,8 @@ class Custom_Joint_Publisher():
 
 
     def update_joint_position(self):
-        J3_name = 'upper_neck_pitch'
+        #J3_name = 'upper_neck_pitch'
+        J3_name = 'upper_neck_yaw'
         J3_max_val = self.free_joints[J3_name]['max']
         J3_min_val = self.free_joints[J3_name]['min']
 
@@ -137,11 +138,11 @@ class Custom_Joint_Publisher():
             else:
                 return num
 
-        T = 1.00
+        T = 0.6
         frequency = 1.0/T
         angular_frequency = 2*3.14*frequency
 
-        amp = abs( min([J3_max_val, J3_min_val]) )
+        amp = abs( min([J3_max_val, J3_min_val]) ) /8.0
         bias = 0#(J3_max_val - J3_min_val)/2.0
 
         command = bound(amp*math.sin(angular_frequency*self.ROS_current_time) + bias)
