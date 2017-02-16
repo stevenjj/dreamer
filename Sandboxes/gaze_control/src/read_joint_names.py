@@ -2,6 +2,7 @@
 import rospy
 import time
 import xml.dom.minidom
+from sensor_msgs.msg import JointState
 
 def get_param(name, value=None):
     private = "~%s" % name
