@@ -1,0 +1,11 @@
+<launch>
+
+	<!-- Load Robot -->
+	<param name="robot_description"	textfile="$(find dreamer_viz)/robot/dreamer_ltw.urdf" /> 
+	<!-- Load Sample Controller -->
+	<node name="joint_state_publisher" pkg="gaze_control" type="joint_publish.py" output="screen" /> 
+	<!-- State Publisher -->
+	<node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+
+	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find dreamer_viz)/launch/dreamer_viz.rviz" required="true" /> 
+</launch>
