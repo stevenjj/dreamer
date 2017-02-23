@@ -92,8 +92,14 @@ class Custom_Joint_Publisher():
         self.print_joints()
 
     def print_joints(self):
+        print "All Joints"
         for joint in self.joint_list:
             print joint
+        print "Controllable Joints"
+        for joint_name in self.joint_list:
+            if joint_name not in self.dependent_joints:
+                print joint_name
+
         #print self.free_joints
 
     def publish_joints(self):
