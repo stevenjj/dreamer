@@ -27,11 +27,10 @@ class Head_Kinematics():
 
 	# Returns a 6xn Jacobian
 	def get_6D_Head_Jacobian(self, JList):
-		# Create Screw List
-		# Create Joint List
-		# Call Jacobian Space mr.JacobianSpace(Slist, thetalist)
-		# Add extra zeros
-		return 0
+		Slist = self.screw_axes_tables[0:4].T # Only first four joints affect head orientation
+		thetalist = JList[0:4] # Only first four joints affect Head Orientation		
+		return mr.JacobianSpace(Slist, thetalist)
+
 	def get_6D_Left_Eye_Jacobian(self, JList):
 		return 0		
 	def get_6D_Right_Eye_Jacobian(self, JList):		
