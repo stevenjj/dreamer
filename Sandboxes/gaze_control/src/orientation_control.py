@@ -22,7 +22,8 @@ class Head_Kinematics():
 	S6 = [0,  0, 1, l3, -l2, 0]					
 
 	R_head_home = np.eye(3)
-	p_head_home = [0, 0, l0+l1]
+	#p_head_home = [0, 0, l0+l1]
+	p_head_home = [l3, 0, l0+l1]
 
 	R_right_eye_home = np.eye(3)
 	p_right_eye_home = [l2, -l3, l0+l1]	
@@ -42,7 +43,7 @@ class Head_Kinematics():
 								5: "right_eye_yaw", \
 								6: "left_eye_yaw"}								
 
-	# Returns a 6xn Jacobian
+	# Returns the head's 6xn Jacobian
 	def get_6D_Head_Jacobian(self, Jlist):
 		screw_axis_end = 3 # This is J3
 		num_joints = screw_axis_end + 1 # should be 4
@@ -85,9 +86,19 @@ class Behavior_GUI():
 class Orientation_Controller():
 	def __init__(self):
 		self.joints = {}
+		self.maxVal = {}
 
 	def get_command(self):
+		# dx = [w1, w2, w3, x, y, z]	
+		# np.linalg.pinv(J) * dx
+		# dq = Jinv*dx
 		return 0
+
+	def get_error(self):
+
+		return 0
+
+
 
 if __name__ == '__main__':
 	kin = Head_Kinematics()
