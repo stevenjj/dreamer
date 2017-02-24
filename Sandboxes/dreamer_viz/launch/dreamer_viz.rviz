@@ -8,9 +8,9 @@ Panels:
         - /Status1
         - /Marker1
         - /MarkerArray1
-        - /RobotModel1
         - /RobotModel1/Links1
         - /TF1
+        - /TF1/Frames1
       Splitter Ratio: 0.5
     Tree Height: 747
   - Class: rviz/Selection
@@ -323,7 +323,7 @@ Visualization Manager:
       Frames:
         All Enabled: false
         eye_pitch_link:
-          Value: true
+          Value: false
         l_gripper_l_finger_link:
           Value: false
         l_gripper_l_finger_tip_link:
@@ -411,7 +411,7 @@ Visualization Manager:
         upper_neck_pitch_link:
           Value: false
         upper_neck_roll_link:
-          Value: false
+          Value: true
         upper_neck_yaw_link:
           Value: false
         world:
@@ -506,22 +506,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.565321
+      Distance: 0.864109
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.126821
-        Y: 0.0616538
-        Z: 1.48976
+        X: 0.135028
+        Y: 0.0878788
+        Z: 1.44602
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.265398
+      Pitch: 0.555398
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.480358
+      Yaw: 0.695359
     Saved: ~
 Window Geometry:
   Displays:
@@ -539,5 +539,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1855
-  X: 146
-  Y: 93
+  X: 55
+  Y: 14
