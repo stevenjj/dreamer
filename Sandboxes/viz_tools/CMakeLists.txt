@@ -51,8 +51,9 @@ MESSAGE(STATUS ${PROJECT_SOURCE_DIR})
 #include_directories(TaskManager)
 #include_directories(include)
 
-#add_executable(tf_Pub Visualization_Tools/tf_Pub.cpp)
-#target_link_libraries(tf_Pub ${catkin_LIBRARIES})
+
+add_executable(gaze_markers src/gaze_markers.cpp)
+target_link_libraries(gaze_markers ${catkin_LIBRARIES} marker_pub SJutils_dreamer)
 
 add_executable(test_node_dreamer src/test_node4.cpp)
 target_link_libraries(test_node_dreamer ${catkin_LIBRARIES} marker_pub SJutils_dreamer)

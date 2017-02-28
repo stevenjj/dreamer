@@ -84,8 +84,9 @@ public:
 	void new_arr_channel(sejong::MarkerChannel & mc, std::string name, sejong::RvizColor color,
 				int maxNumMrks=1, double minSleepTime=1000./30., double length=0.25, int numUpdatesPerSphere=1 );
 	void pub_arr_marker(sejong::MarkerChannel & mc, sejong::Vect3 & xyz, sejong::Quaternion & quat);
-	void set_arrow_length( sejong::MarkerChannel & mc , const double & length );
+	void set_arrowLength(  sejong::MarkerChannel & mc , const double & length );
 	void set_maxNumSpheres(sejong::MarkerChannel & mc , const int & maxNumMrks );
+	void set_numUpdatesPerSphere(sejong::MarkerChannel & mc , const int & numUpdatesPerSphere );
 
 
 	void new_js_channel(sejong::JS_Channel & jsc, std::string name, double minSleepTime=1000./30.);
