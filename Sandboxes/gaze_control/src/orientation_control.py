@@ -48,7 +48,7 @@ class Head_Kinematics():
 	R_right_eye_home = np.eye(3)
 	p_right_eye_home = [l2, -l3, l1]	
 
-	R_right_eye_home = np.eye(3)
+	R_left_eye_home = np.eye(3)
 	p_left_eye_home = [l2, l3, l1]		
 
 
@@ -120,7 +120,7 @@ class Head_Kinematics():
 
 
 	# Returns the head's orientation R, and spatial position p from T \in SE(3)
-	def get_6D_Head_Position(self, Jlist):
+	def get_6D_Head_Position(self, JList):
 		screw_axis_end = 3 # This is J3
 		num_joints = screw_axis_end + 1 # should be 4
 
@@ -150,6 +150,26 @@ class Head_Kinematics():
 		# Right Eye Orientation and Position	
 		R_right_eye, p_right_eye = mr.TransToRp(T_right_eye)
 		return (R_right_eye, p_right_eye)
+
+
+	# Rerturns the right eye's orientation R and spatial position p from T \in SE(3)
+	def get_6D_Left_Eye_Position(self, JList):		
+		screw_axis_end = 6 # This is J6
+		num_joints = 6
+		
+		# Only six joints (excluding J5) affect left eye orientation and position
+		# J0, J1, J2, J3, J4, J6
+		Slist = np.concatenate( (self.screw_axes_tables[0:5], self.screw_axes_tables[6].reshape(1,6)), axis = 0).T
+		thetalist = np.concatenate( (JList[0:5], np.array([JList[screw_axis_end]]) ), axis = 0 )
+
+		# Home Orientation and Position of Right Eye		
+		M_left_eye_home = mr.RpToTrans(self.R_left_eye_home, self.p_left_eye_home)
+		# Forward Kinematics of Right Eye
+		T_left_eye = mr.FKinSpace(M_left_eye_home, Slist, thetalist)
+
+		# Right Eye Orientation and Position	
+		R_left_eye, p_left_eye = mr.TransToRp(T_left_eye)
+		return (R_left_eye, p_left_eye)
 
 
 class Behavior_GUI():
