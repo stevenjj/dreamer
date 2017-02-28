@@ -144,7 +144,7 @@ class Custom_Joint_Publisher():
             else:
                 return num
 
-        T = 0.6
+        T = 6.
         frequency = 1.0/T
         angular_frequency = 2*3.14*frequency
 
