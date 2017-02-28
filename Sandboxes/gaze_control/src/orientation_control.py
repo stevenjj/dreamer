@@ -43,7 +43,7 @@ class Head_Kinematics():
 	S6 = [0,  0, 1, l3, -l2, 0]					
 
 	R_head_home = np.eye(3)
-	p_head_home = [l3, 0, l1]
+	p_head_home = [l2, 0, l1]
 
 	R_right_eye_home = np.eye(3)
 	p_right_eye_home = [l2, -l3, l1]	
@@ -76,7 +76,7 @@ class Head_Kinematics():
 		zero_vec = np.zeros((6, self.J_num - num_joints )) # this should be 6x3
 		J_spatial_6D_head = np.concatenate((J_spatial, zero_vec), axis=1) 
 
-		return J_spatial_6D_head
+		return J_spatial_6D_head # returns 6x7 Spatial Jacobian
 
 	def get_6D_Right_Eye_Jacobian(self, JList):		
 		screw_axis_end = 5 # This is J5
@@ -89,7 +89,7 @@ class Head_Kinematics():
 		zero_vec = np.zeros((6, self.J_num - num_joints )) # this should be 6x1
 		J_spatial_6D_right_eye = np.concatenate((J_spatial, zero_vec), axis=1) 
 
-		return J_spatial_6D_right_eye
+		return J_spatial_6D_right_eye # returns 6x7 Spatial Jacobian
 
 	def get_6D_Left_Eye_Jacobian(self, JList):
 		screw_axis_end = 6 # This is J6
@@ -116,7 +116,7 @@ class Head_Kinematics():
 		J0_to_J5_Jacobian = np.concatenate( (J0_to_J4_Jacobian, zero_vec), axis=1)
 		J_spatial_6D_left_eye = np.concatenate((J0_to_J5_Jacobian, J6_Jacobian), axis=1) 
 
-		return J_spatial_6D_left_eye
+		return J_spatial_6D_left_eye # returns 6x7 Spatial Jacobian
 
 
 	# Returns the head's orientation R, and spatial position p from T \in SE(3)
