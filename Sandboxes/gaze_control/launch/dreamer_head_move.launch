@@ -6,6 +6,9 @@
 	<node name="joint_state_publisher" pkg="gaze_control" type="joint_publish.py" output="screen" /> 
 	<!-- State Publisher -->
 	<node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+	<!-- ros_pub orientation marker -->
+	<node name="orientation_viz_pub" pkg="viz_tools" type="test_node_dreamer" output="screen" />
+
 
 	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find dreamer_viz)/launch/dreamer_viz.rviz" required="true" /> 
 </launch>
