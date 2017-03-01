@@ -5,11 +5,33 @@ import math
 import modern_robotics as mr
 import numpy as np
 import util_quat as quat
-from head_kinematics import *
+import head_kinematics as hk
+import dreamer_joint_publisher
+#from head_kinematics import 
+
 '''
+state machine:
+
+- idle
+- go to point.
+- move head circular direction
+
+Joint Publisher object
+Head Kinematics object
+
+
+initialize state
+loop:
+
+
+
+
+Trajectory manager
 
 
 '''
+
+
 def calculate_dQ(J, dx):
 	dQ = np.linalg.pinv(J).dot(dx)
 	return dQ
@@ -27,6 +49,7 @@ def circular_trajectory(t):
 	# Publish x(t) markers.
 
 # Calculate desired orientation
+# Accepts a 3x1 gaze location vector and an origin vector to create the desired orientation
 def calc_desired_orientation(x_gaze_loc, p_cur, orientation_type='head'):
     # Calculate Desired Orientation
     z_world_hat = np.array([0,0,1])
@@ -94,11 +117,92 @@ def zero_position_error():
     return np.array([0,0,0])
 
 
+
+# State Lists
+IDLE = 0
+GO_TO_POINT = 1
+FOLLOWING_TRAJECTORY = 2
+FINISHED_TRAJECTORY = 3
+INTERRUPTED = 4
+
+# High Level Task Lists
+NO_TASK = 100
+GAZE_AVERSION = 101
+TASK_HIERARCHY = 102
+CIRCULAR_HEAD_TRAJ = 103
+TRACK_PERSON = 104
+TRACK_MARKER = 105
+
+# High Level Behavior List --- seems like this is another high level task list
+DO_NOTHING = 200
+ALWAYS_GAZE_AVERT = 201
+ALWAYS_GAZE_FOLLOW = 202
+
+
+class Dreamer_Head():
+    def __init__(self):
+        self.behaviors = []
+        self.tasks = [NO_TASK, GAZE_AVERSION, TASK_HIERARCHY, CIRCULAR_HEAD_TRAJ, TRACK_PERSON, TRACK_MARKER]
+        self.states = [IDLE, GO_TO_POINT, FOLLOWING_TRAJECTORY, FINISHED_TRAJECTORY, INTERRUPTED]
+
+        self.current_state = IDLE
+        self.current_task = NO_TASK
+
+        self.kinematics = hk.Head_Kinematics() 
+        self.joint_publisher = dreamer_joint_publisher.Custom_Joint_Publisher()
+
+        # ROS Loop details
+        self.rate = rospy.Rate(100) # 1hz
+        self.ROS_start_time = rospy.Time.now().to_sec()
+        self.ROS_current_time = rospy.Time.now().to_sec()
+
+
+    def callback_change_state(self, string):
+        #specifying subscriber callback via callback class_instance.method_name
+        return 0
+
+    def update_head_joints(self, head_joint_list):
+        return 0
+
+    def task_logic(self):
+        return 0
+
+    def behavior_logic(self):
+        return 0
+
+    def state_logic(self):
+        if (self.current_state == IDLE):
+            print "STATE = Idle"
+        elif (self.current_state == GO_TO_POINT):
+            print "STATE = Circular Head Trajectory"
+        else:
+            print "ERROR Not a valid state" 
+
+    def loop(self):
+        while not rospy.is_shutdown():
+            self.ROS_current_time = rospy.Time.now().to_sec() - self.ROS_start_time
+            print "ROS time (sec): ", self.ROS_current_time            
+
+
+            self.state_logic()
+            self.joint_publisher.publish_joints()
+            self.rate.sleep()
+        
+
+class Trajectory_Manager():
+    def __init__(self):
+        self.traj = None
+
+    def get_command(self):
+        return 0
+
+
+
 if __name__ == '__main__':
-    #rospy.init_node('orientation_contro')
+    rospy.init_node('dreamer_head_behavior')
     global head_kin
-    head_kin = Head_Kinematics() 
-    kin = Head_Kinematics()
+    head_kin = hk.Head_Kinematics() 
+    kin = hk.Head_Kinematics()
     print kin.S0
     
     orientation_error(np.array([1.053,0, 0.13849]) , kin.Jlist ,'head')
@@ -106,6 +210,11 @@ if __name__ == '__main__':
     J_head = kin.get_6D_Head_Jacobian(kin.Jlist)
     J_right_eye = kin.get_6D_Right_Eye_Jacobian(kin.Jlist)		
     J_left_eye = kin.get_6D_Left_Eye_Jacobian(kin.Jlist)
+
+
+    dreamer_head = Dreamer_Head()
+    dreamer_head.loop()
+
 #        rospy.init_node('head_joint_publisher')
 #        custom_joint_publisher = Custom_Joint_Publisher() 
 #        custom_joint_publisher.loop()
