@@ -15,7 +15,12 @@ from sensor_msgs.msg import JointState
 #roslib.load_manifest("gaze_control")
 
 from gaze_control_python import modern_robotics as mr
+from gaze_control_python import head_kinematics as hk
 
+dreamer_head_kin = hk.Head_Kinematics()
+
+print dreamer_head_kin.Jlist
+print dreamer_head_kin.get_6D_Head_Jacobian(dreamer_head_kin.Jlist)
 #mr.Normalize()
 
 #from gaze_control import Head_Kinematics
