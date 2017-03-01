@@ -4,201 +4,108 @@ import time
 import math
 import modern_robotics as mr
 import numpy as np
-
-class Head_Kinematics():
-	# Dreamer Links
-	l0 = 0.3115
-	l1 = 0.13849
-	l2 = 0.053
-	l3 = 0.3115
-	# # Dreamer Screw Axes @ 0 Position
-	# # S = [omega_hat, v]
-	# S0 = [0, -1, 0, l0, 0, 0]
-	# S1 = [0, 0, 1, 0, 0, 0]
-	# S2 = [-1, 0, 0, 0, l0+l1, 0]
-	# S3 = [0, -1, 0, l0+l1, 0, 0]
-	# S4 = [0, -1, 0, l0+l1, 0, l2]
-	# S5 = [0,  0, 1, -l3, -l2, 0]
-	# S6 = [0,  0, 1, l3, -l2, 0]					
-
-	# R_head_home = np.eye(3)
-	# #p_head_home = [0, 0, l0+l1]
-	# p_head_home = [l3, 0, l0+l1]
-
-	# R_right_eye_home = np.eye(3)
-	# p_right_eye_home = [l2, -l3, l0+l1]	
-
-	# R_right_eye_home = np.eye(3)
-	# p_left_eye_home = [l2, l3, l0+l1]		
-
-	# Dreamer Head from J0
-	# Dreamer Screw Axes @ 0 Position
-	# S = [omega_hat, v]
-	S0 = [0, -1, 0, 0, 0, 0]
-	S1 = [0, 0, 1, 0, 0, 0]
-	S2 = [-1, 0, 0, 0, l1, 0]
-	S3 = [0, -1, 0, l1, 0, 0]
-	S4 = [0, -1, 0, l1, 0, l2]
-	S5 = [0,  0, 1, -l3, -l2, 0]
-	S6 = [0,  0, 1, l3, -l2, 0]					
-
-	R_head_home = np.eye(3)
-	p_head_home = [l2, 0, l1]
-
-	R_right_eye_home = np.eye(3)
-	p_right_eye_home = [l2, -l3, l1]	
-
-	R_left_eye_home = np.eye(3)
-	p_left_eye_home = [l2, l3, l1]		
+import util_quat as quat
+from head_kinematics import *
+'''
 
 
-	def __init__(self):
-		self.screw_axes_tables = np.array([self.S0, self.S1, self.S2, self.S3, self.S4, self.S5, self.S6])
-		self.J_num = np.shape(self.screw_axes_tables)[0]
-		self.Jlist = np.zeros( np.shape(self.screw_axes_tables)[0] )
-		self.Jindex_to_names = {0: "lower_neck_pitch", \
-								1: "upper_neck_yaw", \
-								2: "upper_neck_roll", \
-								3: "upper_neck_pitch", \
-								4: "eye_pitch", \
-								5: "right_eye_yaw", \
-								6: "left_eye_yaw"}								
+'''
+def calculate_dQ(J, dx):
+	dQ = np.linalg.pinv(J).dot(dx)
+	return dQ
 
-	# Returns the head's 6xn Jacobian
-	def get_6D_Head_Jacobian(self, JList):
-		screw_axis_end = 3 # This is J3
-		num_joints = screw_axis_end + 1 # should be 4
-		Slist = self.screw_axes_tables[0:num_joints].T # Only first four joints affect head orientation
-		thetalist = JList[0:num_joints] # Only first four joints affect Head Orientation		
-		J_spatial =  mr.JacobianSpace(Slist, thetalist) # returns 6x4 Spatial Jacobian
+def circular_trajectory(t):
+    radius = 0.2
+    x_offset, y_offset, z_offset = 0.25, 0, 0.01
+    T = 6.0
+    frequency = 1.0/T
+    angular_frequency = 2*3.14*frequency
+    x = x_offset
+    y = y_offset + radius*np.cos(angular_frequency*t)
+    z = z_offset + radius*np.sin(angular_frequency*t)	
+    return np.array([x, y, z])
+	# Publish x(t) markers.
 
-		# Concatenate zeros
-		zero_vec = np.zeros((6, self.J_num - num_joints )) # this should be 6x3
-		J_spatial_6D_head = np.concatenate((J_spatial, zero_vec), axis=1) 
+# Calculate desired orientation
+def calc_desired_orientation(x_gaze_loc, p_cur, orientation_type='head'):
+    # Calculate Desired Orientation
+    z_world_hat = np.array([0,0,1])
+    y_world_hat = np.array([0,1,0])    
 
-		return J_spatial_6D_head # returns 6x7 Spatial Jacobian
+    p_bar = x_gaze_loc - p_cur
+    x_hat_d = p_bar/np.linalg.norm(p_bar)
 
-	def get_6D_Right_Eye_Jacobian(self, JList):		
-		screw_axis_end = 5 # This is J5
-		num_joints = screw_axis_end + 1 # should be 6
-		Slist = self.screw_axes_tables[0:num_joints].T # Only first six joints affect right eye orientation and position
-		thetalist = JList[0:num_joints] # Only first six joints affect right eye orientation and position		
-		J_spatial =  mr.JacobianSpace(Slist, thetalist) # returns 6x6 Spatial Jacobian
+    # Threshold before we use y_world_hat
+    epsilon = 3 * np.pi/180.0 # degrees in radians 
+    phi = np.arccos( (x_hat_d.dot(z_world_hat)) / (np.linalg.norm(x_hat_d)*np.linalg.norm(z_world_hat)) )
 
-		# Concatenate zeros
-		zero_vec = np.zeros((6, self.J_num - num_joints )) # this should be 6x1
-		J_spatial_6D_right_eye = np.concatenate((J_spatial, zero_vec), axis=1) 
+    z_hat_o = z_world_hat
+    if (phi <= epsilon):
+        z_hat_o = y_world_hat
 
-		return J_spatial_6D_right_eye # returns 6x7 Spatial Jacobian
+    z_hat_d = z_hat_o - z_hat_o.dot(x_hat_d)
+    y_hat_d = np.cross(z_hat_d, x_hat_d)
 
-	def get_6D_Left_Eye_Jacobian(self, JList):
-		screw_axis_end = 6 # This is J6
-		num_joints = 6
-		
-		# Only six joints (excluding J5) affect left eye orientation and position
-		# J0, J1, J2, J3, J4, J6
-		Slist = np.concatenate( (self.screw_axes_tables[0:5], self.screw_axes_tables[6].reshape(1,6)), axis = 0).T
-		thetalist = np.concatenate( (JList[0:5], np.array([JList[screw_axis_end]]) ), axis = 0 ) 		
-		# Spatial Jacobian is [J0, J1, J2, J3, J4, J6]. we have to add back in a J5 zero vector later
-		J_spatial =  mr.JacobianSpace(Slist, thetalist) # returns 6x6 Spatial Jacobian
+    R_desired = np.array([x_hat_d.T, y_hat_d.T, z_hat_d.T]) 
+    print 'Desired Orientation ', R_desired
+    return R_desired
 
-		# Now we have to construct the following Jacobian:
-		# J = [J0, J1, J2, J3, J4, 0, J6]
+# Calculate error between current configuration and desired configuration
+def orientation_error(x_gaze_loc, Q, orientation_type='head'):
+    global head_kin
+    J = None
+    R_cur, p_cur = None, None
+    # Get forward kinematics
+    if (orientation_type == 'head'):
+        R_cur, p_cur = head_kin.get_6D_Head_Position(Q)
+    elif (orientation_type == 'right_eye'):
+        R_cur, p_cur = head_kin.get_6D_Right_Eye_Position(Q)        
+    elif (orientation_type == 'left_eye'):        
+        R_cur, p_cur = head_kin.get_6D_Left_Eye_Position(Q)        
+    else:
+        raise 'unknown position and orientation needed'
 
-		# Jacobian due to joint 5 zero vector
-		zero_vec = np.zeros((6, self.J_num - num_joints )) # this should be 6x1
+    # Calculate desired orientation
+    R_des = calc_desired_orientation(x_gaze_loc, p_cur)
 
-		# Construct last column and first 5 columns
-		J6_Jacobian = J_spatial[:,-1].reshape(6,1) # Last column of J_spatial, which is J6's jacobian
-		J0_to_J4_Jacobian = J_spatial[:,0:5] # First five joints before left eye  
-
-		# Add J5 zero column vector
-		J0_to_J5_Jacobian = np.concatenate( (J0_to_J4_Jacobian, zero_vec), axis=1)
-		J_spatial_6D_left_eye = np.concatenate((J0_to_J5_Jacobian, J6_Jacobian), axis=1) 
-
-		return J_spatial_6D_left_eye # returns 6x7 Spatial Jacobian
+    q_cur = quat.R_to_quat(R_cur)
+    q_des = quat.R_to_quat(R_des)
+    q_error = quat.quat_multiply(q_des, quat.conj(q_cur))
 
 
-	# Returns the head's orientation R, and spatial position p from T \in SE(3)
-	def get_6D_Head_Position(self, JList):
-		screw_axis_end = 3 # This is J3
-		num_joints = screw_axis_end + 1 # should be 4
+    theta = 2*np.arccos(q_error[0])
 
-		Slist = self.screw_axes_tables[0:num_joints].T # Only first four joints affect head orientation
-		thetalist = JList[0:num_joints] # Only first four joints affect Head Orientation		
-		M_head_home = mr.RpToTrans(self.R_head_home, self.p_head_home)
+    if (theta == 0):
+        print theta, q_error[1:]
+        return theta, q_error[1:]
 
-		T_head = mr.FKinSpace(M_head_home, Slist, thetalist)
+    factor = np.sin(theta/2.0)
+    w_hat_x = q_error[1]/factor
+    w_hat_y = q_error[2]/factor
+    w_hat_z = q_error[3]/factor        
 
-		# Head Orientation and Position
-		R_head, p_head = mr.TransToRp(T_head)
-		return (R_head, p_head)
+    angular_vel_hat = np.array([w_hat_x, w_hat_y, w_hat_z])
 
-	# Rerturns the right eye's orientation R and spatial position p from T \in SE(3)
-	def get_6D_Right_Eye_Position(self, JList):		
-		screw_axis_end = 5 # This is J5
-		num_joints = screw_axis_end + 1 # should be 6
+    print theta, angular_vel_hat
+    return theta, angular_vel_hat
 
-		Slist = self.screw_axes_tables[0:num_joints].T # Only first six joints affect head orientation
-		thetalist = JList[0:num_joints] # Only first six joints affect Head Orientation
-
-		# Home Orientation and Position of Right Eye		
-		M_right_eye_home = mr.RpToTrans(self.R_right_eye_home, self.p_right_eye_home)
-		# Forward Kinematics of Right Eye
-		T_right_eye = mr.FKinSpace(M_right_eye_home, Slist, thetalist)
-
-		# Right Eye Orientation and Position	
-		R_right_eye, p_right_eye = mr.TransToRp(T_right_eye)
-		return (R_right_eye, p_right_eye)
-
-
-	# Rerturns the right eye's orientation R and spatial position p from T \in SE(3)
-	def get_6D_Left_Eye_Position(self, JList):		
-		screw_axis_end = 6 # This is J6
-		num_joints = 6
-		
-		# Only six joints (excluding J5) affect left eye orientation and position
-		# J0, J1, J2, J3, J4, J6
-		Slist = np.concatenate( (self.screw_axes_tables[0:5], self.screw_axes_tables[6].reshape(1,6)), axis = 0).T
-		thetalist = np.concatenate( (JList[0:5], np.array([JList[screw_axis_end]]) ), axis = 0 )
-
-		# Home Orientation and Position of Right Eye		
-		M_left_eye_home = mr.RpToTrans(self.R_left_eye_home, self.p_left_eye_home)
-		# Forward Kinematics of Right Eye
-		T_left_eye = mr.FKinSpace(M_left_eye_home, Slist, thetalist)
-
-		# Right Eye Orientation and Position	
-		R_left_eye, p_left_eye = mr.TransToRp(T_left_eye)
-		return (R_left_eye, p_left_eye)
-
-
-class Behavior_GUI():
-	def get_command(self):
-		return 0
-
-
-class Orientation_Controller():
-	def __init__(self):
-		self.joints = {}
-		self.maxVal = {}
-
-	def get_command(self):
-		# dx = [w1, w2, w3, x, y, z]	
-		# np.linalg.pinv(J) * dx
-		# dq = Jinv*dx
-		return 0
-
-	def get_error(self):
-		return 0
-
+# define zero position error
+def zero_position_error():
+    return np.array([0,0,0])
 
 
 if __name__ == '__main__':
-	kin = Head_Kinematics()
-	print kin.S0
-	J_head = kin.get_6D_Head_Jacobian(kin.Jlist)
-	J_right_eye = kin.get_6D_Right_Eye_Jacobian(kin.Jlist)		
-	J_left_eye = kin.get_6D_Left_Eye_Jacobian(kin.Jlist)	
+    #rospy.init_node('orientation_contro')
+    global head_kin
+    head_kin = Head_Kinematics() 
+    kin = Head_Kinematics()
+    print kin.S0
+    
+    orientation_error(np.array([1.053,0, 0.13849]) , kin.Jlist ,'head')
+
+    J_head = kin.get_6D_Head_Jacobian(kin.Jlist)
+    J_right_eye = kin.get_6D_Right_Eye_Jacobian(kin.Jlist)		
+    J_left_eye = kin.get_6D_Left_Eye_Jacobian(kin.Jlist)
 #        rospy.init_node('head_joint_publisher')
 #        custom_joint_publisher = Custom_Joint_Publisher() 
 #        custom_joint_publisher.loop()
