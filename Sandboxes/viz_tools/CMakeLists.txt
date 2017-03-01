@@ -12,9 +12,12 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   gazebo_msgs
   gazebo_ros
-  #motion_ctrl
   interactive_markers
+  gaze_control
 )
+
+catkin_package()
+#catkin_python_setup()
 
 # Depend on system install of Gazebo
 find_package(Eigen3 REQUIRED)
@@ -40,16 +43,12 @@ catkin_package(
   	geometry_msgs
   	gazebo_msgs
   	gazebo_ros
-    #motion_ctrl
     interactive_markers
+    gaze_control
 )
 
 
 MESSAGE(STATUS ${PROJECT_SOURCE_DIR})
-#include_directories(${PROJECT_SOURCE_DIR}/../Motion_Ctrl)
-#include_directories(${PROJECT_SOURCE_DIR}/../)
-#include_directories(TaskManager)
-#include_directories(include)
 
 
 add_executable(gaze_markers src/gaze_markers.cpp)

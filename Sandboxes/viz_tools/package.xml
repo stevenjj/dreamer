@@ -15,21 +15,26 @@
     <buildtool_depend>catkin</buildtool_depend>
     <build_depend>roscpp</build_depend>
     <build_depend>tf</build_depend>
+  <build_depend>std_msgs</build_depend>
     <build_depend>sensor_msgs</build_depend>
     <build_depend>geometry_msgs</build_depend>
     <build_depend>gazebo_msgs</build_depend>
     <build_depend>gazebo_ros</build_depend>
-    <build_depend>motion_ctrl</build_depend>
+    
+    <build_depend>gaze_control</build_depend>
 
 
 
     <run_depend>roscpp</run_depend>
   <run_depend>tf</run_depend>
+  <run_depend>std_msgs</run_depend>
   <run_depend>sensor_msgs</run_depend>
   <run_depend>geometry_msgs</run_depend>
   <run_depend>gazebo_msgs</run_depend>
   <run_depend>gazebo_ros</run_depend>
-  <run_depend>motion_ctrl</run_depend>
+
+  <run_depend>gaze_control</run_depend>
+
 
   <build_depend>interactive_markers</build_depend>
   <run_depend>interactive_markers</run_depend>

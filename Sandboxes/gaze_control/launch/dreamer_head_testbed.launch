@@ -3,13 +3,15 @@
 	<!-- Load Robot -->
 	<param name="robot_description"	textfile="$(find dreamer_viz)/robot/dreamer_ltw.urdf" /> 
 	<!-- Load Sample Controller -->
-	<node name="joint_state_publisher" pkg="gaze_control" type="joint_publish.py" output="screen" /> 
+	<node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" >
+		<param name='use_gui' value='True'/>
+	</node> 
 	<!-- State Publisher -->
 	<node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
 	<!-- gaze arrow markers -->
-	<node name="gaze_marker_node" pkg="viz_tools" type="gaze_markers" output="screen" />
+	<!--<node name="gaze_marker_node" pkg="viz_tools" type="gaze_markers" output="screen" />-->
 
-	<!--<node name="orientation_viz_pub" pkg="viz_tools" type="test_node_dreamer" output="screen" />-->
+	<node name="forward_kin_test" pkg="viz_tools" type="for_kin_test.py" output="screen" />
 
 
 	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find dreamer_viz)/launch/dreamer_viz.rviz" required="true" /> 
