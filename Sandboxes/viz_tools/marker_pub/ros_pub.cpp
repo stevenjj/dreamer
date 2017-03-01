@@ -398,7 +398,7 @@ void ros_pub::pub_arr_marker(sejong::MarkerChannel & mc, sejong::Vect3 & xyz, se
 }
 
 
-void ros_pub::set_arrow_length( sejong::MarkerChannel & mc , const double & length )
+void ros_pub::set_arrowLength( sejong::MarkerChannel & mc , const double & length )
 {
     if(mc.type_ != sejong::ARR_MARKER)
     {
@@ -431,7 +431,17 @@ void ros_pub::set_maxNumSpheres(sejong::MarkerChannel & mc , const int & maxNumM
     }
 }
 
-
+void ros_pub::set_numUpdatesPerSphere(sejong::MarkerChannel & mc , const int & numUpdatesPerSphere )
+{
+    if(mc.type_ != sejong::ARR_MARKER)
+    {
+        std::cout << "[ros_pub] Warning: Either your marker channel has not been initialized, or you didn't pass an arrow channel." << std::endl;
+    }
+    else
+    {
+        mc.numUpdatesPerSphere_ = numUpdatesPerSphere;
+    }
+}
 
 
 
