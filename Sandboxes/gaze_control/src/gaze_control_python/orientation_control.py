@@ -50,7 +50,7 @@ def circular_trajectory(t):
 
 # Calculate desired orientation
 # Accepts a 3x1 gaze location vector and an origin vector to create the desired orientation
-def calc_desired_orientation(x_gaze_loc, p_cur, orientation_type='head'):
+def calc_desired_orientation(x_gaze_loc, p_cur):
     # Calculate Desired Orientation
     z_world_hat = np.array([0,0,1])
     y_world_hat = np.array([0,1,0])    
@@ -59,18 +59,25 @@ def calc_desired_orientation(x_gaze_loc, p_cur, orientation_type='head'):
     x_hat_d = p_bar/np.linalg.norm(p_bar)
 
     # Threshold before we use y_world_hat
-    epsilon = 3 * np.pi/180.0 # degrees in radians 
+    epsilon = 0.1 * np.pi/180.0 # degrees in radians 
     phi = np.arccos( (x_hat_d.dot(z_world_hat)) / (np.linalg.norm(x_hat_d)*np.linalg.norm(z_world_hat)) )
 
     z_hat_o = z_world_hat
     if (phi <= epsilon):
         z_hat_o = y_world_hat
 
-    z_hat_d = z_hat_o - z_hat_o.dot(x_hat_d)
+    z_hat_d = mr.Normalize(z_hat_o - (z_hat_o.dot(x_hat_d)*x_hat_d))
+#    print 'z_hat projected', z_hat_d.T
+
     y_hat_d = np.cross(z_hat_d, x_hat_d)
 
-    R_desired = np.array([x_hat_d.T, y_hat_d.T, z_hat_d.T]) 
-    print 'Desired Orientation ', R_desired
+    R_desired = np.array([x_hat_d, y_hat_d, z_hat_d]).T
+#    print 'Desired Orientation ', R_desired
+ #   print 'x_hat', x_hat_d.T
+ #   print 'y_hat', y_hat_d.T
+ #   print 'z_hat', z_hat_d.T
+
+#    print R_desired
     return R_desired
 
 # Calculate error between current configuration and desired configuration
@@ -81,10 +88,13 @@ def orientation_error(x_gaze_loc, Q, orientation_type='head'):
     # Get forward kinematics
     if (orientation_type == 'head'):
         R_cur, p_cur = head_kin.get_6D_Head_Position(Q)
+        print 'head:', p_cur
     elif (orientation_type == 'right_eye'):
-        R_cur, p_cur = head_kin.get_6D_Right_Eye_Position(Q)        
+        R_cur, p_cur = head_kin.get_6D_Right_Eye_Position(Q)
+        print 'r eye:', p_cur        
     elif (orientation_type == 'left_eye'):        
-        R_cur, p_cur = head_kin.get_6D_Left_Eye_Position(Q)        
+        R_cur, p_cur = head_kin.get_6D_Left_Eye_Position(Q)
+        print 'l eye:', p_cur        
     else:
         raise 'unknown position and orientation needed'
 
@@ -140,6 +150,7 @@ ALWAYS_GAZE_FOLLOW = 202
 
 
 class Dreamer_Head():
+    command_once = False
     def __init__(self):
         self.behaviors = []
         self.tasks = [NO_TASK, GAZE_AVERSION, TASK_HIERARCHY, CIRCULAR_HEAD_TRAJ, TRACK_PERSON, TRACK_MARKER]
@@ -152,49 +163,229 @@ class Dreamer_Head():
         self.joint_publisher = dreamer_joint_publisher.Custom_Joint_Publisher()
 
         # ROS Loop details
-        self.rate = rospy.Rate(100) # 1hz
+        # Send control messages at 500hz. 10 messages to send per ROS loop so this node operates at 50Hz
+        self.node_rate = 1/(500/10.0)
+        self.rate = rospy.Rate(500) 
         self.ROS_start_time = rospy.Time.now().to_sec()
         self.ROS_current_time = rospy.Time.now().to_sec()
 
+        self.traj_manager = Trajectory_Manager()
+
+        # READ Current Joint Positions
+        # Otherwise send HOME command
 
     def callback_change_state(self, string):
         #specifying subscriber callback via callback class_instance.method_name
-        return 0
+        return 
 
     def update_head_joints(self, head_joint_list):
-        return 0
+        self.kinematics.Jlist = head_joint_list
+
+        def joint_cmd_bound(val, jmax, jmin):
+            if val >= jmax:
+                return jmax
+            elif (val <= jmin):
+                return jmin
+            else:
+                return val
+
+        for i in range(0, len(head_joint_list)):
+            command = head_joint_list[i]
+            joint_name = self.kinematics.Jindex_to_names[i]
+            joint_max_val = self.joint_publisher.free_joints[joint_name]['max']
+            joint_min_val = self.joint_publisher.free_joints[joint_name]['min']
+            self.joint_publisher.free_joints[joint_name]['position'] = joint_cmd_bound(command, joint_max_val, joint_min_val)
+
 
     def task_logic(self):
-        return 0
+        self.ROS_current_time = rospy.Time.now().to_sec()
+        relative_time =  self.ROS_current_time - self.ROS_start_time
+        print "ROS time (sec): ", relative_time            
+
+        if ((relative_time > 2.0) and (self.command_once == False)):
+            self.current_state = GO_TO_POINT
+            # using trajectory_manager
+            #   specify xyz goal point
+            #   specify desired duration time
+            #   save start time
+            #   set current time to start time
+
+            start_time = self.ROS_current_time
+            Q_cur = self.kinematics.Jlist
+            xyz_gaze_loc = np.array([1.0, 1.0, self.kinematics.l1+0.0])
+
+            small_delta_t = self.node_rate
+            movement_duration = 5
+            self.traj_manager.specify_goal(start_time, Q_cur, xyz_gaze_loc, small_delta_t, movement_duration)
+            #head_joints = [np.pi/4.0, np.pi/6.0, 0, 0, 0, 0, 0]
+            #self.update_head_joints(head_joints)
+            self.command_once = True
+
+        return 
 
     def behavior_logic(self):
-        return 0
+        return 
 
     def state_logic(self):
         if (self.current_state == IDLE):
             print "STATE = Idle"
         elif (self.current_state == GO_TO_POINT):
-            print "STATE = Circular Head Trajectory"
+            print "STATE = GO_TO_POINT"
+            # Q_des, command_result = trajectory_manager.go_to_point()
+            # update_head_joints(Q_des)
+            #if (command_result == DONE):
+            #   self.current_state = IDLE
+            Q_des, command_result = self.traj_manager.go_to_point()
+
+            self.update_head_joints(Q_des)
         else:
             print "ERROR Not a valid state" 
 
     def loop(self):
         while not rospy.is_shutdown():
-            self.ROS_current_time = rospy.Time.now().to_sec() - self.ROS_start_time
-            print "ROS time (sec): ", self.ROS_current_time            
-
-
-            self.state_logic()
+            self.task_logic()
+            self.state_logic()          
+            # message rate = 500 Hz, num of messages to send = 10
+            # node rate = 500/10.0 = 50 hz
+            for i in range(0, 10): # 
+                # send message
+                self.rate.sleep()   #rospy.sleep(1/500.0);    
+                # Will sleep for a total of 0.02 seconds --> 50Hz
             self.joint_publisher.publish_joints()
-            self.rate.sleep()
-        
 
 class Trajectory_Manager():
     def __init__(self):
-        self.traj = None
+        self.kinematics = hk.Head_Kinematics() 
 
-    def get_command(self):
-        return 0
+        self.start_time = 0
+        self.current_traj_time = 0
+        self.prev_traj_time = 0
+        self.movement_duration = 1
+        self.small_delta_t = 500/10.0
+        self.epsilon = 0.01
+
+        self.xyz_gaze_loc = np.array([0,0,0])
+
+        self.theta_total_head = 0
+        self.angular_vel_hat_head = np.array([0,0,0])        
+
+        self.theta_total_right_eye = 0
+        self.angular_vel_hat_right_eye = np.array([0,0,0])         
+               
+        self.theta_total_left_eye = 0
+        self.angular_vel_hat_left_eye = np.array([0,0,0])        
+
+
+
+    # if error < xx return 'Change State'
+    def specify_goal(self, start_time, Q_cur, xyz_gaze_loc, small_delta_t, movement_duration):
+        self.kinematics.Jlist = Q_cur
+        self.xyz_gaze_loc = xyz_gaze_loc
+        self.movement_duration = movement_duration
+        self.start_time = start_time
+        self.current_traj_time = start_time
+        self.small_delta_t = small_delta_t       
+
+        self.theta_total, self.angular_vel_hat = orientation_error(xyz_gaze_loc, Q_cur)
+        self.theta_total_right_eye, self.angular_vel_hat_right_eye = orientation_error(xyz_gaze_loc, Q_cur, 'right_eye')
+        self.theta_total_left_eye, self.angular_vel_hat_left_eye = orientation_error(xyz_gaze_loc, Q_cur, 'left_eye')
+
+
+        return
+
+    def min_jerk_time_scaling(self, t, delta_t):
+        s_t = 0.0
+        x_init, x_final = 0.0, 1.0 # Set to 0 and 1 since we want time scaling from 0 to 1
+        if (t < 0):
+            s_t = 0.0
+        elif (t >= delta_t):
+            s_t = 1.0
+        else:
+            s_t = x_init + (x_final-x_init)*( 10.0*((t/delta_t)**3.0) - 15.0*((t/delta_t)**4.0) + 6.0*((t/delta_t)**5.0) )
+        return s_t 
+
+    def go_to_point(self):
+        self.current_traj_time = rospy.Time.now().to_sec() - self.start_time
+
+        t = self.current_traj_time
+        t_prev = self.prev_traj_time
+        xyz_gaze_loc = self.xyz_gaze_loc
+
+        # Get Current Config Q and Jacobian
+        Q_cur = self.kinematics.Jlist
+        J = self.kinematics.get_6D_Head_Jacobian(Q_cur)
+        J = J[0:3,:] #Grab the first 3 rows        
+
+        # If we're in motion, we do the following loop
+        dt = t - t_prev
+        DT = self.movement_duration
+
+        # Calculate new desired joint position
+        d_theta_error = self.theta_total*(self.min_jerk_time_scaling(t, DT) - self.min_jerk_time_scaling(t-dt, DT))
+        dx = d_theta_error * self.angular_vel_hat
+        dq = calculate_dQ(J, dx)
+        Q_des = Q_cur + dq 
+
+        theta_error, angular_vel_hat = orientation_error(xyz_gaze_loc, Q_cur)      
+
+        result = False
+        print theta_error, t
+
+        if (theta_error < self.epsilon):
+            result = True
+
+        self.kinematics.Jlist = Q_des
+        self.prev_traj_time = t
+
+        return Q_des, result
+
+    def go_to_point2(self):
+        self.current_traj_time = rospy.Time.now().to_sec() - self.start_time
+
+        t = self.current_traj_time
+        t_prev = self.prev_traj_time
+        xyz_gaze_loc = self.xyz_gaze_loc
+
+        # Get Current Config Q and Jacobian
+        Q_cur = self.kinematics.Jlist
+         # Two tasks
+        J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
+        J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
+        J_1 = J_1[0:3,:] #Grab the first 3 rows      
+        J_2 = J_2[0:3,:] #Grab the first 3 rows            
+        J = np.concatenate((J_1,J_2) ,axis=0)
+
+        # If we're in motion, we do the following loop
+        dt = t - t_prev
+        DT = self.movement_duration
+
+        # Calculate new desired joint position
+        d_theta_error_right_eye = self.theta_total*(self.min_jerk_time_scaling(t, DT) - self.min_jerk_time_scaling(t-dt, DT))
+        d_theta_error_left_eye = self.theta_total*(self.min_jerk_time_scaling(t, DT) - self.min_jerk_time_scaling(t-dt, DT))        
+        dx_right_eye = d_theta_error_right_eye * self.angular_vel_hat_right_eye
+        dx_left_eye = d_theta_error_left_eye * self.angular_vel_hat_left_eye        
+
+        dx_two_tasks = np.concatenate((dx_right_eye, dx_left_eye), axis=1)
+
+#        J = J_1        
+#        dx_two_tasks = dx_right_eye
+
+        dq = calculate_dQ(J, dx_two_tasks)
+        Q_des = Q_cur + dq 
+
+        theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_gaze_loc, Q_cur, 'right_eye')
+        theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_gaze_loc, Q_cur, 'left_eye')
+
+        print theta_error_right_eye, theta_error_left_eye, t
+        
+        result = False
+        if (theta_error_right_eye < self.epsilon):
+            result = True
+
+        self.kinematics.Jlist = Q_des
+        self.prev_traj_time = t
+
+        return Q_des, result
 
 
 
@@ -203,6 +394,7 @@ if __name__ == '__main__':
     global head_kin
     head_kin = hk.Head_Kinematics() 
     kin = hk.Head_Kinematics()
+
     print kin.S0
     
     orientation_error(np.array([1.053,0, 0.13849]) , kin.Jlist ,'head')

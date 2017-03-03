@@ -23,7 +23,7 @@ class Custom_Joint_Publisher():
         self.zeros = get_param("zeros")
         self.dependent_joints = get_param("dependent_joints", {})
         self.load_joint_information()
-        self.rate = rospy.Rate(100) # 1hz
+        self.rate = rospy.Rate(60) # 1hz
         self.ROS_start_time = rospy.Time.now().to_sec()
         self.ROS_current_time = rospy.Time.now().to_sec()
 
