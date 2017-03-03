@@ -88,19 +88,42 @@ def orientation_error(x_gaze_loc, Q, orientation_type='head'):
     # Get forward kinematics
     if (orientation_type == 'head'):
         R_cur, p_cur = head_kin.get_6D_Head_Position(Q)
-        print 'head:', p_cur
     elif (orientation_type == 'right_eye'):
         R_cur, p_cur = head_kin.get_6D_Right_Eye_Position(Q)
-        print 'r eye:', p_cur        
     elif (orientation_type == 'left_eye'):        
         R_cur, p_cur = head_kin.get_6D_Left_Eye_Position(Q)
-        print 'l eye:', p_cur        
     else:
         raise 'unknown position and orientation needed'
 
     # Calculate desired orientation
     R_des = calc_desired_orientation(x_gaze_loc, p_cur)
 
+    q_cur = quat.R_to_quat(R_cur)
+    q_des = quat.R_to_quat(R_des)
+    q_error = quat.quat_multiply(q_des, quat.conj(q_cur))
+
+    return quat.quat_to_wth(q_error)
+   #  theta = 2*np.arccos(q_error[0])
+
+   #  #print theta, q_error[0], q_error
+   #  if (mr.NearZero(1.0 - q_error[0])):
+   #      return 0, q_error[1:]
+
+   #  factor = np.sin(theta/2.0)
+   #  w_hat_x = q_error[1]/factor
+   #  w_hat_y = q_error[2]/factor
+   #  w_hat_z = q_error[3]/factor        
+
+   #  angular_vel_hat = np.array([w_hat_x, w_hat_y, w_hat_z])
+
+   # # print theta, angular_vel_hat
+   #  return theta, angular_vel_hat
+
+# define zero position error
+def zero_position_error():
+    return np.array([0,0,0])
+
+def rotation_quaternion_error(R_cur, R_des):
     q_cur = quat.R_to_quat(R_cur)
     q_des = quat.R_to_quat(R_des)
     q_error = quat.quat_multiply(q_des, quat.conj(q_cur))
@@ -121,12 +144,6 @@ def orientation_error(x_gaze_loc, Q, orientation_type='head'):
 
    # print theta, angular_vel_hat
     return theta, angular_vel_hat
-
-# define zero position error
-def zero_position_error():
-    return np.array([0,0,0])
-
-
 
 # State Lists
 IDLE = 0
@@ -171,6 +188,8 @@ class Dreamer_Head():
 
         self.traj_manager = Trajectory_Manager()
 
+        self.task_list = [0, 1]
+
         # READ Current Joint Positions
         # Otherwise send HOME command
 
@@ -213,7 +232,9 @@ class Dreamer_Head():
             start_time = self.ROS_current_time
             Q_cur = self.kinematics.Jlist
 #            xyz_gaze_loc = np.array([0.5, 0.5, self.kinematics.l1+0.4])
-            xyz_gaze_loc = np.array([0.3, 0.0, self.kinematics.l1+0.5])            
+#            xyz_gaze_loc = np.array([0.3, 0.0, self.kinematics.l1+0.5])
+            xyz_gaze_loc = np.array([0.4, 0.4, self.kinematics.l1+0.2])            
+#            xyz_gaze_loc = np.array([0.3, 0.3, self.kinematics.l1+0.0])            
 
             small_delta_t = self.node_rate
             movement_duration = 5
@@ -232,12 +253,10 @@ class Dreamer_Head():
             print "STATE = Idle"
         elif (self.current_state == GO_TO_POINT):
             print "STATE = GO_TO_POINT"
-            # Q_des, command_result = trajectory_manager.go_to_point()
-            # update_head_joints(Q_des)
-            #if (command_result == DONE):
-            #   self.current_state = IDLE
+            #Q_des, command_result = self.traj_manager.go_to_point()
             Q_des, command_result = self.traj_manager.go_to_point2()
-
+            if (command_result == True):
+               self.current_state = IDLE
             self.update_head_joints(Q_des)
         else:
             print "ERROR Not a valid state" 
@@ -276,6 +295,7 @@ class Trajectory_Manager():
         self.theta_total_left_eye = 0
         self.angular_vel_hat_left_eye = np.array([0,0,0])        
 
+        self.Q_o_at_start = self.kinematics.Jlist
 
 
     # if error < xx return 'Change State'
@@ -291,6 +311,7 @@ class Trajectory_Manager():
         self.theta_total_right_eye, self.angular_vel_hat_right_eye = orientation_error(xyz_gaze_loc, Q_cur, 'right_eye')
         self.theta_total_left_eye, self.angular_vel_hat_left_eye = orientation_error(xyz_gaze_loc, Q_cur, 'left_eye')
 
+        self.Q_o_at_start = Q_cur
 
         return
 
@@ -328,13 +349,36 @@ class Trajectory_Manager():
         Q_des = Q_cur + dq 
 
 
+
         theta_error, angular_vel_hat = orientation_error(xyz_gaze_loc, Q_cur)      
 
 
-        result = False
+
+        q_t_error = quat.wth_to_quat(self.angular_vel_hat, self.theta_total * self.min_jerk_time_scaling(t, DT))
+        q_orig = quat.R_to_quat( self.kinematics.get_6D_Head_Position( self.Q_o_at_start  )[0] )
+        q_current_desired = quat.quat_multiply(q_t_error, q_orig)
+
+        q_c = quat.R_to_quat( self.kinematics.get_6D_Head_Position(Q_cur)[0] )
+        q_feedback_error = quat.quat_multiply(q_current_desired, quat.conj(q_c))
+
+
+        print 'q current_desired: ', quat.quat_to_wth(q_current_desired)
+        print 'q c: ', quat.quat_to_wth(q_c)        
+        print 'q feedbackerror: ', quat.quat_to_wth(q_feedback_error)
+
+
+        fe_dt_theta, fe_angular_vel = quat.quat_to_wth(q_feedback_error)
+        dx_fb = fe_dt_theta*fe_angular_vel
+        dq_fb = calculate_dQ(J, dx_fb)
+
+        print 'current dq', dq, 'feedback dq', dq_fb
+        Q_des = Q_des + dq_fb
+
+
         print theta_error, t
 
-        if (theta_error < self.epsilon):
+        result = False
+        if (t > DT):
             result = True
 
         self.kinematics.Jlist = Q_des
@@ -376,13 +420,14 @@ class Trajectory_Manager():
         dq = calculate_dQ(J, dx_two_tasks)
         Q_des = Q_cur + dq 
 
+
         theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_gaze_loc, Q_cur, 'right_eye')
         theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_gaze_loc, Q_cur, 'left_eye')
 
         print theta_error_right_eye, theta_error_left_eye, t
         
         result = False
-        if (theta_error_right_eye < self.epsilon):
+        if (t > DT):
             result = True
 
         self.kinematics.Jlist = Q_des

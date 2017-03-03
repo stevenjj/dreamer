@@ -10,6 +10,19 @@ Output:
 [0.2672612419124244, 0.5345224838248488, 0.8017837257372732]
     '''
     return V / np.linalg.norm(V)
+
+def NearZero(z):
+#Takes a scalar.
+#Checks if the scalar is small enough to be neglected.
+    '''
+Example Input:
+z = -1e-7
+Output:
+True
+    '''
+    return abs(z) < 1e-6
+   
+
 # Accepts a w_hat \in R^3 (with ||w|| = 1) and a theta \in [0, pi] displacement
 # and coverts it to quaternion representation q = [qo, q1, q2, q3, q4] = [cos (theta/2), w_hat*sin(theta/2)]
 
@@ -19,6 +32,22 @@ Output:
 def wth_to_quat(w_hat, theta):
 	w = np.array(Normalize(w_hat))*(np.sin(theta/2.0))
 	return np.array([np.cos(theta/2.0), w[0], w[1], w[2]])
+
+
+def quat_to_wth(q):
+    theta = 2*np.arccos(q[0])
+    #print theta, q_error[0], q_error
+    if (NearZero(1.0 - q[0])):
+        return 0, q[1:]
+
+    factor = np.sin(theta/2.0)
+    w_hat_x = q[1]/factor
+    w_hat_y = q[2]/factor
+    w_hat_z = q[3]/factor        
+
+    angular_vel_hat = np.array([w_hat_x, w_hat_y, w_hat_z])
+    return theta, angular_vel_hat    
+
 
 # Accepts a rotation matrix R and converts it to a quaternion
 ''' Input:
