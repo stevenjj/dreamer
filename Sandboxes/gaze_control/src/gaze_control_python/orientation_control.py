@@ -108,9 +108,9 @@ def orientation_error(x_gaze_loc, Q, orientation_type='head'):
 
     theta = 2*np.arccos(q_error[0])
 
-    if (theta == 0):
-       # print theta, q_error[1:]
-        return theta, q_error[1:]
+    #print theta, q_error[0], q_error
+    if (mr.NearZero(1.0 - q_error[0])):
+        return 0, q_error[1:]
 
     factor = np.sin(theta/2.0)
     w_hat_x = q_error[1]/factor
@@ -212,7 +212,8 @@ class Dreamer_Head():
 
             start_time = self.ROS_current_time
             Q_cur = self.kinematics.Jlist
-            xyz_gaze_loc = np.array([0.5, 0.5, self.kinematics.l1+0.0])
+#            xyz_gaze_loc = np.array([0.5, 0.5, self.kinematics.l1+0.4])
+            xyz_gaze_loc = np.array([0.3, 0.0, self.kinematics.l1+0.5])            
 
             small_delta_t = self.node_rate
             movement_duration = 5
@@ -326,7 +327,9 @@ class Trajectory_Manager():
         dq = calculate_dQ(J, dx)
         Q_des = Q_cur + dq 
 
+
         theta_error, angular_vel_hat = orientation_error(xyz_gaze_loc, Q_cur)      
+
 
         result = False
         print theta_error, t
@@ -360,15 +363,15 @@ class Trajectory_Manager():
         DT = self.movement_duration
 
         # Calculate new desired joint position
-        d_theta_error_right_eye = self.theta_total*(self.min_jerk_time_scaling(t, DT) - self.min_jerk_time_scaling(t-dt, DT))
-        d_theta_error_left_eye = self.theta_total*(self.min_jerk_time_scaling(t, DT) - self.min_jerk_time_scaling(t-dt, DT))        
+        d_theta_error_right_eye = self.theta_total_right_eye*(self.min_jerk_time_scaling(t, DT) - self.min_jerk_time_scaling(t-dt, DT))
+        d_theta_error_left_eye = self.theta_total_left_eye*(self.min_jerk_time_scaling(t, DT) - self.min_jerk_time_scaling(t-dt, DT))        
         dx_right_eye = d_theta_error_right_eye * self.angular_vel_hat_right_eye
         dx_left_eye = d_theta_error_left_eye * self.angular_vel_hat_left_eye        
 
         dx_two_tasks = np.concatenate((dx_right_eye, dx_left_eye), axis=1)
 
-        #J = J_1        
-        #dx_two_tasks = dx_right_eye
+#        J = J_1        
+#        dx_two_tasks = dx_right_eye
 
         dq = calculate_dQ(J, dx_two_tasks)
         Q_des = Q_cur + dq 
