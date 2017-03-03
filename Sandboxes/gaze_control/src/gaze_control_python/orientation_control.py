@@ -202,7 +202,7 @@ class Dreamer_Head():
         relative_time =  self.ROS_current_time - self.ROS_start_time
         print "ROS time (sec): ", relative_time            
 
-        if ((relative_time > 2.0) and (self.command_once == False)):
+        if ((relative_time > 0.1) and (self.command_once == False)):
             self.current_state = GO_TO_POINT
             # using trajectory_manager
             #   specify xyz goal point
