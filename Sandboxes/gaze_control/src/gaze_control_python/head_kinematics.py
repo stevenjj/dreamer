@@ -9,8 +9,8 @@ class Head_Kinematics():
 	# Dreamer Links
 	l0 = 0.3115
 	l1 = 0.13849
-	l2 = 0.053
-	l3 = 0.3115
+	l2 = 0.12508
+	l3 = 0.053
 	# # Dreamer Screw Axes @ 0 Position
 	# # S = [omega_hat, v]
 	# S0 = [0, -1, 0, l0, 0, 0]

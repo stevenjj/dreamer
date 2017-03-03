@@ -109,7 +109,7 @@ def orientation_error(x_gaze_loc, Q, orientation_type='head'):
     theta = 2*np.arccos(q_error[0])
 
     if (theta == 0):
-        print theta, q_error[1:]
+       # print theta, q_error[1:]
         return theta, q_error[1:]
 
     factor = np.sin(theta/2.0)
@@ -119,7 +119,7 @@ def orientation_error(x_gaze_loc, Q, orientation_type='head'):
 
     angular_vel_hat = np.array([w_hat_x, w_hat_y, w_hat_z])
 
-    print theta, angular_vel_hat
+   # print theta, angular_vel_hat
     return theta, angular_vel_hat
 
 # define zero position error
@@ -212,7 +212,7 @@ class Dreamer_Head():
 
             start_time = self.ROS_current_time
             Q_cur = self.kinematics.Jlist
-            xyz_gaze_loc = np.array([1.0, 1.0, self.kinematics.l1+0.0])
+            xyz_gaze_loc = np.array([0.5, 0.5, self.kinematics.l1+0.0])
 
             small_delta_t = self.node_rate
             movement_duration = 5
@@ -235,7 +235,7 @@ class Dreamer_Head():
             # update_head_joints(Q_des)
             #if (command_result == DONE):
             #   self.current_state = IDLE
-            Q_des, command_result = self.traj_manager.go_to_point()
+            Q_des, command_result = self.traj_manager.go_to_point2()
 
             self.update_head_joints(Q_des)
         else:
@@ -367,8 +367,8 @@ class Trajectory_Manager():
 
         dx_two_tasks = np.concatenate((dx_right_eye, dx_left_eye), axis=1)
 
-#        J = J_1        
-#        dx_two_tasks = dx_right_eye
+        #J = J_1        
+        #dx_two_tasks = dx_right_eye
 
         dq = calculate_dQ(J, dx_two_tasks)
         Q_des = Q_cur + dq 
