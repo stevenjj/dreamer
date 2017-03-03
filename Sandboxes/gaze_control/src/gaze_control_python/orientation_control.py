@@ -37,14 +37,15 @@ def calculate_dQ(J, dx):
 	return dQ
 
 def circular_trajectory(t):
-    radius = 0.2
-    x_offset, y_offset, z_offset = 0.25, 0, 0.01
+    radius = 0.4
+    x_offset, y_offset, z_offset = 1.0, 0, 0.0
     T = 6.0
     frequency = 1.0/T
     angular_frequency = 2*3.14*frequency
     x = x_offset
     y = y_offset + radius*np.cos(angular_frequency*t)
     z = z_offset + radius*np.sin(angular_frequency*t)	
+
     return np.array([x, y, z])
 	# Publish x(t) markers.
 
@@ -73,11 +74,11 @@ def calc_desired_orientation(x_gaze_loc, p_cur):
 
     R_desired = np.array([x_hat_d, y_hat_d, z_hat_d]).T
 #    print 'Desired Orientation ', R_desired
- #   print 'x_hat', x_hat_d.T
- #   print 'y_hat', y_hat_d.T
- #   print 'z_hat', z_hat_d.T
+    print 'x_hat', x_hat_d.T
+    print 'y_hat', y_hat_d.T
+    print 'z_hat', z_hat_d.T
 
-#    print R_desired
+    #print R_desired
     return R_desired
 
 # Calculate error between current configuration and desired configuration
@@ -182,13 +183,14 @@ class Dreamer_Head():
         # ROS Loop details
         # Send control messages at 500hz. 10 messages to send per ROS loop so this node operates at 50Hz
         self.node_rate = 1/(500/10.0)
-        self.rate = rospy.Rate(500) 
+        self.rate = rospy.Rate(50000) 
         self.ROS_start_time = rospy.Time.now().to_sec()
         self.ROS_current_time = rospy.Time.now().to_sec()
 
         self.traj_manager = Trajectory_Manager()
 
         self.task_list = [0, 1]
+        self.current_task = 0
 
         # READ Current Joint Positions
         # Otherwise send HOME command
@@ -215,6 +217,8 @@ class Dreamer_Head():
             joint_min_val = self.joint_publisher.free_joints[joint_name]['min']
             self.joint_publisher.free_joints[joint_name]['position'] = joint_cmd_bound(command, joint_max_val, joint_min_val)
 
+        #print self.kinematics.Jlist
+
 
     def task_logic(self):
         self.ROS_current_time = rospy.Time.now().to_sec()
@@ -223,24 +227,17 @@ class Dreamer_Head():
 
         if ((relative_time > 0.1) and (self.command_once == False)):
             self.current_state = GO_TO_POINT
-            # using trajectory_manager
-            #   specify xyz goal point
-            #   specify desired duration time
-            #   save start time
-            #   set current time to start time
-
             start_time = self.ROS_current_time
             Q_cur = self.kinematics.Jlist
+
+#            xyz_gaze_loc = np.array([0.5, 0.5, self.kinematics.l1+0.4])            
+            xyz_gaze_loc = np.array([0.3, 0.3, self.kinematics.l1+0.1])            
 #            xyz_gaze_loc = np.array([0.5, 0.5, self.kinematics.l1+0.4])
 #            xyz_gaze_loc = np.array([0.3, 0.0, self.kinematics.l1+0.5])
-            xyz_gaze_loc = np.array([0.4, 0.4, self.kinematics.l1+0.2])            
 #            xyz_gaze_loc = np.array([0.3, 0.3, self.kinematics.l1+0.0])            
 
-            small_delta_t = self.node_rate
-            movement_duration = 5
-            self.traj_manager.specify_goal(start_time, Q_cur, xyz_gaze_loc, small_delta_t, movement_duration)
-            #head_joints = [np.pi/4.0, np.pi/6.0, 0, 0, 0, 0, 0]
-            #self.update_head_joints(head_joints)
+            movement_duration = 3
+            self.traj_manager.specify_goal(start_time, Q_cur, xyz_gaze_loc, movement_duration)
             self.command_once = True
 
         return 
@@ -255,8 +252,9 @@ class Dreamer_Head():
             print "STATE = GO_TO_POINT"
             #Q_des, command_result = self.traj_manager.go_to_point()
             Q_des, command_result = self.traj_manager.go_to_point2()
-            if (command_result == True):
-               self.current_state = IDLE
+            #if (command_result == True):
+               #self.current_state = IDLE
+               #self.command_once = False #+= 1
             self.update_head_joints(Q_des)
         else:
             print "ERROR Not a valid state" 
@@ -281,7 +279,6 @@ class Trajectory_Manager():
         self.current_traj_time = 0
         self.prev_traj_time = 0
         self.movement_duration = 1
-        self.small_delta_t = 500/10.0
         self.epsilon = 0.01
 
         self.xyz_gaze_loc = np.array([0,0,0])
@@ -299,15 +296,20 @@ class Trajectory_Manager():
 
 
     # if error < xx return 'Change State'
-    def specify_goal(self, start_time, Q_cur, xyz_gaze_loc, small_delta_t, movement_duration):
+    def specify_goal(self, start_time, Q_cur, xyz_gaze_loc, movement_duration):
+        print 'specify goal. current q:', Q_cur
         self.kinematics.Jlist = Q_cur
         self.xyz_gaze_loc = xyz_gaze_loc
         self.movement_duration = movement_duration
         self.start_time = start_time
         self.current_traj_time = start_time
-        self.small_delta_t = small_delta_t       
+        self.prev_traj_time = 0        
 
         self.theta_total, self.angular_vel_hat = orientation_error(xyz_gaze_loc, Q_cur)
+
+
+
+
         self.theta_total_right_eye, self.angular_vel_hat_right_eye = orientation_error(xyz_gaze_loc, Q_cur, 'right_eye')
         self.theta_total_left_eye, self.angular_vel_hat_left_eye = orientation_error(xyz_gaze_loc, Q_cur, 'left_eye')
 
@@ -328,15 +330,15 @@ class Trajectory_Manager():
 
     def go_to_point(self):
         self.current_traj_time = rospy.Time.now().to_sec() - self.start_time
-
         t = self.current_traj_time
+
         t_prev = self.prev_traj_time
         xyz_gaze_loc = self.xyz_gaze_loc
 
         # Get Current Config Q and Jacobian
         Q_cur = self.kinematics.Jlist
         J = self.kinematics.get_6D_Head_Jacobian(Q_cur)
-        J = J[0:3,:] #Grab the first 3 rows        
+        #J = J[0:3,:] #Grab the first 3 rows        
 
         # If we're in motion, we do the following loop
         dt = t - t_prev
@@ -345,13 +347,21 @@ class Trajectory_Manager():
         # Calculate new desired joint position
         d_theta_error = self.theta_total*(self.min_jerk_time_scaling(t, DT) - self.min_jerk_time_scaling(t-dt, DT))
         dx = d_theta_error * self.angular_vel_hat
+
+        dx = np.concatenate( (dx, np.array([0,0,0])),  axis=1)
+
         dq = calculate_dQ(J, dx)
+        
         Q_des = Q_cur + dq 
 
-
-
         theta_error, angular_vel_hat = orientation_error(xyz_gaze_loc, Q_cur)      
+#        theta_error, angular_vel_hat = orientation_error(xyz_gaze_loc, self.Q_o_at_start) 
 
+        R_init, p_init = self.kinematics.get_6D_Head_Position(self.Q_o_at_start)
+        R_desired = calc_desired_orientation(xyz_gaze_loc, p_init)
+        q_final_desired = quat.R_to_quat(R_desired)
+
+        R_cur, p_cur = self.kinematics.get_6D_Head_Position(Q_cur)
 
 
         q_t_error = quat.wth_to_quat(self.angular_vel_hat, self.theta_total * self.min_jerk_time_scaling(t, DT))
@@ -362,16 +372,26 @@ class Trajectory_Manager():
         q_feedback_error = quat.quat_multiply(q_current_desired, quat.conj(q_c))
 
 
-        print 'q current_desired: ', quat.quat_to_wth(q_current_desired)
-        print 'q c: ', quat.quat_to_wth(q_c)        
-        print 'q feedbackerror: ', quat.quat_to_wth(q_feedback_error)
+        print 'q current_desired: ', q_current_desired
+        print 'q final_desired:' , q_final_desired 
 
+        #print 'q current_desired: ', quat.quat_to_wth(q_current_desired)
+        
+
+
+        #print 'q c: ', q_c
+        #print 'q_des',  quat.wth_to_quat(self.angular_vel_hat, self.theta_total)      
+
+#        print 'q feedbackerror: ', quat.quat_to_wth(q_feedback_error)
 
         fe_dt_theta, fe_angular_vel = quat.quat_to_wth(q_feedback_error)
         dx_fb = fe_dt_theta*fe_angular_vel
+
+        dx_fb = np.concatenate( (dx_fb, np.array(p_init) - np.array(p_cur)) ,  axis=1)
+
         dq_fb = calculate_dQ(J, dx_fb)
 
-        print 'current dq', dq, 'feedback dq', dq_fb
+        #print 'current dq', dq, 'feedback dq', dq_fb
         Q_des = Q_des + dq_fb
 
 
@@ -395,9 +415,11 @@ class Trajectory_Manager():
 
         # Get Current Config Q and Jacobian
         Q_cur = self.kinematics.Jlist
+        #print "go to point current q", Q_cur
          # Two tasks
         J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
         J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
+        
         J_1 = J_1[0:3,:] #Grab the first 3 rows      
         J_2 = J_2[0:3,:] #Grab the first 3 rows            
         J = np.concatenate((J_1,J_2) ,axis=0)
@@ -412,18 +434,26 @@ class Trajectory_Manager():
         dx_right_eye = d_theta_error_right_eye * self.angular_vel_hat_right_eye
         dx_left_eye = d_theta_error_left_eye * self.angular_vel_hat_left_eye        
 
+        #dx_right_eye = np.concatenate((dx_right_eye, np.array([0,0,0])), axis=1)
+        #dx_left_eye = np.concatenate((dx_left_eye, np.array([0,0,0])), axis=1)        
+
         dx_two_tasks = np.concatenate((dx_right_eye, dx_left_eye), axis=1)
 
-#        J = J_1        
-#        dx_two_tasks = dx_right_eye
+ #       J = J_1        
+ #       dx_two_tasks = dx_right_eye
 
         dq = calculate_dQ(J, dx_two_tasks)
         Q_des = Q_cur + dq 
+
+#        print '        t', t
+#        print '        q_cur:', Q_des
+#        print '        desired q:', Q_des
 
 
         theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_gaze_loc, Q_cur, 'right_eye')
         theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_gaze_loc, Q_cur, 'left_eye')
 
+        print 'right_eye left eye time' 
         print theta_error_right_eye, theta_error_left_eye, t
         
         result = False
