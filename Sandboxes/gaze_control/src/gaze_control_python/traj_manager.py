@@ -176,9 +176,6 @@ class Trajectory_Manager():
         t_prev = self.prev_traj_time    
         return t, t_prev
 
-    def calculate_orientation_feedback(self):
-        return
-
     def head_look_at_point(self):
         # Calculate Time
         t, t_prev = self.calculate_t_t_prev()
@@ -242,137 +239,40 @@ class Trajectory_Manager():
 
         return Q_des, result
 
-
-
     # Eye Task Only
     def eyes_look_at_point(self):
         # Calculate Time
-        t, t_prev = calculate_t_t_prev
-
-    def go_to_point(self):
-        self.current_traj_time = rospy.Time.now().to_sec() - self.start_time
-        t = self.current_traj_time
-        t_prev = self.prev_traj_time
-
-
-        xyz_gaze_loc = self.xyz_gaze_loc
-        # Get Current Config Q and Jacobian
-        Q_cur = self.kinematics.Jlist
-        J = self.kinematics.get_6D_Head_Jacobian(Q_cur)
-        #J = J[0:3,:] #Grab the first 3 rows        
-
-        # If we're in motion, we do the following loop
+        t, t_prev = self.calculate_t_t_prev()
         dt = t - t_prev
         DT = self.movement_duration
 
-        # Calculate new desired joint position
-        d_theta_error = self.theta_total*(self.min_jerk_time_scaling(t, DT) - self.min_jerk_time_scaling(t-dt, DT))
-        dx = d_theta_error * self.angular_vel_hat
-
-        dx = np.concatenate( (dx, np.array([0,0,0])),  axis=1)
-
-        dq = calculate_dQ(J, dx)
-        
-        Q_des = Q_cur + dq 
-
-        theta_error, angular_vel_hat = orientation_error(xyz_gaze_loc, Q_cur)      
-#        theta_error, angular_vel_hat = orientation_error(xyz_gaze_loc, self.Q_o_at_start) 
-
-        R_init, p_init = self.kinematics.get_6D_Head_Position(self.Q_o_at_start)
-        R_desired = calc_desired_orientation(xyz_gaze_loc, p_init)
-        q_final_desired = quat.R_to_quat(R_desired)
-
-        R_cur, p_cur = self.kinematics.get_6D_Head_Position(Q_cur)
-
-
-        q_t_error = quat.wth_to_quat(self.angular_vel_hat, self.theta_total * self.min_jerk_time_scaling(t, DT))
-        q_orig = quat.R_to_quat( self.kinematics.get_6D_Head_Position( self.Q_o_at_start  )[0] )
-        q_current_desired = quat.quat_multiply(q_t_error, q_orig)
-
-        q_c = quat.R_to_quat( self.kinematics.get_6D_Head_Position(Q_cur)[0] )
-        q_feedback_error = quat.quat_multiply(q_current_desired, quat.conj(q_c))
-
-
-        print 'q current_desired: ', q_current_desired
-        print 'q final_desired:' , q_final_desired 
-
-        #print 'q current_desired: ', quat.quat_to_wth(q_current_desired)      
-        #print 'q c: ', q_c
-        #print 'q_des',  quat.wth_to_quat(self.angular_vel_hat, self.theta_total)      
-        #print 'q feedbackerror: ', quat.quat_to_wth(q_feedback_error)
-
-        fe_dt_theta, fe_angular_vel = quat.quat_to_wth(q_feedback_error)
-        dx_fb = fe_dt_theta*fe_angular_vel
-
-        dx_fb = np.concatenate( (dx_fb, np.array(p_init) - np.array(p_cur)) ,  axis=1)
-
-        dq_fb = calculate_dQ(J, dx_fb)
-
-        #print 'current dq', dq, 'feedback dq', dq_fb
-        Q_des = Q_des + dq_fb
-
-
-        print theta_error, t
-
-        result = False
-        if (t > DT):
-            result = True
-
-        self.kinematics.Jlist = Q_des
-        self.prev_traj_time = t
-
-        return Q_des, result
-
-    def go_to_point2(self):
-        self.current_traj_time = rospy.Time.now().to_sec() - self.start_time
-
-        t = self.current_traj_time
-        t_prev = self.prev_traj_time
+        # Specify current (x,y,z) gaze location, joint config
         xyz_gaze_loc = self.xyz_gaze_loc
-
-        # Get Current Config Q and Jacobian
         Q_cur = self.kinematics.Jlist
-        #print "go to point current q", Q_cur
-         # Two tasks
+
+        # Soecify Jacobian
         J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
         J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
-        
         J_1 = J_1[0:3,:] #Grab the first 3 rows      
         J_2 = J_2[0:3,:] #Grab the first 3 rows            
         J = np.concatenate((J_1,J_2) ,axis=0)
 
-        # If we're in motion, we do the following loop
-        dt = t - t_prev
-        DT = self.movement_duration
 
-        # Calculate new desired joint position
+        # Calculate FeedForward ---------------------------------
+        # Calculate new Q_des (desired configuration)
         d_theta_error_right_eye = self.theta_total_right_eye*(self.min_jerk_time_scaling(t, DT) - self.min_jerk_time_scaling(t-dt, DT))
         d_theta_error_left_eye = self.theta_total_left_eye*(self.min_jerk_time_scaling(t, DT) - self.min_jerk_time_scaling(t-dt, DT))        
         dx_right_eye = d_theta_error_right_eye * self.angular_vel_hat_right_eye
         dx_left_eye = d_theta_error_left_eye * self.angular_vel_hat_left_eye        
 
-        #dx_right_eye = np.concatenate((dx_right_eye, np.array([0,0,0])), axis=1)
-        #dx_left_eye = np.concatenate((dx_left_eye, np.array([0,0,0])), axis=1)        
-
         dx_two_tasks = np.concatenate((dx_right_eye, dx_left_eye), axis=1)
-
- #       J = J_1        
- #       dx_two_tasks = dx_right_eye
-
         dq = calculate_dQ(J, dx_two_tasks)
         Q_des = Q_cur + dq 
 
-#        print '        t', t
-#        print '        q_cur:', Q_des
-#        print '        desired q:', Q_des
-
-
         theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_gaze_loc, Q_cur, 'right_eye')
         theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_gaze_loc, Q_cur, 'left_eye')
-
-        print 'right_eye left eye time' 
         print theta_error_right_eye, theta_error_left_eye, t
-        
+
         result = False
         if (t > DT):
             result = True
@@ -381,4 +281,5 @@ class Trajectory_Manager():
         self.prev_traj_time = t
 
         return Q_des, result
+
 

@@ -119,8 +119,8 @@ class Dreamer_Head():
         elif (self.current_state == GO_TO_POINT):
             print "STATE = GO_TO_POINT"
             #Q_des, command_result = self.traj_manager.go_to_point()
-            Q_des, command_result = self.traj_manager.go_to_point2()
-            #Q_des, command_result = self.traj_manager.head_look_at_point()
+            #Q_des, command_result = self.traj_manager.go_to_point2()
+            Q_des, command_result = self.traj_manager.eyes_look_at_point()
 
             #if (command_result == True):
                #self.current_state = IDLE
