@@ -180,14 +180,14 @@ class Dreamer_Head():
         self.kinematics = hk.Head_Kinematics() 
         self.joint_publisher = dreamer_joint_publisher.Custom_Joint_Publisher()
 
+        self.traj_manager = Trajectory_Manager()
+
         # ROS Loop details
         # Send control messages at 500hz. 10 messages to send per ROS loop so this node operates at 50Hz
-        self.node_rate = 1/(500/10.0)
-        self.rate = rospy.Rate(50000) 
+        self.node_rate = 1/(500)
+        self.rate = rospy.Rate(500) 
         self.ROS_start_time = rospy.Time.now().to_sec()
         self.ROS_current_time = rospy.Time.now().to_sec()
-
-        self.traj_manager = Trajectory_Manager()
 
         self.task_list = [0, 1]
         self.current_task = 0
@@ -224,6 +224,10 @@ class Dreamer_Head():
         self.ROS_current_time = rospy.Time.now().to_sec()
         relative_time =  self.ROS_current_time - self.ROS_start_time
         print "ROS time (sec): ", relative_time            
+
+
+        # if self.current_task == ()
+        # done specifying task
 
         if ((relative_time > 0.1) and (self.command_once == False)):
             self.current_state = GO_TO_POINT
@@ -262,6 +266,7 @@ class Dreamer_Head():
     def loop(self):
         while not rospy.is_shutdown():
             self.task_logic()
+            #self.behavior_logic()
             self.state_logic()          
             # message rate = 500 Hz, num of messages to send = 10
             # node rate = 500/10.0 = 50 hz
@@ -270,6 +275,16 @@ class Dreamer_Head():
                 self.rate.sleep()   #rospy.sleep(1/500.0);    
                 # Will sleep for a total of 0.02 seconds --> 50Hz
             self.joint_publisher.publish_joints()
+
+
+
+
+
+
+
+
+
+
 
 class Trajectory_Manager():
     def __init__(self):
@@ -297,7 +312,7 @@ class Trajectory_Manager():
 
     # if error < xx return 'Change State'
     def specify_goal(self, start_time, Q_cur, xyz_gaze_loc, movement_duration):
-        print 'specify goal. current q:', Q_cur
+        #print 'specify goal. current q:', Q_cur
         self.kinematics.Jlist = Q_cur
         self.xyz_gaze_loc = xyz_gaze_loc
         self.movement_duration = movement_duration
