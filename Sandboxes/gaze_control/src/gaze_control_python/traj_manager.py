@@ -287,7 +287,6 @@ class Trajectory_Manager():
 
         # Calculate current orientation error
         d_theta_error, angular_vel_hat = orientation_error(p_des_cur, Q_cur)
-
         dx = d_theta_error * angular_vel_hat
         dx = np.concatenate( (dx, np.array([0,0,0])),  axis=1)
         dq = calculate_dQ(J, dx)
@@ -306,21 +305,85 @@ class Trajectory_Manager():
         theta_error, angular_vel_hat = orientation_error(xyz_gaze_loc, Q_cur)
         print 'Theta Error', theta_error, 'rads ', (theta_error*180.0/np.pi), 'degrees'      
 
+        self.kinematics.Jlist = Q_des
+        self.prev_traj_time = t
 
-        #raise 'debug'
+        # Prepare result of command
+        result = False
+        if (t > DT):
+            result = True
 
-        #print '    q_cur =', q_cur
-        #print '    q_des =', q_des        
+        return Q_des, result
+
+
+    def eye_trajectory_look_at_point(self):
+        # Calculate Time
+        t, t_prev = self.calculate_t_t_prev()
+        dt = t - t_prev
+        DT = self.movement_duration
+
+        # Specify current (x,y,z) gaze location, joint config and jacobian
+        xyz_gaze_loc = self.xyz_gaze_loc
+        Q_cur = self.kinematics.Jlist
+        J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
+        J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
+        
+        #J_1 = J_1[0:3,:] #Grab the first 3 rows      
+        #J_2 = J_2[0:3,:] #Grab the first 3 rows            
+
+        J = np.concatenate((J_1,J_2) ,axis=0)
+        
+        # Calculate FeedForward ---------------------------------
+        # Calculate new Q_des (desired configuration)
+
+        # Calculate Current Desired Gaze Point
+        # Get initial focus point for each eye
+        x_i_right_eye = self.focus_point_init[self.RE]
+        x_i_left_eye = self.focus_point_init[self.LE]
+
+        # Find vector from initial focus point to final focus point
+        e_hat_re, L_re = self.xi_to_xf_vec(t, x_i_right_eye, xyz_gaze_loc)
+        e_hat_le, L_le = self.xi_to_xf_vec(t, x_i_left_eye, xyz_gaze_loc)        
+
+        # Current desired gaze point
+        p_des_cur_re = x_i_right_eye + e_hat_re*L_re*(self.min_jerk_time_scaling(t, DT))
+        p_des_cur_le = x_i_left_eye + e_hat_le*L_le*(self.min_jerk_time_scaling(t, DT))        
+
+        # Calculate current orientation error for each eye
+        d_theta_error_re, angular_vel_hat_re = orientation_error(p_des_cur_re, Q_cur, 'right_eye')
+        d_theta_error_le, angular_vel_hat_le = orientation_error(p_des_cur_le, Q_cur, 'left_eye')        
+        dx_re = d_theta_error_re * angular_vel_hat_re
+        dx_le = d_theta_error_le * angular_vel_hat_le
+
+        dx_re = np.concatenate( (dx_re, np.array([0,0,0])),  axis=1)
+        dx_le = np.concatenate( (dx_le, np.array([0,0,0])),  axis=1)
+
+ 
+        dx = np.concatenate( (dx_re, dx_le),  axis=1)
+        dq = calculate_dQ(J, dx)
+
+        dq = calculate_dQ(J_1, dx_re)
+
+        Q_des = Q_cur + dq 
+
+        # Loop Done
+
+        theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_gaze_loc, Q_cur, 'right_eye')
+        theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_gaze_loc, Q_cur, 'left_eye')
+
+        print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
+        print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
 
         self.kinematics.Jlist = Q_des
         self.prev_traj_time = t
 
         # Prepare result of command
         result = False
- #       if (t > DT):
+#        if (t > DT):
 #            result = True
 
         return Q_des, result
+
 
 
     def head_look_at_point(self):

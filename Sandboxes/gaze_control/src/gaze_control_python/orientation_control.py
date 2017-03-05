@@ -100,10 +100,10 @@ class Dreamer_Head():
             Q_cur = self.kinematics.Jlist
 
 #            xyz_gaze_loc = np.array([np.sqrt(2)/2.0, np.sqrt(2)/2.0, self.kinematics.l1])                        
-#            xyz_gaze_loc = np.array([0.3, 0.3, self.kinematics.l1+0.1])            
-            xyz_gaze_loc = np.array([1.0, 0.5, self.kinematics.l1-0.2])
-#            xyz_gaze_loc = np.array([0.3, 0.0, self.kinematics.l1+0.5])
-#            xyz_gaze_loc = np.array([0.3, 0.3, self.kinematics.l1+0.0])            
+#             xyz_gaze_loc = np.array([0.3, 0.3, self.kinematics.l1+0.1])            
+#            xyz_gaze_loc = np.array([0.3, 0.3, self.kinematics.l1-0.2])
+            xyz_gaze_loc = np.array([0.5, 0.0, self.kinematics.l1+0.2])
+#            xyz_gaze_loc = np.array([1.0, -0.3, self.kinematics.l1+0.0])            
 
             movement_duration = 5
 #            self.traj_manager.specify_goal(start_time, Q_cur, xyz_gaze_loc, movement_duration)
@@ -124,7 +124,8 @@ class Dreamer_Head():
             #Q_des, command_result = self.traj_manager.go_to_point()
             #Q_des, command_result = self.traj_manager.go_to_point2()
             #Q_des, command_result = self.traj_manager.eyes_look_at_point()
-            Q_des, command_result = self.traj_manager.head_trajectory_look_at_point()            
+           # Q_des, command_result = self.traj_manager.head_trajectory_look_at_point()            
+            Q_des, command_result = self.traj_manager.eye_trajectory_look_at_point()
 
             if (command_result == True):
                self.current_state = IDLE
