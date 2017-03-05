@@ -55,6 +55,8 @@ class Dreamer_Head():
         self.task_list = [0, 1]
         self.current_task = 0
 
+        self.current_eye_focal_point = np.array([1,0,0])
+
         # READ Current Joint Positions
         # Otherwise send HOME command
 
@@ -97,15 +99,16 @@ class Dreamer_Head():
             start_time = self.ROS_current_time
             Q_cur = self.kinematics.Jlist
 
-            xyz_gaze_loc = np.array([0.5, 0.0, self.kinematics.l1+0.4])            
-#            xyz_gaze_loc = np.array([0.5, 0.2, self.kinematics.l1-0.2])                        
+#            xyz_gaze_loc = np.array([np.sqrt(2)/2.0, np.sqrt(2)/2.0, self.kinematics.l1])                        
 #            xyz_gaze_loc = np.array([0.3, 0.3, self.kinematics.l1+0.1])            
-#            xyz_gaze_loc = np.array([0.5, 0.5, self.kinematics.l1+0.4])
+            xyz_gaze_loc = np.array([1.0, 0.5, self.kinematics.l1-0.2])
 #            xyz_gaze_loc = np.array([0.3, 0.0, self.kinematics.l1+0.5])
 #            xyz_gaze_loc = np.array([0.3, 0.3, self.kinematics.l1+0.0])            
 
-            movement_duration = 4
-            self.traj_manager.specify_goal(start_time, Q_cur, xyz_gaze_loc, movement_duration)
+            movement_duration = 5
+#            self.traj_manager.specify_goal(start_time, Q_cur, xyz_gaze_loc, movement_duration)
+            self.traj_manager.specify_gaze_point(start_time, Q_cur, xyz_gaze_loc, movement_duration)  
+
             self.command_once = True
 
         return 
@@ -120,11 +123,12 @@ class Dreamer_Head():
             print "STATE = GO_TO_POINT"
             #Q_des, command_result = self.traj_manager.go_to_point()
             #Q_des, command_result = self.traj_manager.go_to_point2()
-            Q_des, command_result = self.traj_manager.eyes_look_at_point()
+            #Q_des, command_result = self.traj_manager.eyes_look_at_point()
+            Q_des, command_result = self.traj_manager.head_trajectory_look_at_point()            
 
-            #if (command_result == True):
-               #self.current_state = IDLE
-               #self.command_once = False #+= 1
+            if (command_result == True):
+               self.current_state = IDLE
+               #self.command_once = False 
             self.update_head_joints(Q_des)
         else:
             print "ERROR Not a valid state" 

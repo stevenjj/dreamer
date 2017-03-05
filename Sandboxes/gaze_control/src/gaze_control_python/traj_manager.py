@@ -115,8 +115,15 @@ def rotation_quaternion_error(R_cur, R_des):
     return theta, angular_vel_hat
 
 
+# Need an eye focus task:
+#   1) set eyes to point towards head orientation
+#   2) set eyes to point towards a point
 
 class Trajectory_Manager():
+    H = "head"
+    RE = "right_eye"
+    LE = "left_eye"
+
     def __init__(self):
         self.kinematics = hk.Head_Kinematics() 
 
@@ -139,6 +146,82 @@ class Trajectory_Manager():
 
         self.Q_o_at_start = self.kinematics.Jlist
 
+        self.focus_length = {self.H : 1, self.RE : 1, self.LE : 1 }
+        self.focus_point_init = {self.H : 1, self.RE : 1, self.LE : 1 }
+        self.trajectory_length = {self.H : 1, self.RE : 1, self.LE : 1 }
+
+
+    def specify_gaze_point(self, start_time, Q_cur, xyz_gaze_loc, movement_duration, eyes_focused = False, eye_focal_point = np.array([1,0,0])):
+        # Initialize kinematic positions
+        self.kinematics.Jlist = Q_cur # This should be updated first!
+        self.Q_o_at_start = Q_cur
+
+        # Initialize Final Gaze Location Point
+        self.xyz_gaze_loc = xyz_gaze_loc
+
+        # Initialize Time parameters
+        self.start_time = start_time
+        self.current_traj_time = start_time
+        self.prev_traj_time = 0     
+
+        self.initialize_eye_focus_point(xyz_gaze_loc, Q_cur, eyes_focused)
+
+        # Set Minimum Jerk parameters
+        # Set total cartesian trajectory length
+        self.trajectory_length[self.H]  = np.linalg.norm(xyz_gaze_loc - self.focus_point_init[self.H] )
+        self.trajectory_length[self.RE] = np.linalg.norm(xyz_gaze_loc - self.focus_point_init[self.RE] )        
+        self.trajectory_length[self.LE] = np.linalg.norm(xyz_gaze_loc - self.focus_point_init[self.LE] )        
+
+        # Set total DT to move
+        self.movement_duration = movement_duration
+
+        #raise 'debug'
+        return
+
+    def initialize_eye_focus_point(self, xyz_gaze_loc, Q_cur, eyes_focused = False, eye_focal_point = np.array([1,0,0])):
+        R_head_init, p_head_init = self.kinematics.get_6D_Head_Position(Q_cur)
+        R_right_eye_init, p_right_eye_init = self.kinematics.get_6D_Right_Eye_Position(Q_cur)
+        R_left_eye_init, p_left_eye_init = self.kinematics.get_6D_Left_Eye_Position(Q_cur)                
+
+        x_head_hat = np.array(R_head_init)[0,:]
+        x_right_eye_hat = np.array(R_right_eye_init)[0,:]        
+        x_left_eye_hat = np.array(R_left_eye_init)[0,:]
+
+        # If focused, use that point as the initial_gaze_point
+        if (eyes_focused):
+            # Do stuff ehre
+            self.focus_point_init = self.focus_point_init
+        else:       
+            self.focus_length[self.H] = np.linalg.norm(xyz_gaze_loc - p_head_init)
+            self.focus_length[self.RE] = np.linalg.norm(xyz_gaze_loc - p_right_eye_init)        
+            self.focus_length[self.LE] = np.linalg.norm(xyz_gaze_loc - p_left_eye_init)
+
+            self.focus_point_init[self.H]  = (p_head_init      + x_head_hat*self.focus_length[self.H])
+            self.focus_point_init[self.RE] = (p_right_eye_init + x_right_eye_hat*self.focus_length[self.RE])        
+            self.focus_point_init[self.LE] = (p_left_eye_init  + x_left_eye_hat*self.focus_length[self.LE])
+
+
+
+    # returns the unit vector direction and length from an initial (xyz) point to a final (xyz) point
+    # initial_point and final_point are expected to be in the same frame (typically global)
+    def xi_to_xf_vec(self, t, initial_point, final_point):
+        x_f, x_i = final_point, initial_point
+
+        e = x_f - x_i
+        L = np.linalg.norm(x_f - x_i)
+        e_hat = mr.Normalize(e)
+
+        print 'hi e', e
+
+        return e_hat, L
+
+
+    # returns the current gaze point target at time t
+    # expects a gaze point pro.. direction
+    def current_gaze_point_target_t(self, t, vec_hat, length):
+
+        return
+
 
     # if error < xx return 'Change State'
     def specify_goal(self, start_time, Q_cur, xyz_gaze_loc, movement_duration):
@@ -158,6 +241,7 @@ class Trajectory_Manager():
 
         return
 
+
     def min_jerk_time_scaling(self, t, delta_t): #delta_t is the total movement duration
         s_t = 0.0
         x_init, x_final = 0.0, 1.0 # Set to 0 and 1 since we want time scaling from 0 to 1
@@ -175,6 +259,69 @@ class Trajectory_Manager():
         t = self.current_traj_time
         t_prev = self.prev_traj_time    
         return t, t_prev
+
+
+
+    def head_trajectory_look_at_point(self):
+        # Calculate Time
+        t, t_prev = self.calculate_t_t_prev()
+        dt = t - t_prev
+        DT = self.movement_duration
+
+        # Specify current (x,y,z) gaze location, joint config and jacobian
+        xyz_gaze_loc = self.xyz_gaze_loc
+        Q_cur = self.kinematics.Jlist
+        J = self.kinematics.get_6D_Head_Jacobian(Q_cur)
+        #J = J[0:3,:] #Grab the first 3 rows
+        
+        # Calculate FeedForward ---------------------------------
+        # Calculate new Q_des (desired configuration)
+
+        # Calculate Current Desired Gaze Point
+        # Get initial focus point
+        x_i = self.focus_point_init[self.H]
+        # Find vector from initial focus point to final focus point
+        e_hat, L = self.xi_to_xf_vec(t, x_i, xyz_gaze_loc)
+        # Current desired gaze point
+        p_des_cur = x_i + e_hat*L*(self.min_jerk_time_scaling(t, DT))
+
+        # Calculate current orientation error
+        d_theta_error, angular_vel_hat = orientation_error(p_des_cur, Q_cur)
+
+        dx = d_theta_error * angular_vel_hat
+        dx = np.concatenate( (dx, np.array([0,0,0])),  axis=1)
+        dq = calculate_dQ(J, dx)
+        Q_des = Q_cur + dq 
+
+        # Loop Done
+
+        # calculate current orientation
+        R_current, p_current = self.kinematics.get_6D_Head_Position(Q_cur)
+        q_cur = quat.R_to_quat(R_current)
+
+        # calculate current desired orientation
+        R_des = calc_desired_orientation(xyz_gaze_loc, p_current)
+        q_des = quat.R_to_quat(R_des)        
+
+        theta_error, angular_vel_hat = orientation_error(xyz_gaze_loc, Q_cur)
+        print 'Theta Error', theta_error, 'rads ', (theta_error*180.0/np.pi), 'degrees'      
+
+
+        #raise 'debug'
+
+        #print '    q_cur =', q_cur
+        #print '    q_des =', q_des        
+
+        self.kinematics.Jlist = Q_des
+        self.prev_traj_time = t
+
+        # Prepare result of command
+        result = False
+ #       if (t > DT):
+#            result = True
+
+        return Q_des, result
+
 
     def head_look_at_point(self):
         # Calculate Time
@@ -220,7 +367,7 @@ class Trajectory_Manager():
 
         dq_fb = calculate_dQ(J, dx_fb)
         #print 'current dq', dq, 'feedback dq', dq_fb
-        Q_des = Q_des + 0.001*dq_fb
+        #Q_des = Q_des + 0.001*dq_fb
 
         self.kinematics.Jlist = Q_des
         self.prev_traj_time = t
@@ -274,6 +421,8 @@ class Trajectory_Manager():
         print theta_error_right_eye, theta_error_left_eye, t
 
         result = False
+        # if (theta_error_left_eye*(180.0/np.pi) < 4) and (theta_error_right_eye*(180.0/np.pi) < 4):
+        #     result = True        
         if (t > DT):
             result = True
 
