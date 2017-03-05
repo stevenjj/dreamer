@@ -24,6 +24,7 @@ CIRCULAR_HEAD_TRAJ = 103
 TRACK_PERSON = 104
 TRACK_MARKER = 105
 GO_TO_SOME_POINT = 106
+EYE_FOCUS = 107
 
 # High Level Behavior List --- seems like this is another high level task list
 DO_NOTHING = 200
@@ -35,7 +36,7 @@ class Dreamer_Head():
     command_once = False
     def __init__(self):
         self.behaviors = []
-        self.tasks = [GO_TO_SOME_POINT, NO_TASK, GAZE_AVERSION, TASK_HIERARCHY, CIRCULAR_HEAD_TRAJ, TRACK_PERSON, TRACK_MARKER]
+        self.tasks = [GO_TO_SOME_POINT, EYE_FOCUS, NO_TASK, GAZE_AVERSION, TASK_HIERARCHY, CIRCULAR_HEAD_TRAJ, TRACK_PERSON, TRACK_MARKER]
         self.states = [IDLE, GO_TO_POINT, FOLLOWING_TRAJECTORY, FINISHED_TRAJECTORY, INTERRUPTED]
 
         self.current_state = IDLE
@@ -53,7 +54,7 @@ class Dreamer_Head():
         self.ROS_start_time = rospy.Time.now().to_sec()
         self.ROS_current_time = rospy.Time.now().to_sec()
 
-        self.task_list = [GO_TO_SOME_POINT, NO_TASK]
+        self.task_list = [GO_TO_SOME_POINT, NO_TASK, EYE_FOCUS]
         self.current_task_index = 0
         self.task_commanded = False
         self.current_task = self.task_list[self.current_task_index]
@@ -70,10 +71,12 @@ class Dreamer_Head():
     def update_head_joints(self, head_joint_list):
         self.kinematics.Jlist = head_joint_list
 
-        def joint_cmd_bound(val, jmax, jmin):
+        def joint_cmd_bound(val, joint_name, jmax, jmin):
             if val >= jmax:
+                print '    MAX Software Joint HIT! for joint', joint_name
                 return jmax
             elif (val <= jmin):
+                print '    MIN Software Joint HIT! for joint', joint_name                
                 return jmin
             else:
                 return val
@@ -83,9 +86,10 @@ class Dreamer_Head():
             joint_name = self.kinematics.Jindex_to_names[i]
             joint_max_val = self.joint_publisher.free_joints[joint_name]['max']
             joint_min_val = self.joint_publisher.free_joints[joint_name]['min']
-            self.joint_publisher.free_joints[joint_name]['position'] = joint_cmd_bound(command, joint_max_val, joint_min_val)
+            self.joint_publisher.free_joints[joint_name]['position'] = joint_cmd_bound(command, joint_name, joint_max_val, joint_min_val)
 
         #print self.kinematics.Jlist
+
 
     def next_task(self):
         self.current_task_index += 1
@@ -100,14 +104,30 @@ class Dreamer_Head():
             self.current_state = GO_TO_POINT
             start_time = self.ROS_current_time
             Q_cur = self.kinematics.Jlist            
-            xyz_gaze_loc = np.array([1.0, -0.3, self.kinematics.l1-0.1])            
-#           xyz_gaze_loc = np.array([0.3, 0.3, self.kinematics.l1-0.2])
+#            xyz_gaze_loc = np.array([1.0, -0.3, self.kinematics.l1-0.1])            
+            xyz_gaze_loc = np.array([0.3, 0.3, self.kinematics.l1+0.1])
             movement_duration = 2
             self.traj_manager.specify_gaze_point(start_time, Q_cur, xyz_gaze_loc, movement_duration)  
             self.task_commanded = True
         return 
 
+        if ((self.current_task == EYE_FOCUS) and (self.task_commanded == False)):
+            self.current_state = GO_TO_POINT
+            start_time = self.ROS_current_time
+            Q_cur = self.kinematics.Jlist            
+
+            #movement_duration = 1
+            #self.traj_manager.specify_gaze_point(start_time, Q_cur, xyz_gaze_loc, movement_duration)  
+            #self.task_commanded = True
+        return 
+
     def behavior_logic(self):
+        # if behavior == something and self.behavior_set == False
+        #   set the task_list = []
+        #   initialize task_index = 0
+        #   behavior_set = True
+
+
         return 
 
     def process_task_result(self, Q_des, command_result):
@@ -135,18 +155,18 @@ class Dreamer_Head():
         else:
             print "ERROR Not a valid state" 
 
+
     def loop(self):
         while not rospy.is_shutdown():
             self.task_logic()
             #self.behavior_logic()
             self.state_logic()          
-            # message rate = 500 Hz, num of messages to send = 10
-            # node rate = 500/10.0 = 50 hz
             for i in range(0, 10): # 
                 # send message
                 self.rate.sleep()   #rospy.sleep(1/500.0);    
                 # Will sleep for a total of 0.02 seconds --> 50Hz
             self.joint_publisher.publish_joints()
+
 
 
 if __name__ == '__main__':
