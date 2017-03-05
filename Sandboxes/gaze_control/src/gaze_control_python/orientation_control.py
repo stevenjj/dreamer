@@ -57,12 +57,26 @@ class Dreamer_Head():
         self.ROS_start_time = rospy.Time.now().to_sec()
         self.ROS_current_time = rospy.Time.now().to_sec()
 
-        self.task_list = [GO_TO_POINT_A, GO_TO_SOME_POINT, GO_TO_POINT_A, NO_TASK]
+        # Task Manager
+        self.task_list = [GO_TO_POINT_A, GO_TO_SOME_POINT, GO_TO_POINT_A, GO_TO_SOME_POINT, GO_TO_POINT_A, GO_TO_SOME_POINT, NO_TASK]
         self.current_task_index = 0
         self.task_commanded = False
         self.current_task = self.task_list[self.current_task_index]
 
+        # Behavior Manager
+        self.behavior_list = [GO_TO_POINT_A, GO_TO_SOME_POINT, GO_TO_POINT_A, DO_NOTHING]
+        self.current_behavior_index = 0
+        self.behavior_commanded = False
+        self.behavior_task = self.behavior_list[self.current_behavior_index]
+
+
+        # Eye Focal Point initialize to not focused
+        self.eyes_focused = False
         self.current_eye_focal_point = np.array([1,0,0])
+
+
+        # Initialize desired gaze point location
+        self.desired_gaze_point_location = np.array([1.0, 0.0, self.kinematics.l1])
 
         # READ Current Joint Positions
         # Otherwise send HOME command
@@ -108,31 +122,39 @@ class Dreamer_Head():
         if ((self.current_task == GO_TO_POINT_A) and (self.task_commanded == False)):
             self.current_state = GO_TO_POINT
             start_time = self.ROS_current_time
-            Q_cur = self.kinematics.Jlist                  
+
+ #           xyz_gaze_loc = np.array([1.0, -0.4, self.kinematics.l1-0.1])
+
+#            xyz_gaze_loc = np.array([1.0, -0.4, self.kinematics.l1])
             xyz_gaze_loc = np.array([1.0, 0.3, self.kinematics.l1-0.2])
+
             movement_duration = 3
-            self.traj_manager.specify_gaze_point(start_time, Q_cur, xyz_gaze_loc, movement_duration)  
+            self.traj_manager.specify_gaze_point(start_time, xyz_gaze_loc, movement_duration)  
             self.task_commanded = True
           
         # TASK GO TO SOME POINT
         elif ((self.current_task == GO_TO_SOME_POINT) and (self.task_commanded == False)):
             self.current_state = GO_TO_POINT
             start_time = self.ROS_current_time
-            Q_cur = self.kinematics.Jlist            
-            xyz_gaze_loc = np.array([1.0, -0.4, self.kinematics.l1])
+
+#            xyz_gaze_loc = np.array([1.0, 0.3, self.kinematics.l1-0.3])
+            xyz_gaze_loc = np.array([1.0, 0.3, self.kinematics.l1+0.1])
+
             movement_duration = 3
-            self.traj_manager.specify_gaze_point(start_time, Q_cur, xyz_gaze_loc, movement_duration)  
+
+
+            self.traj_manager.specify_gaze_point(start_time, xyz_gaze_loc, movement_duration)  
             self.task_commanded = True
 
         elif ((self.current_task == EYE_FOCUS) and (self.task_commanded == False)):
             self.current_state = GO_TO_POINT
             start_time = self.ROS_current_time
-            Q_cur = self.kinematics.Jlist            
             movement_duration = 1
             # SPECIFY TRAJ_MANAGER COMMAND self.traj_manager.specify_gaze_point(start_time, Q_cur, xyz_gaze_loc, movement_duration)  
             self.task_commanded = True
 
     def behavior_logic(self):
+        # go_to_point_location
         # if behavior == something and self.behavior_set == False
         #   set the task_list = []
         #   initialize task_index = 0
@@ -161,24 +183,33 @@ class Dreamer_Head():
             if (self.current_task == GO_TO_POINT_A):
                 print '  Current_Task:', 'GO_TO_POINT_A'
                 #print '  Head Joints:', self.kinematics.Jlist                
-                #Q_des, command_result = self.traj_manager.head_trajectory_look_at_point()            
+#                Q_des, command_result = self.traj_manager.head_trajectory_look_at_point()            
                 Q_des, command_result = self.traj_manager.eye_trajectory_look_at_point()
                 print '  Command Result:', command_result
+
+                self.process_task_result(Q_des, command_result)
 
 
                 R_head_cur, p_head_cur = self.kinematics.get_6D_Head_Position(self.kinematics.Jlist)
                 x_head_hat = np.array(R_head_cur)[:,0]
-                print '             p_head_cur', p_head_cur
-                print '             R_head_cur', np.array(R_head_cur)
+                #print '             p_head_cur', p_head_cur
+                #print '             R_head_cur', np.array(R_head_cur)
                 print '             x_head_hat', x_head_hat
 
-                self.process_task_result(Q_des, command_result)
 
             elif (self.current_task == GO_TO_SOME_POINT):
                 print '  Current_Task:', 'GO_TO_SOME_POINT'
                 #print '  Head Joints:', self.kinematics.Jlist
-                #Q_des, command_result = self.traj_manager.head_trajectory_look_at_point()            
+                R_head_cur, p_head_cur = self.kinematics.get_6D_Head_Position(self.kinematics.Jlist)
+                x_head_hat = np.array(R_head_cur)[:,0]
+                #print '             p_head_cur', p_head_cur
+                print '             R_head_cur', np.array(R_head_cur)
+                print '             x_head_hat', x_head_hat
+
                 Q_des, command_result = self.traj_manager.head_trajectory_look_at_point()
+
+#                Q_des, command_result = self.traj_manager.eye_trajectory_look_at_point()
+#                raise 'hello!'
 
                 self.process_task_result(Q_des, command_result)                
 
@@ -191,6 +222,7 @@ class Dreamer_Head():
 
     def loop(self):
         while not rospy.is_shutdown():
+            print ''
             self.task_logic()
             #self.behavior_logic()
             self.state_logic()          
@@ -199,7 +231,7 @@ class Dreamer_Head():
                 self.rate.sleep()   #rospy.sleep(1/500.0);    
                 # Will sleep for a total of 0.02 seconds --> 50Hz
             self.joint_publisher.publish_joints()
-
+            print ''
 
 
 if __name__ == '__main__':
