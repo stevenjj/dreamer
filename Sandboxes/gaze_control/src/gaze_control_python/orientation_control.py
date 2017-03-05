@@ -23,6 +23,7 @@ TASK_HIERARCHY = 102
 CIRCULAR_HEAD_TRAJ = 103
 TRACK_PERSON = 104
 TRACK_MARKER = 105
+GO_TO_SOME_POINT = 106
 
 # High Level Behavior List --- seems like this is another high level task list
 DO_NOTHING = 200
@@ -34,7 +35,7 @@ class Dreamer_Head():
     command_once = False
     def __init__(self):
         self.behaviors = []
-        self.tasks = [NO_TASK, GAZE_AVERSION, TASK_HIERARCHY, CIRCULAR_HEAD_TRAJ, TRACK_PERSON, TRACK_MARKER]
+        self.tasks = [GO_TO_SOME_POINT, NO_TASK, GAZE_AVERSION, TASK_HIERARCHY, CIRCULAR_HEAD_TRAJ, TRACK_PERSON, TRACK_MARKER]
         self.states = [IDLE, GO_TO_POINT, FOLLOWING_TRAJECTORY, FINISHED_TRAJECTORY, INTERRUPTED]
 
         self.current_state = IDLE
@@ -52,8 +53,10 @@ class Dreamer_Head():
         self.ROS_start_time = rospy.Time.now().to_sec()
         self.ROS_current_time = rospy.Time.now().to_sec()
 
-        self.task_list = [0, 1]
-        self.current_task = 0
+        self.task_list = [GO_TO_SOME_POINT, NO_TASK]
+        self.current_task_index = 0
+        self.task_commanded = False
+        self.current_task = self.task_list[self.current_task_index]
 
         self.current_eye_focal_point = np.array([1,0,0])
 
@@ -84,53 +87,51 @@ class Dreamer_Head():
 
         #print self.kinematics.Jlist
 
+    def next_task(self):
+        self.current_task_index += 1
+        self.current_task = self.task_list[self.current_task_index]
 
     def task_logic(self):
         self.ROS_current_time = rospy.Time.now().to_sec()
         relative_time =  self.ROS_current_time - self.ROS_start_time
-        print "ROS time (sec): ", relative_time            
+        print 'ROS time (sec): ', relative_time            
 
-
-        # if self.current_task == ()
-        # done specifying task
-
-        if ((relative_time > 0.1) and (self.command_once == False)):
+        if ((self.current_task == GO_TO_SOME_POINT) and (self.task_commanded == False)):
             self.current_state = GO_TO_POINT
             start_time = self.ROS_current_time
-            Q_cur = self.kinematics.Jlist
-
-#            xyz_gaze_loc = np.array([np.sqrt(2)/2.0, np.sqrt(2)/2.0, self.kinematics.l1])                        
-#             xyz_gaze_loc = np.array([0.3, 0.3, self.kinematics.l1+0.1])            
-#            xyz_gaze_loc = np.array([0.3, 0.3, self.kinematics.l1-0.2])
-            xyz_gaze_loc = np.array([0.5, 0.0, self.kinematics.l1+0.2])
-#            xyz_gaze_loc = np.array([1.0, -0.3, self.kinematics.l1+0.0])            
-
-            movement_duration = 5
-#            self.traj_manager.specify_goal(start_time, Q_cur, xyz_gaze_loc, movement_duration)
+            Q_cur = self.kinematics.Jlist            
+            xyz_gaze_loc = np.array([1.0, -0.3, self.kinematics.l1-0.1])            
+#           xyz_gaze_loc = np.array([0.3, 0.3, self.kinematics.l1-0.2])
+            movement_duration = 2
             self.traj_manager.specify_gaze_point(start_time, Q_cur, xyz_gaze_loc, movement_duration)  
-
-            self.command_once = True
-
+            self.task_commanded = True
         return 
 
     def behavior_logic(self):
         return 
 
+    def process_task_result(self, Q_des, command_result):
+        self.update_head_joints(Q_des)
+        if (command_result == True):
+            self.current_state = IDLE
+            self.task_commanded = False
+            self.next_task()
+
     def state_logic(self):
         if (self.current_state == IDLE):
-            print "STATE = Idle"
-        elif (self.current_state == GO_TO_POINT):
-            print "STATE = GO_TO_POINT"
-            #Q_des, command_result = self.traj_manager.go_to_point()
-            #Q_des, command_result = self.traj_manager.go_to_point2()
-            #Q_des, command_result = self.traj_manager.eyes_look_at_point()
-           # Q_des, command_result = self.traj_manager.head_trajectory_look_at_point()            
-            Q_des, command_result = self.traj_manager.eye_trajectory_look_at_point()
+            print '  STATE:', 'Idle'
+            if self.current_task == NO_TASK:
+                print '  Current_Task:', 'NO Task'
+                print '  Current Task Index:', self.current_task_index
 
-            if (command_result == True):
-               self.current_state = IDLE
-               #self.command_once = False 
-            self.update_head_joints(Q_des)
+        elif (self.current_state == GO_TO_POINT):
+            print '  STATE:', 'GO_TO_POINT'
+            if (self.current_task == GO_TO_SOME_POINT):
+                print '  Current_Task:', 'GO_TO_SOME_POINT'
+                Q_des, command_result = self.traj_manager.head_trajectory_look_at_point()            
+                #Q_des, command_result = self.traj_manager.eye_trajectory_look_at_point()
+                self.process_task_result(Q_des, command_result)                
+
         else:
             print "ERROR Not a valid state" 
 

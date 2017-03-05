@@ -211,8 +211,6 @@ class Trajectory_Manager():
         L = np.linalg.norm(x_f - x_i)
         e_hat = mr.Normalize(e)
 
-        print 'hi e', e
-
         return e_hat, L
 
 
@@ -303,7 +301,7 @@ class Trajectory_Manager():
         q_des = quat.R_to_quat(R_des)        
 
         theta_error, angular_vel_hat = orientation_error(xyz_gaze_loc, Q_cur)
-        print 'Theta Error', theta_error, 'rads ', (theta_error*180.0/np.pi), 'degrees'      
+        print '      Theta error', (theta_error*180.0/np.pi), 'degrees'      
 
         self.kinematics.Jlist = Q_des
         self.prev_traj_time = t
