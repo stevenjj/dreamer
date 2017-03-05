@@ -29,20 +29,8 @@ def circular_trajectory(t):
 # Accepts a 3x1 gaze location vector and an origin vector to create the desired orientation
 def calc_desired_orientation(x_gaze_loc, p_cur, Q_cur, orientation_type='head'):
     # Calculate Desired Orientation
-    z_world_hat = np.array([0,0,1])
-    y_world_hat = np.array([0,1,0])    
-
     p_bar = x_gaze_loc - p_cur
     x_hat_d = p_bar/np.linalg.norm(p_bar)
-
-    # Threshold before we use y_world_hat
-    epsilon = 0.1 * np.pi/180.0 # degrees in radians 
-    phi = np.arccos( (x_hat_d.dot(z_world_hat)) / (np.linalg.norm(x_hat_d)*np.linalg.norm(z_world_hat)) )
-
-    z_hat_o = z_world_hat
-    if (phi <= epsilon):
-        z_hat_o = y_world_hat
-
 
     if (orientation_type == 'head'):
         R_cur, p_cur = head_kin.get_6D_Head_Position(Q_cur)
@@ -53,18 +41,16 @@ def calc_desired_orientation(x_gaze_loc, p_cur, Q_cur, orientation_type='head'):
     else:
         raise 'unknown position and orientation needed'
 
-
-
     z_hat_o = np.array(R_cur)[:,2]
 
     z_hat_d = mr.Normalize(z_hat_o - (z_hat_o.dot(x_hat_d)*x_hat_d))
     y_hat_d = np.cross(z_hat_d, x_hat_d)
 
     R_desired = np.array([x_hat_d, y_hat_d, z_hat_d]).T
-    print 'Desired Orientation '
-    print 'x_hat', x_hat_d.T
-    print 'y_hat', y_hat_d.T
-    print 'z_hat', z_hat_d.T
+    # print 'Desired Orientation '
+    # print 'x_hat', x_hat_d.T
+    # print 'y_hat', y_hat_d.T
+    # print 'z_hat', z_hat_d.T
 #    print R_desired
 
     return R_desired
@@ -84,8 +70,6 @@ def orientation_error(x_gaze_loc, Q, orientation_type='head'):
     else:
         raise 'unknown position and orientation needed'
 
-    print 'HEAD p_cur!!', p_cur
-
     # Calculate desired orientation
     R_des = calc_desired_orientation(x_gaze_loc, p_cur, Q)
 
@@ -94,21 +78,6 @@ def orientation_error(x_gaze_loc, Q, orientation_type='head'):
     q_error = quat.quat_multiply(q_des, quat.conj(q_cur))
 
     return quat.quat_to_wth(q_error)
-   #  theta = 2*np.arccos(q_error[0])
-
-   #  #print theta, q_error[0], q_error
-   #  if (mr.NearZero(1.0 - q_error[0])):
-   #      return 0, q_error[1:]
-
-   #  factor = np.sin(theta/2.0)
-   #  w_hat_x = q_error[1]/factor
-   #  w_hat_y = q_error[2]/factor
-   #  w_hat_z = q_error[3]/factor        
-
-   #  angular_vel_hat = np.array([w_hat_x, w_hat_y, w_hat_z])
-
-   # # print theta, angular_vel_hat
-   #  return theta, angular_vel_hat
 
 def rotation_quaternion_error(R_cur, R_des):
     q_cur = quat.R_to_quat(R_cur)
@@ -202,13 +171,6 @@ class Trajectory_Manager():
         x_right_eye_hat = np.array(R_right_eye_init)[:,0]        
         x_left_eye_hat = np.array(R_left_eye_init)[:,0]
 
-        #print '             p_head_init', p_head_init
-        #print '             R_head_init', np.array(R_head_init)
-        #print '             x_head_hat', x_head_hat
-
-        print '             p_right_eye_init', p_right_eye_init
-        print '             p_left_eye_init', p_left_eye_init
-
         # If focused, use that point as the initial_gaze_point
         if (eyes_focused):
             # Do stuff ehre
@@ -219,16 +181,10 @@ class Trajectory_Manager():
             self.focus_length[self.RE] = np.linalg.norm(xyz_gaze_loc - p_right_eye_init)        
             self.focus_length[self.LE] = np.linalg.norm(xyz_gaze_loc - p_left_eye_init)
 
-#            self.focus_length[self.H] = np.linalg.norm(xyz_gaze_loc - p_head_init)
-#            self.focus_length[self.RE] = np.linalg.norm(xyz_gaze_loc - p_head_init)       
-#            self.focus_length[self.LE] = np.linalg.norm(xyz_gaze_loc - p_head_init)
-
 
             self.focus_point_init[self.H]  = (p_head_init      + x_head_hat*self.focus_length[self.H])
             self.focus_point_init[self.RE] = (p_right_eye_init + x_right_eye_hat*self.focus_length[self.RE])        
             self.focus_point_init[self.LE] = (p_left_eye_init  + x_left_eye_hat*self.focus_length[self.LE])
-
-#            self.focus_point_init[self.H]  = (p_right_eye_init + x_right_eye_hat*self.focus_length[self.RE]) 
 
     # returns the unit vector direction and length from an initial (xyz) point to a final (xyz) point
     # initial_point and final_point are expected to be in the same frame (typically global)
@@ -240,7 +196,6 @@ class Trajectory_Manager():
         e_hat = mr.Normalize(e)
 
         return e_hat, L
-
 
 
 
@@ -258,7 +213,7 @@ class Trajectory_Manager():
 
     def calculate_t_t_prev(self):
         self.current_traj_time = rospy.Time.now().to_sec() - self.start_time
-        t = self.current_traj_time -1
+        t = self.current_traj_time
         t_prev = self.prev_traj_time    
         return t, t_prev
 
@@ -298,15 +253,6 @@ class Trajectory_Manager():
         dq = calculate_dQ(J, dx)
         Q_des = Q_cur + dq 
 
-        print '         p_des_cur', p_des_cur
-        print '         e_hat L', e_hat*L*(self.min_jerk_time_scaling(t, DT))
-        print '         t, dt', t, dt
-        print '         d_theta_error', d_theta_error
-
-
-
-
-        print '         desired dq', dq
         self.prev_traj_time = t
         # Loop Done
 
@@ -314,28 +260,12 @@ class Trajectory_Manager():
         R_current, p_current = self.kinematics.get_6D_Head_Position(Q_cur)
         q_cur = quat.R_to_quat(R_current)
 
-        x_head_hat = np.array(R_current)[:,0]
-        y_head_hat = np.array(R_current)[:,1]        
-        z_head_hat = np.array(R_current)[:,2]
-
-        print '         x_i', x_i
-        print '         x_i_current', p_current + x_head_hat*self.focus_length[self.H]
-        print '         R_current', np.array(R_current)
-        print '         p_current', p_current      
-        print '         x_head_hat', x_head_hat
-        print '         y_head_hat', y_head_hat
-        print '         z_head_hat', z_head_hat        
-
         # calculate current desired orientation
         R_des = calc_desired_orientation(xyz_gaze_loc, p_current, Q_cur)
         q_des = quat.R_to_quat(R_des)        
 
         theta_error, angular_vel_hat = orientation_error(xyz_gaze_loc, Q_cur)
-        #print '      Theta error', (theta_error*180.0/np.pi), 'degrees'      
-
-
-#        if t > 0:
-#            raise "command!"
+        print '      Theta error', (theta_error*180.0/np.pi), 'degrees'      
 
         # Prepare result of command
         result = False
@@ -372,10 +302,6 @@ class Trajectory_Manager():
         x_i_right_eye = self.focus_point_init[self.RE]
         x_i_left_eye = self.focus_point_init[self.LE]
 
-       # print '         Focus Point right_eye', x_i_right_eye
-        #print '         Focus Point left_eye', x_i_left_eye
-
-
         # Find vector from initial focus point to final focus point
         e_hat_re, L_re = self.xi_to_xf_vec(t, x_i_right_eye, xyz_gaze_loc)
         e_hat_le, L_le = self.xi_to_xf_vec(t, x_i_left_eye, xyz_gaze_loc)        
@@ -397,13 +323,11 @@ class Trajectory_Manager():
         dx = np.concatenate( (dx_re, dx_le),  axis=1)
         dq = calculate_dQ(J, dx)
 
-        #dq = calculate_dQ(J_1, dx_re)
         Q_des = Q_cur + dq 
 
-        print '         d_theta_error_re', d_theta_error_re
-        print '         d_theta_error_le', d_theta_error_le
+        #print '         d_theta_error_re', d_theta_error_re
+        #print '         d_theta_error_le', d_theta_error_le
 
-        #print '         desired dq', dq
 
         self.prev_traj_time = t
         # Loop Done
@@ -411,8 +335,8 @@ class Trajectory_Manager():
         theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_gaze_loc, Q_cur, 'right_eye')
         theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_gaze_loc, Q_cur, 'left_eye')
 
-        #print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
-        #print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
+        print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
+        print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
 
 
 

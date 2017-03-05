@@ -182,39 +182,13 @@ class Dreamer_Head():
 
             if (self.current_task == GO_TO_POINT_A):
                 print '  Current_Task:', 'GO_TO_POINT_A'
-                #print '  Head Joints:', self.kinematics.Jlist                
-#                Q_des, command_result = self.traj_manager.head_trajectory_look_at_point()            
                 Q_des, command_result = self.traj_manager.eye_trajectory_look_at_point()
-                print '  Command Result:', command_result
-
                 self.process_task_result(Q_des, command_result)
-
-
-                R_head_cur, p_head_cur = self.kinematics.get_6D_Head_Position(self.kinematics.Jlist)
-                x_head_hat = np.array(R_head_cur)[:,0]
-                #print '             p_head_cur', p_head_cur
-                #print '             R_head_cur', np.array(R_head_cur)
-                print '             x_head_hat', x_head_hat
-
 
             elif (self.current_task == GO_TO_SOME_POINT):
                 print '  Current_Task:', 'GO_TO_SOME_POINT'
-                #print '  Head Joints:', self.kinematics.Jlist
-                R_head_cur, p_head_cur = self.kinematics.get_6D_Head_Position(self.kinematics.Jlist)
-                x_head_hat = np.array(R_head_cur)[:,0]
-                #print '             p_head_cur', p_head_cur
-                print '             R_head_cur', np.array(R_head_cur)
-                print '             x_head_hat', x_head_hat
-
                 Q_des, command_result = self.traj_manager.head_trajectory_look_at_point()
-
-#                Q_des, command_result = self.traj_manager.eye_trajectory_look_at_point()
-#                raise 'hello!'
-
                 self.process_task_result(Q_des, command_result)                
-
-
-
 
         else:
             print "ERROR Not a valid state" 
