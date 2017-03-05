@@ -183,9 +183,14 @@ class Trajectory_Manager():
         R_right_eye_init, p_right_eye_init = self.kinematics.get_6D_Right_Eye_Position(Q_cur)
         R_left_eye_init, p_left_eye_init = self.kinematics.get_6D_Left_Eye_Position(Q_cur)                
 
-        x_head_hat = np.array(R_head_init)[0,:]
-        x_right_eye_hat = np.array(R_right_eye_init)[0,:]        
-        x_left_eye_hat = np.array(R_left_eye_init)[0,:]
+        x_head_hat = np.array(R_head_init)[:,0]
+        x_right_eye_hat = np.array(R_right_eye_init)[:,0]        
+        x_left_eye_hat = np.array(R_left_eye_init)[:,0]
+
+        print '             p_head_init', p_head_init
+        print '             R_head_init', np.array(R_head_init)
+        print '             x_head_hat', x_head_hat
+
 
         # If focused, use that point as the initial_gaze_point
         if (eyes_focused):
@@ -214,25 +219,6 @@ class Trajectory_Manager():
         return e_hat, L
 
 
-
-
-    # if error < xx return 'Change State'
-    def specify_goal(self, start_time, Q_cur, xyz_gaze_loc, movement_duration):
-        #print 'specify goal. current q:', Q_cur
-        #self.kinematics.Jlist = Q_cur
-        self.xyz_gaze_loc = xyz_gaze_loc # 3x1 vector or np.array([x, y, z]) with shape 3,
-        self.movement_duration = movement_duration
-        self.start_time = start_time
-        self.current_traj_time = start_time
-        self.prev_traj_time = 0        
-
-        self.theta_total, self.angular_vel_hat = orientation_error(xyz_gaze_loc, Q_cur)
-        self.theta_total_right_eye, self.angular_vel_hat_right_eye = orientation_error(xyz_gaze_loc, Q_cur, 'right_eye')
-        self.theta_total_left_eye, self.angular_vel_hat_left_eye = orientation_error(xyz_gaze_loc, Q_cur, 'left_eye')
-
-        self.Q_o_at_start = Q_cur
-
-        return
 
 
     def min_jerk_time_scaling(self, t, delta_t): #delta_t is the total movement duration
@@ -266,6 +252,7 @@ class Trajectory_Manager():
         Q_cur = self.kinematics.Jlist
         J = self.kinematics.get_6D_Head_Jacobian(Q_cur)
         #J = J[0:3,:] #Grab the first 3 rows
+
         
         # Calculate FeedForward ---------------------------------
         # Calculate new Q_des (desired configuration)
@@ -273,6 +260,9 @@ class Trajectory_Manager():
         # Calculate Current Desired Gaze Point
         # Get initial focus point
         x_i = self.focus_point_init[self.H]
+
+        print '         Focus Point', x_i
+
         # Find vector from initial focus point to final focus point
         e_hat, L = self.xi_to_xf_vec(t, x_i, xyz_gaze_loc)
         # Current desired gaze point
@@ -285,6 +275,7 @@ class Trajectory_Manager():
         dq = calculate_dQ(J, dx)
         Q_des = Q_cur + dq 
 
+        print '         desired dq', dq
         self.prev_traj_time = t
         # Loop Done
 
@@ -321,12 +312,13 @@ class Trajectory_Manager():
         Q_cur = self.kinematics.Jlist
         J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
         J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
-        
+
         #J_1 = J_1[0:3,:] #Grab the first 3 rows      
         #J_2 = J_2[0:3,:] #Grab the first 3 rows            
 
         J = np.concatenate((J_1,J_2) ,axis=0)
-        
+ 
+
         # Calculate FeedForward ---------------------------------
         # Calculate new Q_des (desired configuration)
 
@@ -334,6 +326,10 @@ class Trajectory_Manager():
         # Get initial focus point for each eye
         x_i_right_eye = self.focus_point_init[self.RE]
         x_i_left_eye = self.focus_point_init[self.LE]
+
+        print '         Focus Point right_eye', x_i_right_eye
+        print '         Focus Point left_eye', x_i_left_eye
+
 
         # Find vector from initial focus point to final focus point
         e_hat_re, L_re = self.xi_to_xf_vec(t, x_i_right_eye, xyz_gaze_loc)
@@ -356,9 +352,10 @@ class Trajectory_Manager():
         dx = np.concatenate( (dx_re, dx_le),  axis=1)
         dq = calculate_dQ(J, dx)
 
-        dq = calculate_dQ(J_1, dx_re)
-
+        #dq = calculate_dQ(J_1, dx_re)
         Q_des = Q_cur + dq 
+
+        print '         desired dq', dq
 
         self.prev_traj_time = t
         # Loop Done
@@ -366,8 +363,8 @@ class Trajectory_Manager():
         theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_gaze_loc, Q_cur, 'right_eye')
         theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_gaze_loc, Q_cur, 'left_eye')
 
-        print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
-        print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
+        #print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
+        #print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
 
 
 
