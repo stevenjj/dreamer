@@ -174,7 +174,7 @@ class Dreamer_Head():
 
     def behavior_logic(self):
         if ((self.behavior_task == MAKE_SQUARE) and self.behavior_commanded == False):
-            #task_list = [GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, NO_TASK]
+            task_list = [GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, NO_TASK]
             #task_list = [GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, NO_TASK]            
             task_list = [GO_TO_POINT_EYES_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_HEAD_ONLY, NO_TASK]            
             task_params = []

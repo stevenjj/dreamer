@@ -63,7 +63,14 @@ def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, o
     z_hat_d = mr.Normalize(z_hat_o - (z_hat_o.dot(x_hat_d)*x_hat_d))
     y_hat_d = np.cross(z_hat_d, x_hat_d)
 
+
     R_desired = np.array([x_hat_d, y_hat_d, z_hat_d]).T
+
+    # For some desired final roll configuration head/eye roll:
+    # perform body frame twist about x^ direction. z_hat_d and y_hat_d will rotate as appropriate
+    #   let phi be the total roll in radians. set theta = phi*s(t) with s(t) being the minimum jerk scaling
+    #    R_desired = R_desired*Rot(world_x_hat, theta) 
+
     # print 'Desired Orientation '
     # print 'x_hat', x_hat_d.T
     # print 'y_hat', y_hat_d.T
@@ -382,6 +389,77 @@ class Trajectory_Manager():
 
     # Eye Task Only
     def eye_trajectory_look_at_point(self):
+        # Calculate Time
+        t, t_prev = self.calculate_t_t_prev()
+        dt = t - t_prev
+        DT = self.movement_duration
+
+        # Specify current (x,y,z) gaze location, joint config and jacobian
+        xyz_gaze_loc = self.xyz_gaze_loc
+        Q_cur = self.kinematics.Jlist
+        J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
+        J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
+
+        #J_1 = J_1[0:3,:] #Grab the first 3 rows      
+        #J_2 = J_2[0:3,:] #Grab the first 3 rows            
+
+        J = np.concatenate((J_1,J_2) ,axis=0)
+ 
+
+        # Calculate FeedForward ---------------------------------
+        # Calculate new Q_des (desired configuration)
+
+        # Calculate Current Desired Gaze Point
+        # Get initial focus point for each eye
+        x_i_right_eye = self.focus_point_init[self.RE]
+        x_i_left_eye = self.focus_point_init[self.LE]
+
+        # Find vector from initial focus point to final focus point
+        e_hat_re, L_re = self.xi_to_xf_vec(t, x_i_right_eye, xyz_gaze_loc)
+        e_hat_le, L_le = self.xi_to_xf_vec(t, x_i_left_eye, xyz_gaze_loc)        
+
+        # Current desired gaze point
+        p_des_cur_re = x_i_right_eye + e_hat_re*L_re*(self.min_jerk_time_scaling(t, DT))
+        p_des_cur_le = x_i_left_eye + e_hat_le*L_le*(self.min_jerk_time_scaling(t, DT))        
+
+        # Calculate current orientation error for each eye
+        d_theta_error_re, angular_vel_hat_re = smooth_orientation_error(p_des_cur_re, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'right_eye') 
+        d_theta_error_le, angular_vel_hat_le = smooth_orientation_error(p_des_cur_le, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'left_eye')         
+        dx_re = d_theta_error_re * angular_vel_hat_re
+        dx_le = d_theta_error_le * angular_vel_hat_le
+
+        dx_re = np.concatenate( (dx_re, np.array([0,0,0])),  axis=1)
+        dx_le = np.concatenate( (dx_le, np.array([0,0,0])),  axis=1)
+
+ 
+        dx = np.concatenate( (dx_re, dx_le),  axis=1)
+        dq = calculate_dQ(J, dx)
+
+        Q_des = Q_cur + dq 
+
+        #print '         d_theta_error_re', d_theta_error_re
+        #print '         d_theta_error_le', d_theta_error_le
+
+
+        self.prev_traj_time = t
+        # Loop Done
+
+        theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_gaze_loc, Q_cur, 'right_eye')
+        theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_gaze_loc, Q_cur, 'left_eye')
+
+        print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
+        print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
+
+        # Prepare result of command
+        result = False
+        if (t > DT):
+            result = True
+
+        return Q_des, result
+
+
+    # Fixed Head, Move Eyes Task Only
+    def fixed_head_eye_trajectory_look_at_point(self):
         # Calculate Time
         t, t_prev = self.calculate_t_t_prev()
         dt = t - t_prev
