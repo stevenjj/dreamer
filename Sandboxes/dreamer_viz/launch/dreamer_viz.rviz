@@ -11,7 +11,6 @@ Panels:
         - /RobotModel1/Links1
         - /TF1
         - /TF1/Frames1
-        - /TF1/Frames1/lower_neck_pitch_link1
       Splitter Ratio: 0.5
     Tree Height: 755
   - Class: rviz/Selection
@@ -59,7 +58,12 @@ Visualization Manager:
       Marker Topic: /viz_markers
       Name: Marker
       Namespaces:
-        {}
+        head_ori - arrow: true
+        head_ori - sphere trail: true
+        left_eye_ori - arrow: true
+        left_eye_ori - sphere trail: true
+        right_eye_ori - arrow: true
+        right_eye_ori - sphere trail: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -319,170 +323,19 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        eye_pitch_link:
-          Value: false
-        l_gripper_l_finger_link:
-          Value: false
-        l_gripper_l_finger_tip_link:
-          Value: false
-        l_gripper_led_frame:
-          Value: false
-        l_gripper_motor_accelerometer_link:
-          Value: false
-        l_gripper_palm_link:
-          Value: false
-        l_gripper_r_finger_link:
-          Value: false
-        l_gripper_r_finger_tip_link:
-          Value: false
-        l_gripper_tool_frame:
-          Value: false
-        left_elbow_link:
-          Value: false
-        left_eye_yaw_link:
-          Value: true
-        left_shoulder_abductor_link:
-          Value: false
-        left_shoulder_extensor_link:
-          Value: false
-        left_shoulder_rotator_link:
-          Value: false
-        left_wrist_pitch_link:
-          Value: false
-        left_wrist_rotator_link:
-          Value: false
-        left_wrist_yaw_link:
-          Value: false
-        lower_neck_pitch_link:
-          Value: true
-        palm:
-          Value: false
-        panplate_link:
-          Value: false
-        right_elbow_link:
-          Value: false
-        right_eye_yaw_link:
-          Value: true
-        right_middle_finger_dip_link:
-          Value: false
-        right_middle_finger_mcp_link:
-          Value: false
-        right_middle_finger_pip_link:
-          Value: false
-        right_pinky_dip_link:
-          Value: false
-        right_pinky_mcp:
-          Value: false
-        right_pinky_pip:
-          Value: false
-        right_pointer_finger_dip_link:
-          Value: false
-        right_pointer_finger_mcp_link:
-          Value: false
-        right_pointer_finger_pip:
-          Value: false
-        right_shoulder_abductor_link:
-          Value: false
-        right_shoulder_extensor_link:
-          Value: false
-        right_shoulder_rotator_link:
-          Value: false
-        right_thumb_cmc_link:
-          Value: false
-        right_thumb_ip_link:
-          Value: false
-        right_thumb_mcp_link:
-          Value: false
-        right_wrist_pitch_link:
-          Value: false
-        right_wrist_rotator_link:
-          Value: false
-        right_wrist_yaw_link:
-          Value: false
-        torso_lower_pitch_link:
-          Value: false
-        torso_upper_pitch_link:
-          Value: false
-        torso_yaw_link:
-          Value: false
-        upper_neck_pitch_link:
-          Value: false
-        upper_neck_roll_link:
-          Value: true
-        upper_neck_yaw_link:
-          Value: false
-        world:
-          Value: false
       Marker Scale: 0.5
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        world:
-          panplate_link:
-            torso_yaw_link:
-              torso_lower_pitch_link:
-                torso_upper_pitch_link:
-                  left_shoulder_extensor_link:
-                    left_shoulder_abductor_link:
-                      left_shoulder_rotator_link:
-                        left_elbow_link:
-                          left_wrist_rotator_link:
-                            left_wrist_pitch_link:
-                              left_wrist_yaw_link:
-                                l_gripper_palm_link:
-                                  l_gripper_l_finger_link:
-                                    l_gripper_l_finger_tip_link:
-                                      {}
-                                  l_gripper_led_frame:
-                                    {}
-                                  l_gripper_motor_accelerometer_link:
-                                    {}
-                                  l_gripper_r_finger_link:
-                                    l_gripper_r_finger_tip_link:
-                                      {}
-                                  l_gripper_tool_frame:
-                                    {}
-                  lower_neck_pitch_link:
-                    upper_neck_yaw_link:
-                      upper_neck_roll_link:
-                        upper_neck_pitch_link:
-                          eye_pitch_link:
-                            left_eye_yaw_link:
-                              {}
-                            right_eye_yaw_link:
-                              {}
-                  right_shoulder_extensor_link:
-                    right_shoulder_abductor_link:
-                      right_shoulder_rotator_link:
-                        right_elbow_link:
-                          right_wrist_rotator_link:
-                            right_wrist_pitch_link:
-                              right_wrist_yaw_link:
-                                palm:
-                                  right_middle_finger_mcp_link:
-                                    right_middle_finger_pip_link:
-                                      right_middle_finger_dip_link:
-                                        {}
-                                  right_pinky_mcp:
-                                    right_pinky_pip:
-                                      right_pinky_dip_link:
-                                        {}
-                                  right_pointer_finger_mcp_link:
-                                    right_pointer_finger_pip:
-                                      right_pointer_finger_dip_link:
-                                        {}
-                                  right_thumb_cmc_link:
-                                    right_thumb_mcp_link:
-                                      right_thumb_ip_link:
-                                        {}
+        {}
       Update Interval: 0
-      Value: true
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -519,10 +372,10 @@ Visualization Manager:
         Z: 1.26297
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.520398
+      Pitch: 0.270398
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.545363
+      Yaw: 0.0603657
     Saved: ~
 Window Geometry:
   Displays:
