@@ -36,6 +36,7 @@ def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, o
     if (orientation_type == 'head'):
         R_init, p_init = head_kin.get_6D_Head_Position(Q_init)
     elif (orientation_type == 'right_eye'):
+        print 'DO YOU SEE ME?'
         R_init, p_init = head_kin.get_6D_Right_Eye_Position(Q_init)
     elif (orientation_type == 'left_eye'):        
         R_init, p_init = head_kin.get_6D_Left_Eye_Position(Q_init)
@@ -60,8 +61,10 @@ def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, o
     z_hat_init = np.array(R_init)[:,2]
 #    print 'preffered z difference:', z_hat_o - z_hat_init   
     z_hat_o = mr.Normalize(z_hat_init + (z_hat_o-z_hat_init)*scaling)
-
+    print 'hello!!', z_hat_init, z_hat_o 
     #z_hat_o = z_hat_cur
+
+    print R_init
 
     z_hat_d = mr.Normalize(z_hat_o - (z_hat_o.dot(x_hat_d)*x_hat_d))
     y_hat_d = np.cross(z_hat_d, x_hat_d)
@@ -101,7 +104,7 @@ def smooth_orientation_error(x_gaze_loc, Q, Q_init, scaling, orientation_type='h
         raise 'unknown position and orientation needed'
 
     # Calculate desired orientation
-    R_des = calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q, Q_init, scaling)
+    R_des = calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q, Q_init, scaling, orientation_type)
 
     q_cur = quat.R_to_quat(R_cur)
     q_des = quat.R_to_quat(R_des)
@@ -159,9 +162,9 @@ def calc_desired_orientation(x_gaze_loc, p_cur, Q_cur, orientation_type='head'):
 
     R_desired = np.array([x_hat_d, y_hat_d, z_hat_d]).T
     # print 'Desired Orientation '
-    print 'x_hat', x_hat_d.T
-    print 'y_hat', y_hat_d.T
-    print 'z_hat', z_hat_d.T
+    #print 'x_hat', x_hat_d.T
+    #print 'y_hat', y_hat_d.T
+    #print 'z_hat', z_hat_d.T
 #    print R_desired
 
     return R_desired
@@ -570,7 +573,6 @@ class Trajectory_Manager():
 
 
         Q_des = Q_cur + dq1 
-
 
         Q_cur = self.kinematics.Jlist
         J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
