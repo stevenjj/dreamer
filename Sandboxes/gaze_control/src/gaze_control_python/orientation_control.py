@@ -42,6 +42,8 @@ MAKE_SQUARE = 203
 
 MAKE_SQUARE_WITH_EYES_ONLY = 204
 MAKE_SQUARE_WITH_HEAD_ONLY = 205
+MAKE_SQUARE_WITH_PRIORITIZED_TASKS_EYES = 206
+MAKE_SQUARE_WITH_PRIORITIZED_TASKS_HEAD = 207
 
 class Dreamer_Head():
     command_once = False
@@ -75,10 +77,10 @@ class Dreamer_Head():
         self.task_params = []
 
         # Behavior Manager
-        self.behavior_list =[MAKE_SQUARE_WITH_HEAD_ONLY, MAKE_SQUARE_WITH_EYES_ONLY, MAKE_SQUARE, DO_NOTHING] #[MAKE_SQUARE_WITH_EYES_ONLY, MAKE_SQUARE, DO_NOTHING]
+        self.behavior_list =[MAKE_SQUARE_WITH_HEAD_ONLY, MAKE_SQUARE_WITH_EYES_ONLY, MAKE_SQUARE, MAKE_SQUARE_WITH_PRIORITIZED_TASKS_EYES,  MAKE_SQUARE_WITH_PRIORITIZED_TASKS_HEAD, DO_NOTHING] #[MAKE_SQUARE_WITH_EYES_ONLY, MAKE_SQUARE, DO_NOTHING]
         self.current_behavior_index = 0
         self.behavior_commanded = False
-        self.behavior_task = self.behavior_list[0]
+        self.behavior_task = self.behavior_list[3]
 
         # If behavior cycle, we will demonstrate all behaviors.
         self.behavior_cycle = False
@@ -307,6 +309,68 @@ class Dreamer_Head():
             self.behavior_commanded = True
             print "HELLO ONCE!"
 
+        elif ((self.behavior_task == MAKE_SQUARE_WITH_PRIORITIZED_TASKS_EYES) and self.behavior_commanded == False):
+            #task_list = [GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, NO_TASK]
+            #task_list = [GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, NO_TASK]            
+            task_list = [GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY,
+                         GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, 
+                         GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, 
+                         GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, 
+                         GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, 
+                         GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, 
+                         GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, 
+                         NO_TASK]            
+
+            task_params = []
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.15, self.kinematics.l1+0.2]), np.array( [0.6, 0.15, self.kinematics.l1+0.2]),      0.2) )            
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.15, self.kinematics.l1+0.2]), np.array( [0.6, 0.15, self.kinematics.l1+0.2]),      1) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.15, self.kinematics.l1-0.2]), np.array( [0.6, 0.15, self.kinematics.l1-0.2]),      1) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, -0.15, self.kinematics.l1-0.2]), np.array( [0.6, -0.15, self.kinematics.l1-0.2]),     1) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, -0.15, self.kinematics.l1+0.2]), np.array( [0.6, -0.15, self.kinematics.l1+0.2]),     1) )                       
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.15, self.kinematics.l1+0.2]), np.array( [0.6, 0.15, self.kinematics.l1+0.2]),      1) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.15, self.kinematics.l1-0.2]), np.array( [0.6, 0.15, self.kinematics.l1-0.2]),      1) )                   
+
+            # Initialize task parameters
+            self.task_list = task_list
+            self.task_params = task_params                      
+
+            self.current_task_index = 0
+            self.task_commanded = False
+            self.current_task = self.task_list[self.current_task_index]            
+
+            self.behavior_commanded = True
+
+        elif ((self.behavior_task == MAKE_SQUARE_WITH_PRIORITIZED_TASKS_HEAD) and self.behavior_commanded == False):
+            #task_list = [GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, NO_TASK]
+            #task_list = [GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, NO_TASK]            
+            task_list = [GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY,
+                         GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY, 
+                         GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY, 
+                         GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY, 
+                         GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY, 
+                         GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY, 
+                         GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY, 
+                         NO_TASK]            
+
+            task_params = []
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.15, self.kinematics.l1+0.2]), np.array( [0.6, 0.15, self.kinematics.l1+0.2]),      1) )            
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.15, self.kinematics.l1+0.2]), np.array( [0.6, 0.15, self.kinematics.l1+0.2]),      1) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.15, self.kinematics.l1-0.2]), np.array( [0.6, 0.15, self.kinematics.l1-0.2]),      1) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, -0.15, self.kinematics.l1-0.2]), np.array( [0.6, -0.15, self.kinematics.l1-0.2]),     1) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, -0.15, self.kinematics.l1+0.2]), np.array( [0.6, -0.15, self.kinematics.l1+0.2]),     1) )                       
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.15, self.kinematics.l1+0.2]), np.array( [0.6, 0.15, self.kinematics.l1+0.2]),      1) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.15, self.kinematics.l1-0.2]), np.array( [0.6, 0.15, self.kinematics.l1-0.2]),      1) )                   
+
+            # Initialize task parameters
+            self.task_list = task_list
+            self.task_params = task_params                      
+
+            self.current_task_index = 0
+            self.task_commanded = False
+            self.current_task = self.task_list[self.current_task_index]            
+
+            self.behavior_commanded = True            
+
 
 
         return 
@@ -355,9 +419,12 @@ class Dreamer_Head():
 
     def publish_focus_length(self):
         msg = Float32MultiArray()
-        msg.data.append(self.traj_manager.current_focus_length[self.traj_manager.LE])                
-        msg.data.append(self.traj_manager.current_focus_length[self.traj_manager.RE])
-        msg.data.append(self.traj_manager.current_focus_length[self.traj_manager.H])
+        common_length = 0.6
+        focus_lengths = [common_length, common_length, common_length + self.kinematics.l2]
+        msg.data = focus_lengths
+#        msg.data.append(self.traj_manager.current_focus_length[self.traj_manager.LE])                
+#        msg.data.append(self.traj_manager.current_focus_length[self.traj_manager.RE])
+#        msg.data.append(self.traj_manager.current_focus_length[self.traj_manager.H])
         self.focus_length_pub.publish(msg)
 
     def loop(self):
