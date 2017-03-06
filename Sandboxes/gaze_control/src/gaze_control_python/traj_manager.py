@@ -321,7 +321,7 @@ class Trajectory_Manager():
 
         # If focused, use that point as the initial_gaze_point
         if (eyes_focused):
-            # Do stuff ehre
+            # Do stuff here
             self.focus_point_init = self.focus_point_init
             raise 'hello'
         else:       
@@ -447,6 +447,12 @@ class Trajectory_Manager():
         theta_error, angular_vel_hat = orientation_error(xyz_gaze_loc, Q_cur)
         print '      Theta error', (theta_error*180.0/np.pi), 'degrees'      
 
+        R_cur_head, p_cur_head = self.kinematics.get_6D_Head_Position(Q_cur)
+ 
+
+        self.current_focus_length[self.H] =   np.linalg.norm(p_cur_head - p_head_des_cur)  
+ 
+
         # Prepare result of command
         result = False
         if (t > DT):
@@ -517,6 +523,14 @@ class Trajectory_Manager():
 
         print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
         print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
+
+        R_cur, p_cur_right_eye = self.kinematics.get_6D_Right_Eye_Position(Q_cur)
+        R_cur, p_cur_left_eye = self.kinematics.get_6D_Left_Eye_Position(Q_cur)
+
+
+        self.current_focus_length[self.RE] =  np.linalg.norm(p_cur_right_eye - p_des_cur_re)         
+        self.current_focus_length[self.LE] =  np.linalg.norm(p_cur_left_eye -p_des_cur_le)
+ 
 
         # Prepare result of command
         result = False
@@ -639,7 +653,15 @@ class Trajectory_Manager():
         print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
 
 
+        R_cur_head, p_cur_head = self.kinematics.get_6D_Head_Position(Q_cur)
+        R_cur, p_cur_right_eye = self.kinematics.get_6D_Right_Eye_Position(Q_cur)
+        R_cur, p_cur_left_eye = self.kinematics.get_6D_Left_Eye_Position(Q_cur)
 
+
+        self.current_focus_length[self.H] =   np.linalg.norm(p_cur_head - p_head_des_cur)  
+        self.current_focus_length[self.RE] =  np.linalg.norm(p_cur_right_eye - p_des_cur_re)         
+        self.current_focus_length[self.LE] =  np.linalg.norm(p_cur_left_eye -p_des_cur_le)
+ 
 
 
         # Prepare result of command
@@ -669,8 +691,8 @@ class Trajectory_Manager():
         J_2 = J_2[0:3,:] #Grab the first 3 rows  
 
         J_head = self.kinematics.get_6D_Head_Jacobian(Q_cur)
-
-
+        J_head = J_head[0:3,:]        
+    
         J1 = np.concatenate((J_1,J_2) ,axis=0)
 
         # Calculate FeedForward ---------------------------------
@@ -748,14 +770,13 @@ class Trajectory_Manager():
         #d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT))
         d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT)) 
         dx2 = d_theta_error * angular_vel_hat
-        dx2 = np.concatenate( (dx2, np.array([0,0,0])),  axis=1)
+        #dx2 = np.concatenate( (dx2, np.array([0,0,0])),  axis=1)
         
+        
+
+        #dq2 = N1.dot(pinv_J2_N1.dot(dx2 -J2_pinv_J1_x1dot))
+
         dq2 = calculate_dQ(J_head, dx2)
-
-        dq2 = N1.dot(pinv_J2_N1.dot(dx2 -J2_pinv_J1_x1dot))
-
-        #print N1
-
         dq2 = np.dot(N1, dq2)
         
 
@@ -764,7 +785,7 @@ class Trajectory_Manager():
 
 
         J2_bar = np.linalg.pinv(J2)        
-        pJ2_J2 = J1_bar.dot(J2)
+        pJ2_J2 = J2_bar.dot(J2)
 
         # print np.shape(np.linalg.pinv(J1.T))
         # print np.shape(np.linalg.pinv(J1.T).dot(J1.T))
@@ -776,7 +797,8 @@ class Trajectory_Manager():
         #print N1.dot(N2)
         print dt
 
-        Q_des = Q_des + N1.dot(N2.dot(-0.01*(Q_des-Q_cur)/dt))
+        #Q_des = Q_des + N1.dot(N2.dot(-0.01*(Q_des-Q_cur)/dt))
+        #Q_des = Q_des + N1.dot(N2.dot(1.0*(Q_cur-Q_des)))        
 
         self.prev_traj_time = t
         # Loop Done

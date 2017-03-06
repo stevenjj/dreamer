@@ -50,9 +50,9 @@ int main(int argc, char** argv){
   rp_->new_arr_channel(mc_head,      "head_ori",      sejong::RED,  10, 1., 0.5, 10);// 10* 10 = 100 => 1 second tail @ 100 Hz*/
 
 
-  rp_->new_arr_channel(mc_eye_left,  "left_eye_ori",  sejong::BLUE, 500, 1., 0.5, 2);  // 50 * 4 = 200 => 2 second tail @ 100 Hz
-  rp_->new_arr_channel(mc_eye_right, "right_eye_ori", sejong::LIME, 500, 1., 0.5, 2);  // 8 * 25 = 200 => 2 second tail @ 100 Hz
-  rp_->new_arr_channel(mc_head,      "head_ori",      sejong::RED,  500, 1., 0.5, 2);// 10* 10 = 100 => 1 second tail @ 100 Hz  
+  rp_->new_arr_channel(mc_eye_left,  "left_eye_ori",  sejong::BLUE, 500, 1., 0.5, 5);  // 50 * 4 = 200 => 2 second tail @ 100 Hz
+  rp_->new_arr_channel(mc_eye_right, "right_eye_ori", sejong::LIME, 500, 1., 0.5, 5);  // 8 * 25 = 200 => 2 second tail @ 100 Hz
+  rp_->new_arr_channel(mc_head,      "head_ori",      sejong::RED,  500, 1., 0.5, 5);// 10* 10 = 100 => 1 second tail @ 100 Hz  
 
 
   ros::Subscriber sub1 = node.subscribe("setArrLength" , 5, setArrLengthCallback);
