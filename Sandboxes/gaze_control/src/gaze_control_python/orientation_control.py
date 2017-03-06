@@ -23,23 +23,24 @@ TASK_HIERARCHY = 102
 CIRCULAR_HEAD_TRAJ = 103
 TRACK_PERSON = 104
 TRACK_MARKER = 105
-GO_TO_SOME_POINT = 106
+
 EYE_FOCUS = 107
 
-GO_TO_POINT_A = 108
+GO_TO_POINT_HEAD_ONLY = 106
+GO_TO_POINT_EYES_ONLY = 108
 GO_TO_POINT_B = 109
 
 # High Level Behavior List --- seems like this is another high level task list
 DO_NOTHING = 200
 ALWAYS_GAZE_AVERT = 201
 ALWAYS_GAZE_FOLLOW = 202
-
+MAKE_SQUARE = 203
 
 class Dreamer_Head():
     command_once = False
     def __init__(self):
         self.behaviors = []
-        self.tasks = [GO_TO_SOME_POINT, EYE_FOCUS, NO_TASK, GAZE_AVERSION, TASK_HIERARCHY, CIRCULAR_HEAD_TRAJ, TRACK_PERSON, TRACK_MARKER]
+        self.tasks = [GO_TO_POINT_HEAD_ONLY, EYE_FOCUS, NO_TASK, GAZE_AVERSION, TASK_HIERARCHY, CIRCULAR_HEAD_TRAJ, TRACK_PERSON, TRACK_MARKER]
         self.states = [IDLE, GO_TO_POINT, FOLLOWING_TRAJECTORY, FINISHED_TRAJECTORY, INTERRUPTED]
 
         self.current_state = IDLE
@@ -58,16 +59,22 @@ class Dreamer_Head():
         self.ROS_current_time = rospy.Time.now().to_sec()
 
         # Task Manager
-        self.task_list = [GO_TO_POINT_A, GO_TO_SOME_POINT, GO_TO_POINT_A, GO_TO_SOME_POINT, GO_TO_POINT_A, GO_TO_SOME_POINT, NO_TASK]
+        #self.task_list = [GO_TO_POINT_EYES_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_HEAD_ONLY, NO_TASK]
+        self.task_list = [NO_TASK]        
         self.current_task_index = 0
         self.task_commanded = False
         self.current_task = self.task_list[self.current_task_index]
 
+        self.task_params = []
+
         # Behavior Manager
-        self.behavior_list = [GO_TO_POINT_A, GO_TO_SOME_POINT, GO_TO_POINT_A, DO_NOTHING]
+        self.behavior_list = [MAKE_SQUARE, DO_NOTHING]
         self.current_behavior_index = 0
         self.behavior_commanded = False
-        self.behavior_task = self.behavior_list[self.current_behavior_index]
+        self.behavior_task = self.behavior_list[0]
+
+        # If behavior cycle, we will demonstrate all behaviors.
+        self.behavior_cycle = False
 
 
         # Eye Focal Point initialize to not focused
@@ -119,32 +126,28 @@ class Dreamer_Head():
 
 
         # TASK GO TO POINT A
-        if ((self.current_task == GO_TO_POINT_A) and (self.task_commanded == False)):
+        if ((self.current_task == GO_TO_POINT_EYES_ONLY) and (self.task_commanded == False)):
             self.current_state = GO_TO_POINT
             start_time = self.ROS_current_time
 
- #           xyz_gaze_loc = np.array([1.0, -0.4, self.kinematics.l1-0.1])
+            xyz_gaze_loc = self.task_params[self.current_task_index][0]
+            movement_duration = self.task_params[self.current_task_index][1]
 
-#            xyz_gaze_loc = np.array([1.0, -0.4, self.kinematics.l1])
-            xyz_gaze_loc = np.array([1.0, 0.3, self.kinematics.l1-0.2])
-
-            movement_duration = 3
             self.traj_manager.specify_gaze_point(start_time, xyz_gaze_loc, movement_duration)  
+
             self.task_commanded = True
           
         # TASK GO TO SOME POINT
-        elif ((self.current_task == GO_TO_SOME_POINT) and (self.task_commanded == False)):
+        elif ((self.current_task == GO_TO_POINT_HEAD_ONLY) and (self.task_commanded == False)):
             self.current_state = GO_TO_POINT
             start_time = self.ROS_current_time
 
-#            xyz_gaze_loc = np.array([1.0, 0.3, self.kinematics.l1-0.3])
-            xyz_gaze_loc = np.array([1.0, 0.3, self.kinematics.l1+0.1])
-
-            movement_duration = 3
-
+            xyz_gaze_loc = self.task_params[self.current_task_index][0]
+            movement_duration = self.task_params[self.current_task_index][1]
 
             self.traj_manager.specify_gaze_point(start_time, xyz_gaze_loc, movement_duration)  
             self.task_commanded = True
+
 
         elif ((self.current_task == EYE_FOCUS) and (self.task_commanded == False)):
             self.current_state = GO_TO_POINT
@@ -153,13 +156,46 @@ class Dreamer_Head():
             # SPECIFY TRAJ_MANAGER COMMAND self.traj_manager.specify_gaze_point(start_time, Q_cur, xyz_gaze_loc, movement_duration)  
             self.task_commanded = True
 
-    def behavior_logic(self):
-        # go_to_point_location
-        # if behavior == something and self.behavior_set == False
-        #   set the task_list = []
-        #   initialize task_index = 0
-        #   behavior_set = True
 
+# GO_TO_POINT_HEAD_ONLY
+# GO_TO_POINT_EYES_ONLY
+
+# behavior creates task list and task parameters
+# task list = [GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY]
+# task_params = [(param), (param), (param), (param)]
+
+#    def go_to_point_params(self, desired_gaze_point_location, move_duration):
+#        self.desired_gaze_point_location = desired_gaze_point_location
+#       
+
+    def set_go_to_point_params(self, gaze_location, move_duration):
+        params = (gaze_location, move_duration)
+        return params
+
+    def behavior_logic(self):
+        if ((self.behavior_task == MAKE_SQUARE) and self.behavior_commanded == False):
+            #task_list = [GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, NO_TASK]
+            #task_list = [GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, NO_TASK]            
+            task_list = [GO_TO_POINT_EYES_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_HEAD_ONLY, NO_TASK]            
+            task_params = []
+            task_params.append( self.set_go_to_point_params(np.array( [0.6, 0.25, self.kinematics.l1+0.05]),      1) )
+            task_params.append( self.set_go_to_point_params(np.array( [0.6, 0.25, self.kinematics.l1-0.1]),      1) )
+            task_params.append( self.set_go_to_point_params(np.array( [0.6, -0.25, self.kinematics.l1-0.1]),     1) )
+            task_params.append( self.set_go_to_point_params(np.array( [0.6, -0.25, self.kinematics.l1+0.05]),     1) )                       
+            task_params.append( self.set_go_to_point_params(np.array( [0.6, 0.25, self.kinematics.l1+0.05]),      1) )
+            task_params.append( self.set_go_to_point_params(np.array( [0.6, 0.25, self.kinematics.l1-0.1]),      1) )
+
+
+            # Initialize task parameters
+            self.task_list = task_list
+            self.task_params = task_params                      
+
+            self.current_task_index = 0
+            self.task_commanded = False
+            self.current_task = self.task_list[self.current_task_index]            
+
+            self.behavior_commanded = True
+            print "HELLO ONCE!"
 
         return 
 
@@ -180,15 +216,17 @@ class Dreamer_Head():
         elif (self.current_state == GO_TO_POINT):
             print '  STATE:', 'GO_TO_POINT'
 
-            if (self.current_task == GO_TO_POINT_A):
-                print '  Current_Task:', 'GO_TO_POINT_A'
+            if (self.current_task == GO_TO_POINT_EYES_ONLY):
+                print '  Current_Task:', 'GO_TO_POINT_EYES_ONLY'
                 Q_des, command_result = self.traj_manager.eye_trajectory_look_at_point()
                 self.process_task_result(Q_des, command_result)
 
-            elif (self.current_task == GO_TO_SOME_POINT):
-                print '  Current_Task:', 'GO_TO_SOME_POINT'
+            elif (self.current_task == GO_TO_POINT_HEAD_ONLY):
+                print '  Current_Task:', 'GO_TO_POINT_HEAD_ONLY'
                 Q_des, command_result = self.traj_manager.head_trajectory_look_at_point()
-                self.process_task_result(Q_des, command_result)                
+                self.process_task_result(Q_des, command_result)
+
+
 
         else:
             print "ERROR Not a valid state" 
@@ -197,8 +235,8 @@ class Dreamer_Head():
     def loop(self):
         while not rospy.is_shutdown():
             print ''
+            self.behavior_logic()            
             self.task_logic()
-            #self.behavior_logic()
             self.state_logic()          
             for i in range(0, 10): # 
                 # send message

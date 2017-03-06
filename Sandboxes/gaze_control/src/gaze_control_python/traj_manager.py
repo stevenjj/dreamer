@@ -27,6 +27,99 @@ def circular_trajectory(t):
 
 # Calculate desired orientation
 # Accepts a 3x1 gaze location vector and an origin vector to create the desired orientation
+
+def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, orientation_type='head'):
+    # Calculate Desired Orientation
+    p_bar = x_gaze_loc - p_cur
+    x_hat_d = p_bar/np.linalg.norm(p_bar)
+
+    if (orientation_type == 'head'):
+        R_init, p_init = head_kin.get_6D_Head_Position(Q_init)
+    elif (orientation_type == 'right_eye'):
+        R_init, p_init = head_kin.get_6D_Right_Eye_Position(Q_init)
+    elif (orientation_type == 'left_eye'):        
+        R_init, p_init = head_kin.get_6D_Left_Eye_Position(Q_init)
+    else:
+        raise 'unknown position and orientation needed'
+
+
+    z_world_hat = np.array([0,0,1])
+    y_world_hat = np.array([0,1,0])    
+    # Threshold before we use y_world_hat
+    epsilon = 0.1 * np.pi/180.0 # degrees in radians 
+    phi = np.arccos( (x_hat_d.dot(z_world_hat)) / (np.linalg.norm(x_hat_d)*np.linalg.norm(z_world_hat)) )
+
+    z_hat_o = z_world_hat
+    if (phi <= epsilon):
+        z_hat_o = y_world_hat
+
+#    x_hat_cur = np.array(R_init)[:,0]
+    z_hat_init = np.array(R_init)[:,2]
+    print 'preffered z difference:', z_hat_o - z_hat_init   
+    z_hat_o = mr.Normalize(z_hat_init + (z_hat_o-z_hat_init)*scaling)
+
+    #z_hat_o = z_hat_cur
+
+    z_hat_d = mr.Normalize(z_hat_o - (z_hat_o.dot(x_hat_d)*x_hat_d))
+    y_hat_d = np.cross(z_hat_d, x_hat_d)
+
+    R_desired = np.array([x_hat_d, y_hat_d, z_hat_d]).T
+    # print 'Desired Orientation '
+    # print 'x_hat', x_hat_d.T
+    # print 'y_hat', y_hat_d.T
+    # print 'z_hat', z_hat_d.T
+#    print R_desired
+
+    return R_desired
+
+
+
+
+# Calculate error between current configuration and desired configuration
+def smooth_orientation_error(x_gaze_loc, Q, Q_init, scaling, orientation_type='head'):
+    global head_kin
+    J = None
+    R_cur, p_cur = None, None
+    # Get forward kinematics
+    if (orientation_type == 'head'):
+        R_cur, p_cur = head_kin.get_6D_Head_Position(Q)
+    elif (orientation_type == 'right_eye'):
+        R_cur, p_cur = head_kin.get_6D_Right_Eye_Position(Q)
+    elif (orientation_type == 'left_eye'):        
+        R_cur, p_cur = head_kin.get_6D_Left_Eye_Position(Q)
+    else:
+        raise 'unknown position and orientation needed'
+
+    # Calculate desired orientation
+    R_des = calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q, Q_init, scaling)
+
+    q_cur = quat.R_to_quat(R_cur)
+    q_des = quat.R_to_quat(R_des)
+    q_error = quat.quat_multiply(q_des, quat.conj(q_cur))
+
+    return quat.quat_to_wth(q_error)
+
+def rotation_quaternion_error(R_cur, R_des):
+    q_cur = quat.R_to_quat(R_cur)
+    q_des = quat.R_to_quat(R_des)
+    q_error = quat.quat_multiply(q_des, quat.conj(q_cur))
+
+    theta = 2*np.arccos(q_error[0])
+
+    #print theta, q_error[0], q_error
+    if (mr.NearZero(1.0 - q_error[0])):
+        return 0, q_error[1:]
+
+    factor = np.sin(theta/2.0)
+    w_hat_x = q_error[1]/factor
+    w_hat_y = q_error[2]/factor
+    w_hat_z = q_error[3]/factor        
+
+    angular_vel_hat = np.array([w_hat_x, w_hat_y, w_hat_z])
+
+    return theta, angular_vel_hat    
+
+
 def calc_desired_orientation(x_gaze_loc, p_cur, Q_cur, orientation_type='head'):
     # Calculate Desired Orientation
     p_bar = x_gaze_loc - p_cur
@@ -41,7 +134,16 @@ def calc_desired_orientation(x_gaze_loc, p_cur, Q_cur, orientation_type='head'):
     else:
         raise 'unknown position and orientation needed'
 
-    z_hat_o = np.array(R_cur)[:,2]
+
+    z_world_hat = np.array([0,0,1])
+    y_world_hat = np.array([0,1,0])    
+    # Threshold before we use y_world_hat
+    epsilon = 0.1 * np.pi/180.0 # degrees in radians 
+    phi = np.arccos( (x_hat_d.dot(z_world_hat)) / (np.linalg.norm(x_hat_d)*np.linalg.norm(z_world_hat)) )
+
+    z_hat_o = z_world_hat
+    if (phi <= epsilon):
+        z_hat_o = y_world_hat
 
     z_hat_d = mr.Normalize(z_hat_o - (z_hat_o.dot(x_hat_d)*x_hat_d))
     y_hat_d = np.cross(z_hat_d, x_hat_d)
@@ -54,6 +156,8 @@ def calc_desired_orientation(x_gaze_loc, p_cur, Q_cur, orientation_type='head'):
 #    print R_desired
 
     return R_desired
+
+
 
 # Calculate error between current configuration and desired configuration
 def orientation_error(x_gaze_loc, Q, orientation_type='head'):
@@ -247,7 +351,8 @@ class Trajectory_Manager():
         p_des_cur = x_i + e_hat*L*(self.min_jerk_time_scaling(t, DT))
 
         # Calculate current orientation error
-        d_theta_error, angular_vel_hat = orientation_error(p_des_cur, Q_cur)
+        #d_theta_error, angular_vel_hat = orientation_error(p_des_cur, Q_cur)
+        d_theta_error, angular_vel_hat = smooth_orientation_error(p_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT)) 
         dx = d_theta_error * angular_vel_hat
         dx = np.concatenate( (dx, np.array([0,0,0])),  axis=1)
         dq = calculate_dQ(J, dx)
@@ -311,8 +416,8 @@ class Trajectory_Manager():
         p_des_cur_le = x_i_left_eye + e_hat_le*L_le*(self.min_jerk_time_scaling(t, DT))        
 
         # Calculate current orientation error for each eye
-        d_theta_error_re, angular_vel_hat_re = orientation_error(p_des_cur_re, Q_cur, 'right_eye')
-        d_theta_error_le, angular_vel_hat_le = orientation_error(p_des_cur_le, Q_cur, 'left_eye')        
+        d_theta_error_re, angular_vel_hat_re = smooth_orientation_error(p_des_cur_re, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'right_eye') 
+        d_theta_error_le, angular_vel_hat_le = smooth_orientation_error(p_des_cur_le, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'left_eye')         
         dx_re = d_theta_error_re * angular_vel_hat_re
         dx_le = d_theta_error_le * angular_vel_hat_le
 
