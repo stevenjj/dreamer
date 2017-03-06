@@ -29,7 +29,8 @@ EYE_FOCUS = 107
 GO_TO_POINT_HEAD_ONLY = 106
 GO_TO_POINT_EYES_ONLY = 108
 GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY = 109
-GO_TO_POINT_B = 110
+GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY = 110
+GO_TO_POINT_B = 111
 
 # High Level Behavior List --- seems like this is another high level task list
 DO_NOTHING = 200
@@ -44,7 +45,7 @@ class Dreamer_Head():
     command_once = False
     def __init__(self):
         self.behaviors = []
-        self.tasks = [GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY, GO_TO_POINT_HEAD_ONLY, EYE_FOCUS, NO_TASK, GAZE_AVERSION, TASK_HIERARCHY, CIRCULAR_HEAD_TRAJ, TRACK_PERSON, TRACK_MARKER]
+        self.tasks = [GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY, GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, GO_TO_POINT_HEAD_ONLY, EYE_FOCUS, NO_TASK, GAZE_AVERSION, TASK_HIERARCHY, CIRCULAR_HEAD_TRAJ, TRACK_PERSON, TRACK_MARKER]
         self.states = [IDLE, GO_TO_POINT, FOLLOWING_TRAJECTORY, FINISHED_TRAJECTORY, INTERRUPTED]
 
         self.current_state = IDLE
@@ -72,7 +73,7 @@ class Dreamer_Head():
         self.task_params = []
 
         # Behavior Manager
-        self.behavior_list = [MAKE_SQUARE_WITH_EYES_ONLY, MAKE_SQUARE, DO_NOTHING]
+        self.behavior_list =[MAKE_SQUARE_WITH_HEAD_ONLY, MAKE_SQUARE_WITH_EYES_ONLY, MAKE_SQUARE, DO_NOTHING] #[MAKE_SQUARE_WITH_EYES_ONLY, MAKE_SQUARE, DO_NOTHING]
         self.current_behavior_index = 0
         self.behavior_commanded = False
         self.behavior_task = self.behavior_list[0]
@@ -165,6 +166,19 @@ class Dreamer_Head():
 
             self.task_commanded = True
 
+        # TASK GO TO POINT Using Head Only
+        elif ((self.current_task == GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY) and (self.task_commanded == False)):
+            self.current_state = GO_TO_POINT
+            start_time = self.ROS_current_time
+
+            head_xyz_gaze_loc = self.task_params[self.current_task_index][0]
+            eye_xyz_gaze_loc = self.task_params[self.current_task_index][1]            
+            movement_duration = self.task_params[self.current_task_index][2]
+
+            self.traj_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration)  
+
+            self.task_commanded = True
+
 
         elif ((self.current_task == EYE_FOCUS) and (self.task_commanded == False)):
             self.current_state = GO_TO_POINT
@@ -227,6 +241,37 @@ class Dreamer_Head():
             self.behavior_commanded = True
             print "HELLO ONCE!"
 
+        if ((self.behavior_task == MAKE_SQUARE_WITH_HEAD_ONLY) and self.behavior_commanded == False):
+            #task_list = [GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, NO_TASK]
+            #task_list = [GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, NO_TASK]            
+            task_list = [GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, 
+                         GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, 
+                         GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, 
+                         GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, 
+                         GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, 
+                         GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, 
+                         NO_TASK]            
+
+            task_params = []
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.25, self.kinematics.l1+0.05]),  np.array([0.8, 0.0, self.kinematics.l1]),       1) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.25, self.kinematics.l1-0.1]),   np.array([0.8, 0.0, self.kinematics.l1]),     1) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, -0.25, self.kinematics.l1-0.1]),  np.array([0.8, 0.0, self.kinematics.l1]),     1) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, -0.25, self.kinematics.l1+0.05]), np.array([0.8, 0.0, self.kinematics.l1]),      1) )                       
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.25, self.kinematics.l1+0.05]),  np.array([0.8, 0.0, self.kinematics.l1]),     1) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.25, self.kinematics.l1-0.1]),   np.array([0.8, 0.0, self.kinematics.l1]),      1) )                   
+
+            # Initialize task parameters
+            self.task_list = task_list
+            self.task_params = task_params                      
+
+            self.current_task_index = 0
+            self.task_commanded = False
+            self.current_task = self.task_list[self.current_task_index]            
+
+            self.behavior_commanded = True
+            print "HELLO ONCE!"
+
+
         if ((self.behavior_task == MAKE_SQUARE_WITH_EYES_ONLY) and self.behavior_commanded == False):
             #task_list = [GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, NO_TASK]
             #task_list = [GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, NO_TASK]            
@@ -256,6 +301,7 @@ class Dreamer_Head():
 
             self.behavior_commanded = True
             print "HELLO ONCE!"
+
 
 
         return 
@@ -290,6 +336,11 @@ class Dreamer_Head():
             elif (self.current_task == GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY):
                 print '  Current_Task:', 'GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY'
                 Q_des, command_result = self.traj_manager.fixed_head_eye_trajectory_look_at_point()
+                self.process_task_result(Q_des, command_result)
+
+            elif (self.current_task == GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY):
+                print '  Current_Task:', 'GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY'
+                Q_des, command_result = self.traj_manager.fixed_eye_head_trajectory_look_at_point()
                 self.process_task_result(Q_des, command_result)
 
 
