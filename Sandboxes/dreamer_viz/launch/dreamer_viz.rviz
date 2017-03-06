@@ -8,6 +8,7 @@ Panels:
         - /Status1
         - /Marker1
         - /MarkerArray1
+        - /RobotModel1
         - /RobotModel1/Links1
         - /TF1
         - /TF1/Frames1
@@ -360,22 +361,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.61296
+      Distance: 0.704917
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.256302
-        Y: 0.109096
-        Z: 1.26297
+        X: 0.646283
+        Y: -0.0392241
+        Z: 1.70599
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.270398
+      Pitch: 0.894798
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.0603657
+      Yaw: 0.0635076
     Saved: ~
 Window Geometry:
   Displays:

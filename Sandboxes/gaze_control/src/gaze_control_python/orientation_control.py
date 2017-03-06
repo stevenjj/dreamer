@@ -9,6 +9,8 @@ import head_kinematics as hk
 import dreamer_joint_publisher
 from traj_manager import *
 
+from std_msgs.msg import Float32MultiArray
+
 # State Lists
 IDLE = 0
 GO_TO_POINT = 1
@@ -59,7 +61,7 @@ class Dreamer_Head():
         # ROS Loop details
         # Send control messages at 500hz. 10 messages to send per ROS loop so this node operates at 50Hz
         self.node_rate = 1/(500)
-        self.rate = rospy.Rate(500) 
+        self.rate = rospy.Rate(1000) 
         self.ROS_start_time = rospy.Time.now().to_sec()
         self.ROS_current_time = rospy.Time.now().to_sec()
 
@@ -89,6 +91,9 @@ class Dreamer_Head():
 
         # Initialize desired gaze point location
         self.desired_gaze_point_location = np.array([1.0, 0.0, self.kinematics.l1])
+
+
+        self.focus_length_pub = rospy.Publisher('setArrLength', Float32MultiArray, queue_size=1)
 
         # READ Current Joint Positions
         # Otherwise send HOME command
@@ -253,12 +258,12 @@ class Dreamer_Head():
                          NO_TASK]            
 
             task_params = []
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.25, self.kinematics.l1+0.05]),  np.array([0.8, 0.0, self.kinematics.l1]),       1) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.25, self.kinematics.l1-0.1]),   np.array([0.8, 0.0, self.kinematics.l1]),     1) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, -0.25, self.kinematics.l1-0.1]),  np.array([0.8, 0.0, self.kinematics.l1]),     1) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, -0.25, self.kinematics.l1+0.05]), np.array([0.8, 0.0, self.kinematics.l1]),      1) )                       
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.25, self.kinematics.l1+0.05]),  np.array([0.8, 0.0, self.kinematics.l1]),     1) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.25, self.kinematics.l1-0.1]),   np.array([0.8, 0.0, self.kinematics.l1]),      1) )                   
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.25, self.kinematics.l1+0.05]),  np.array([0.5, 0.0, self.kinematics.l1]),       1) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.25, self.kinematics.l1-0.1]),   np.array([0.5, 0.0, self.kinematics.l1]),     1) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, -0.25, self.kinematics.l1-0.1]),  np.array([0.5, 0.0, self.kinematics.l1]),     1) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, -0.25, self.kinematics.l1+0.05]), np.array([0.5, 0.0, self.kinematics.l1]),      1) )                       
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.25, self.kinematics.l1+0.05]),  np.array([0.5, 0.0, self.kinematics.l1]),     1) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.6, 0.25, self.kinematics.l1-0.1]),   np.array([0.5, 0.0, self.kinematics.l1]),      1) )                   
 
             # Initialize task parameters
             self.task_list = task_list
@@ -348,17 +353,26 @@ class Dreamer_Head():
             print "ERROR Not a valid state" 
 
 
+    def publish_focus_length(self):
+        msg = Float32MultiArray()
+        msg.data.append(self.traj_manager.current_focus_length[self.traj_manager.LE])                
+        msg.data.append(self.traj_manager.current_focus_length[self.traj_manager.RE])
+        msg.data.append(self.traj_manager.current_focus_length[self.traj_manager.H])
+        self.focus_length_pub.publish(msg)
+
     def loop(self):
         while not rospy.is_shutdown():
             print ''
             self.behavior_logic()            
             self.task_logic()
             self.state_logic()          
-            for i in range(0, 10): # 
+            #for i in range(0, 10): # 
                 # send message
-                self.rate.sleep()   #rospy.sleep(1/500.0);    
+                #self.rate.sleep()   #rospy.sleep(1/500.0);    
                 # Will sleep for a total of 0.02 seconds --> 50Hz
             self.joint_publisher.publish_joints()
+            self.publish_focus_length()
+            self.rate.sleep()
             print ''
 
 

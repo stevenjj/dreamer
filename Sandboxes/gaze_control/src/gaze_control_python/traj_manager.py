@@ -248,6 +248,8 @@ class Trajectory_Manager():
         self.focus_point_init = {self.H : 1, self.RE : 1, self.LE : 1 }
         self.trajectory_length = {self.H : 1, self.RE : 1, self.LE : 1 }
 
+        self.current_focus_length = {self.H : 1, self.RE : 1, self.LE : 1 }
+
 
         self.xyz_head_gaze_loc = np.array([0,0,0])
         self.xyz_eye_gaze_loc = np.array([0,0,0])
@@ -614,7 +616,7 @@ class Trajectory_Manager():
  
         dx = np.concatenate( (dx_re, dx_le),  axis=1)
  
-        dq = pinv_J2_N1.dot(dx -J2_pinv_J1_x1dot)
+        dq = N1.dot(pinv_J2_N1.dot(dx -J2_pinv_J1_x1dot))
 
         dq = np.dot(N1, dq)
         #dq = calculate_dQ(J2, dx)
@@ -750,19 +752,45 @@ class Trajectory_Manager():
         
         dq2 = calculate_dQ(J_head, dx2)
 
-        #dq2 = pinv_J2_N1.dot(dx2 -J2_pinv_J1_x1dot)
-        
+        dq2 = N1.dot(pinv_J2_N1.dot(dx2 -J2_pinv_J1_x1dot))
+
         #print N1
 
         dq2 = np.dot(N1, dq2)
+        
 
         #Q_des = Q_cur + dq2
         Q_des = Q_des + dq2
+
+
+        J2_bar = np.linalg.pinv(J2)        
+        pJ2_J2 = J1_bar.dot(J2)
+
+        # print np.shape(np.linalg.pinv(J1.T))
+        # print np.shape(np.linalg.pinv(J1.T).dot(J1.T))
+        # print np.shape(J1_bar), np.shape(pJ1_J1)
+
+        I_2 = np.eye(np.shape(pJ2_J2)[0])
+        N2 = I_2 - pJ2_J2
+
+        #print N1.dot(N2)
+        print dt
+
+        Q_des = Q_des + N1.dot(N2.dot(-0.01*(Q_des-Q_cur)/dt))
 
         self.prev_traj_time = t
         # Loop Done
 
 
+        R_cur_head, p_cur_head = self.kinematics.get_6D_Head_Position(Q_cur)
+        R_cur, p_cur_right_eye = self.kinematics.get_6D_Right_Eye_Position(Q_cur)
+        R_cur, p_cur_left_eye = self.kinematics.get_6D_Left_Eye_Position(Q_cur)
+
+
+        self.current_focus_length[self.H] =   np.linalg.norm(p_cur_head - p_head_des_cur)  
+        self.current_focus_length[self.RE] =  np.linalg.norm(p_cur_right_eye - p_des_cur_re)         
+        self.current_focus_length[self.LE] =  np.linalg.norm(p_cur_left_eye -p_des_cur_le)
+ 
 
         # Prepare result of command
         result = False
