@@ -15,7 +15,7 @@ if __name__ == '__main__':
     trans = (0, 0, 0)
     rot = (0, 0, 0, 0)     
 
-    rate = rospy.Rate(10)
+    rate = rospy.Rate(200)
     while not rospy.is_shutdown():
         try:
             (trans,rot) = listener.lookupTransform('/world', '/lower_neck_pitch_link', rospy.Time(0))        
@@ -32,4 +32,6 @@ if __name__ == '__main__':
                          rospy.Time.now(),
                          "/world",
                          "/my_world_neck")
+
+
         rate.sleep()
