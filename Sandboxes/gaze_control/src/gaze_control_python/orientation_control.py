@@ -9,6 +9,8 @@ import head_kinematics as hk
 import dreamer_joint_publisher
 from traj_manager import *
 
+from detected_people_manager import *
+
 from std_msgs.msg import Float32MultiArray
 
 # State Lists
@@ -95,6 +97,7 @@ class Dreamer_Head():
         self.desired_gaze_point_location = np.array([1.0, 0.0, self.kinematics.l1])
 
 
+        self.people_manager = Detected_People_Manager()
         self.track_marker_pos = np.array([1.0, 0, 0]) #x = 0, y = 0, z =0
         self.track_human_pos = np.array([1.0, 0, 0]) #x = 0, y = 0, z =0        
 
