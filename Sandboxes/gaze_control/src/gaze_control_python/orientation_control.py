@@ -95,6 +95,10 @@ class Dreamer_Head():
         self.desired_gaze_point_location = np.array([1.0, 0.0, self.kinematics.l1])
 
 
+        self.track_marker_pos = np.array([1.0, 0, 0]) #x = 0, y = 0, z =0
+        self.track_human_pos = np.array([1.0, 0, 0]) #x = 0, y = 0, z =0        
+
+
         self.focus_length_pub = rospy.Publisher('setArrLength', Float32MultiArray, queue_size=1)
 
         # READ Current Joint Positions
@@ -102,6 +106,10 @@ class Dreamer_Head():
 
     def callback_change_state(self, string):
         #specifying subscriber callback via callback class_instance.method_name
+        return 
+
+    def callback_marker_tracker(self, string):
+        # change behavior to track marker
         return 
 
     def update_head_joints(self, head_joint_list):
@@ -194,9 +202,7 @@ class Dreamer_Head():
             # SPECIFY TRAJ_MANAGER COMMAND self.traj_manager.specify_gaze_point(start_time, Q_cur, xyz_gaze_loc, movement_duration)  
             self.task_commanded = True
 
-
-            
-
+ 
 
 # GO_TO_POINT_HEAD_ONLY
 # GO_TO_POINT_EYES_ONLY
