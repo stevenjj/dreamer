@@ -439,6 +439,7 @@ class Dreamer_Head():
     def loop(self):
         while not rospy.is_shutdown():
             print ''
+            self.people_manager.loop()
             self.behavior_logic()            
             self.task_logic()
             self.state_logic()          

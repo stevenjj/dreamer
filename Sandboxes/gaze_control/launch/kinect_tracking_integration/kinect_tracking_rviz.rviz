@@ -101,7 +101,7 @@ Visualization Manager:
       Marker Topic: /visualization_marker
       Name: AR Markers
       Namespaces:
-        basic_shapes: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Axes
@@ -116,12 +116,6 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        ar_marker_0:
-          Value: false
-        ar_marker_1:
-          Value: false
-        ar_marker_3:
-          Value: false
         camera_depth_frame:
           Value: false
         camera_depth_optical_frame:
@@ -133,7 +127,7 @@ Visualization Manager:
         camera_rgb_optical_frame:
           Value: true
         dreamer_marker_frame:
-          Value: false
+          Value: true
         eye_pitch_link:
           Value: false
         l_gripper_l_finger_link:
@@ -216,8 +210,6 @@ Visualization Manager:
           Value: false
         right_wrist_yaw_link:
           Value: false
-        test_tracker_marker_tf:
-          Value: true
         torso_lower_pitch_link:
           Value: false
         torso_upper_pitch_link:
@@ -244,16 +236,9 @@ Visualization Manager:
               {}
           camera_rgb_frame:
             camera_rgb_optical_frame:
-              ar_marker_0:
-                {}
-              ar_marker_1:
-                {}
-              ar_marker_3:
-                {}
+              {}
             dreamer_marker_frame:
               my_world_neck:
-                test_tracker_marker_tf:
-                  {}
                 world:
                   panplate_link:
                     torso_yaw_link:
@@ -637,22 +622,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 4.12883
+      Distance: 3.40385
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.17539
-        Y: 0.582157
-        Z: 0.0392647
+        X: 1.0583
+        Y: 0.230001
+        Z: 0.0822115
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.394796
+      Pitch: 0.649796
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.35223
+      Yaw: 1.37223
     Saved: ~
 Window Geometry:
   Displays:
