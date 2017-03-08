@@ -149,7 +149,7 @@ class Dreamer_Head():
     def task_logic(self):
         self.ROS_current_time = rospy.Time.now().to_sec()
         relative_time =  self.ROS_current_time - self.ROS_start_time
-        #print 'ROS time (sec): ', relative_time            
+        print 'ROS time (sec): ', relative_time            
 
 
         # TASK GO TO POINT Using Eyes Only
@@ -390,7 +390,11 @@ class Dreamer_Head():
             #task_list = [GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, NO_TASK]            
 
             if (len(self.people_manager.list_of_people) > 0):
-                self.track_human_pos = self.people_manager.list_of_people[0].eye_position
+                
+
+                self.track_human_pos = self.identify_closest_person_from_gaze_focus()#self.people_manager.list_of_people[0].eye_position
+
+
             else:
                 self.track_human_pos = np.array([1,0,self.kinematics.l1])
 
@@ -403,8 +407,8 @@ class Dreamer_Head():
             duration = 1.0
 
             # angle_between_eyes_and_head:
-            eye_foc_vec = np.array([self.track_human_pos[0], self.track_human_pos[1], 0])
-            head_foc_vec = np.array([self.track_human_pos_head[0], self.track_human_pos_head[1], 0])
+            eye_foc_vec = self.track_human_pos# np.array([self.track_human_pos[0], self.track_human_pos[1], 0])
+            head_foc_vec = self.track_human_pos_head #np.array([self.track_human_pos_head[0], self.track_human_pos_head[1], 0])
             dp = eye_foc_vec.dot(head_foc_vec)
             eye_foc_vec_norm = np.linalg.norm( eye_foc_vec )
             head_foc_vec_norm = np.linalg.norm( head_foc_vec )
@@ -448,11 +452,30 @@ class Dreamer_Head():
 
         return 
 
+    def identify_closest_person_from_gaze_focus(self):
+        #R_head, p_head = self.kinematics.get_6D_Head_Position(self.kinematics.Jlist)
+        #x_head_hat = np.array(R_head)[:,0]        
 
+        #h_fl = self.traj_manager.current_focus_length[self.traj_manager.H]
+
+        #head_focus_vec = x_head_hat*h_fl
+        #head_focus_vec = self.track_human_pos_head
+        head_focus_vec = np.array([0,0,0])
+
+        min_dist = 1000.0
+        person_index = 0
+        for i in range(0, len(self.people_manager.list_of_people)):
+            person_eye_pos = self.people_manager.list_of_people[i].eye_position
+            distance = np.linalg.norm( head_focus_vec - person_eye_pos )
+            if (distance) < min_dist:
+                person_index = i
+                min_dist = distance
+
+        return self.people_manager.list_of_people[person_index].eye_position               
 
     def track_person_condition(self):
         (x,y,z) = self.track_human_pos[0], self.track_human_pos[1], self.track_human_pos[2] 
-        if (((z < -0.2) or z > 0.5) and x < 0.2):
+        if ( ((z < -0.2) or (z > 0.5)) and ((x < 0.2) or (x > 3)) ):
             return False
 
         x_hat = np.array([1,0,0])
@@ -474,7 +497,7 @@ class Dreamer_Head():
         x_left_eye_hat = np.array(R_left_eye)[:,0]
 
         re_fl = self.traj_manager.current_focus_length[self.traj_manager.RE]
-        le_fl = self.traj_manager.current_focus_length[self.traj_manager.RE]        
+        le_fl = self.traj_manager.current_focus_length[self.traj_manager.LE]        
 
         thresh = 0.2
 
