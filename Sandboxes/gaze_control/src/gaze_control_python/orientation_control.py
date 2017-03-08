@@ -421,12 +421,15 @@ class Dreamer_Head():
             if ((np.linalg.norm(self.track_human_pos - self.track_prev_human_pos) < 0.3)) and (phi_eye_head_deg < (12.0)):
                 duration = 0.15
                 # if eyes are not too far apart. Use head as main priority
-                task_list = [GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY, NO_TASK] 
+                if(self.are_eyes_focused()):
+                    task_list = [GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY, NO_TASK] 
+                else:
+                    task_list = [GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, NO_TASK]                     
 
                 task_params.append( self.set_prioritized_go_to_point_params( self.track_human_pos_head, self.track_human_pos,  duration) )            
             else:
                 self.track_human_pos_head = self.track_human_pos
-                duration = 0.35
+                duration = 0.3
                 task_list = [GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, NO_TASK] 
                 task_params.append( self.set_prioritized_go_to_point_params( self.track_human_pos, self.track_human_pos,  duration) )            
 
@@ -449,7 +452,7 @@ class Dreamer_Head():
 
     def track_person_condition(self):
         (x,y,z) = self.track_human_pos[0], self.track_human_pos[1], self.track_human_pos[2] 
-        if ((z < -0.2) or z > 0.5):
+        if (((z < -0.2) or z > 0.5) and x < 0.2):
             return False
 
         x_hat = np.array([1,0,0])
@@ -463,6 +466,24 @@ class Dreamer_Head():
             return True
         else:
             return False
+
+    def are_eyes_focused(self):
+        R_right_eye, p_right_eye = self.kinematics.get_6D_Right_Eye_Position(self.kinematics.Jlist)
+        R_left_eye, p_left_eye = self.kinematics.get_6D_Left_Eye_Position(self.kinematics.Jlist)
+        x_right_eye_hat = np.array(R_right_eye)[:,0]        
+        x_left_eye_hat = np.array(R_left_eye)[:,0]
+
+        re_fl = self.traj_manager.current_focus_length[self.traj_manager.RE]
+        le_fl = self.traj_manager.current_focus_length[self.traj_manager.RE]        
+
+        thresh = 0.2
+
+        if(np.linalg.norm(x_right_eye_hat*re_fl - x_left_eye_hat*le_fl)) < thresh:
+            return True
+        else:
+            return False
+
+
 
 
     def process_task_result(self, Q_des, command_result):
