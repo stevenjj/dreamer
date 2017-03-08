@@ -9,14 +9,39 @@ import tf
 from visualization_msgs.msg import MarkerArray
 from geometry_msgs.msg import PoseStamped
 
+DIST_TO_EYE = 0.1
+
 class Person():
-    def __init__(self, xyz_pos):
+    def __init__(self, xyz_pos, eye_offset=np.array([0,0,0])):
         self.position = xyz_pos # np.array([x, y, z])
+        self.eye_position = xyz_pos + eye_offset - np.array([0,0, DIST_TO_EYE])
         self.last_time_updated = rospy.Time.now().to_sec()
 
-    def update(self, xyz_pos):
-        self.position = xyz_pos
+        self.average_window = 5
+        self.window_index = 0
+
+        self.window_center_positions = np.array([self.position for i in range(self.average_window)])
+        self.window_eye_positions = np.array([self.eye_position for i in range(self.average_window)])
+
+    def update(self, xyz_pos, eye_offset=np.array([0,0,0])):
         self.last_time_updated = rospy.Time.now().to_sec()        
+        self.position = xyz_pos
+        self.eye_position = xyz_pos + eye_offset - np.array([0,0, DIST_TO_EYE])
+
+        # Identify current window index to update
+        # Make sure to reset the window index
+        if (self.window_index % self.average_window == 0):
+            self.window_index
+        self.window_index = (self.window_index + 1) % self.average_window
+
+        # Update window entry 
+        self.window_center_positions[self.window_index] = self.position
+        self.window_eye_positions[self.window_index] = self.eye_position
+
+        # Update filtered positions
+        self.position = np.average(self.window_center_positions, axis=0)
+        self.eye_position = np.average(self.window_eye_positions, axis=0)
+
 
 
 class Detected_People_Manager():
@@ -35,7 +60,7 @@ class Detected_People_Manager():
         self.last_time_people_detected = rospy.Time.now().to_sec() 
         temporary_list_of_people_markers = markerArray.markers
         num_detected_people = len(temporary_list_of_people_markers)
-        print 'Number of Detected People:', num_detected_people
+        #print 'Number of Detected People:', num_detected_people
 
         if not(num_detected_people > 0):
             return
@@ -129,7 +154,7 @@ class Detected_People_Manager():
                     person_position_in_belief = self.list_of_people[i].position
 
                     distance = np.linalg.norm((person_position_in_belief - person_xyz_pos))
-                    print 'Distance between proposed and belief', distance
+                    #print 'Distance between proposed and belief', distance
 
                     if distance < min_distance:
                         min_distance = distance
@@ -145,8 +170,9 @@ class Detected_People_Manager():
             # Add this to the dictionary
             proposed_id_to_stored_person_id[index_of_proposed_person] = i
             # Update position of the person in our belief
-            self.list_of_people[i].update(new_xyz_pos)
-            print 'updated!'
+            eye_offset = np.array([0,0,proposed_list_of_people_markers[index_of_proposed_person].scale.y/2.0])
+            self.list_of_people[i].update(new_xyz_pos, eye_offset)
+            #print 'updated!'
 
         # Go through the proposed list of people again and see if they have been assigned.
         for i in range(0, len(proposed_list_of_people_markers)):
@@ -154,7 +180,8 @@ class Detected_People_Manager():
             if not(i in proposed_id_to_stored_person_id):
                 person_marker = proposed_list_of_people_markers[i]
                 person_xyz_pos = np.array([person_marker.pose.position.x, person_marker.pose.position.y, person_marker.pose.position.z]) 
-                new_person = Person(person_xyz_pos)
+                eye_offset = np.array([0,0,proposed_list_of_people_markers[i].scale.y/2.0])
+                new_person = Person(person_xyz_pos, eye_offset)
                 self.list_of_people.append(new_person)
 
 
@@ -162,8 +189,8 @@ class Detected_People_Manager():
 
     def loop(self):
         current_time = rospy.Time.now().to_sec()
-        print 'Last time people were detected', current_time - self.last_time_people_detected 
-        print '     Num of people ', len(self.list_of_people)
+        #print 'Last time people were detected', current_time - self.last_time_people_detected 
+        #print '     Num of people ', len(self.list_of_people)
 
         if ((current_time - self.last_time_people_detected) > self.time_detection_threshold):
             self.list_of_people = [] # Remove all people in our belief

@@ -98,8 +98,11 @@ class Dreamer_Head():
 
 
         self.people_manager = Detected_People_Manager()
-        self.track_marker_pos = np.array([1.0, 0, 0]) #x = 0, y = 0, z =0
-        self.track_human_pos = np.array([1.0, 0, 0]) #x = 0, y = 0, z =0        
+        self.track_marker_pos = np.array([1.0, 0, 0]) #x = 1, y = 0, z =0
+        
+        self.track_human_pos = np.array([1.0, 0, self.kinematics.l1]) #x = 2, y = 0, z =0        
+        self.track_prev_human_pos = np.array([1.0, 0, self.kinematics.l1])
+        self.track_human_pos_head = np.array([1.0, 0, self.kinematics.l1])
 
 
         self.focus_length_pub = rospy.Publisher('setArrLength', Float32MultiArray, queue_size=1)
@@ -146,7 +149,7 @@ class Dreamer_Head():
     def task_logic(self):
         self.ROS_current_time = rospy.Time.now().to_sec()
         relative_time =  self.ROS_current_time - self.ROS_start_time
-        print 'ROS time (sec): ', relative_time            
+        #print 'ROS time (sec): ', relative_time            
 
 
         # TASK GO TO POINT Using Eyes Only
@@ -382,27 +385,52 @@ class Dreamer_Head():
             self.behavior_commanded = True            
 
         elif ((self.behavior_task == TRACK_PERSON) and self.behavior_commanded == False) :
-            print ''
             print 'behavior is to track person'
-            print' '
             #task_list = [GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, NO_TASK]
             #task_list = [GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, NO_TASK]            
-            task_list = [GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY, NO_TASK] 
-
-            task_params = []
 
             if (len(self.people_manager.list_of_people) > 0):
-                self.track_human_pos = self.people_manager.list_of_people[0].position
-                print self.track_human_pos
+                self.track_human_pos = self.people_manager.list_of_people[0].eye_position
             else:
-                self.track_human_pos = np.array([1,0,0])
+                self.track_human_pos = np.array([1,0,self.kinematics.l1])
 
             if (self.track_person_condition() == False):
                 return
 
-            print 'HELLO!!!!????'
+            task_list = []
+            task_params = []
 
-            task_params.append( self.set_prioritized_go_to_point_params( self.track_human_pos, self.track_human_pos,  0.25) )            
+            duration = 1.0
+
+            # angle_between_eyes_and_head:
+            eye_foc_vec = np.array([self.track_human_pos[0], self.track_human_pos[1], 0])
+            head_foc_vec = np.array([self.track_human_pos_head[0], self.track_human_pos_head[1], 0])
+            dp = eye_foc_vec.dot(head_foc_vec)
+            eye_foc_vec_norm = np.linalg.norm( eye_foc_vec )
+            head_foc_vec_norm = np.linalg.norm( head_foc_vec )
+            phi_eye_head = np.arccos(eye_foc_vec.dot(head_foc_vec) / eye_foc_vec_norm / head_foc_vec_norm)
+
+            phi_eye_head_deg = phi_eye_head*180.0/np.pi
+
+
+            print 'EYE FOCUS:', eye_foc_vec
+            print 'HEAD_FOCUS:', head_foc_vec
+            print '         Angle between Head and EYE', phi_eye_head_deg
+
+
+            if ((np.linalg.norm(self.track_human_pos - self.track_prev_human_pos) < 0.3)) and (phi_eye_head_deg < (12.0)):
+                duration = 0.15
+                # if eyes are not too far apart. Use head as main priority
+                task_list = [GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY, NO_TASK] 
+
+                task_params.append( self.set_prioritized_go_to_point_params( self.track_human_pos_head, self.track_human_pos,  duration) )            
+            else:
+                self.track_human_pos_head = self.track_human_pos
+                duration = 0.35
+                task_list = [GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, NO_TASK] 
+                task_params.append( self.set_prioritized_go_to_point_params( self.track_human_pos, self.track_human_pos,  duration) )            
+
+
 
             # Initialize task parameters
             self.task_list = task_list
@@ -417,14 +445,19 @@ class Dreamer_Head():
 
         return 
 
+
+
     def track_person_condition(self):
+        (x,y,z) = self.track_human_pos[0], self.track_human_pos[1], self.track_human_pos[2] 
+        if ((z < -0.2) or z > 0.5):
+            return False
+
         x_hat = np.array([1,0,0])
         dp = (self.track_human_pos.dot(np.array([1,0,0])))
         x_hat_norm = np.linalg.norm( x_hat )
         xyz_person_norm = np.linalg.norm( self.track_human_pos )
 
         phi = np.arccos(x_hat.dot(self.track_human_pos) / xyz_person_norm / x_hat_norm)
-
 
         if ((dp > 0) and (phi < (np.pi/4.0))):
             return True
@@ -439,6 +472,7 @@ class Dreamer_Head():
             self.task_commanded = False
             self.next_task()
             if (self.behavior_task == TRACK_PERSON):
+                self.track_prev_human_pos = self.track_human_pos 
                 self.behavior_commanded = False
 
     def state_logic(self):
@@ -449,7 +483,7 @@ class Dreamer_Head():
                 print '  Current Task Index:', self.current_task_index
 
         elif (self.current_state == GO_TO_POINT):
-            print '  STATE:', 'GO_TO_POINT'
+            #print '  STATE:', 'GO_TO_POINT'
 
             if (self.current_task == GO_TO_POINT_EYES_ONLY):
                 print '  Current_Task:', 'GO_TO_POINT_EYES_ONLY'
@@ -462,12 +496,12 @@ class Dreamer_Head():
                 self.process_task_result(Q_des, command_result)
 
             elif (self.current_task == GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY):
-                print '  Current_Task:', 'GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY'
+                #print '  Current_Task:', 'GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY'
                 Q_des, command_result = self.traj_manager.fixed_head_eye_trajectory_look_at_point()
                 self.process_task_result(Q_des, command_result)
 
             elif (self.current_task == GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY):
-                print '  Current_Task:', 'GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY'
+                #print '  Current_Task:', 'GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY'
                 Q_des, command_result = self.traj_manager.fixed_eye_head_trajectory_look_at_point()
                 self.process_task_result(Q_des, command_result)
 
@@ -488,7 +522,6 @@ class Dreamer_Head():
 
     def loop(self):
         while not rospy.is_shutdown():
-            print ''
             self.people_manager.loop()
             self.behavior_logic()            
             self.task_logic()
@@ -500,7 +533,6 @@ class Dreamer_Head():
             self.joint_publisher.publish_joints()
             self.publish_focus_length()
             self.rate.sleep()
-            print ''
 
 
 if __name__ == '__main__':
