@@ -6,15 +6,28 @@
 
 from UART_com import *
 
-des_joint_num = 3
+des_joint_num = 0
 joint_num = bound_joint_num(des_joint_num)
 
-des_degs = 2
+des_degs = 0
 des_rads = degs_to_rads(des_degs)
 des_enc_cmd = joint_cmd_to_enc_cmd(joint_num, des_rads)
 
-register = joint_num
-register_value = des_enc_cmd
+# register = joint_num
+# register_value = des_enc_cmd
+
+
+
+
+register = UPDATE_POSITION_REGISTER_ADDRESS
+# register = RUN_PROGRAM_REGSITER_ADDRESS
+# register = MOVE_LENGTH_REGISTER_ADDRESS
+
+
+# register_value = REMOTE_CONTROL_PROGRAM
+# register_value = RANDOM_GAZE_PROGRAM
+register_value = 0#550
+
 
 
 # ----- MAIN MESSAGING -------#
@@ -30,7 +43,9 @@ final_cmd = bit_31_cmd + parity # finalize command to form 32 bits represented a
 binary_form = final_cmd
 hex_form = hex(int(final_cmd, 2))
 integer_form = int(final_cmd, 2)
-msg_to_send = str(integer_form) + "\r" # message to send is the integer value.
+# msg_to_send = str(integer_form) + "\r" # message to send is the integer value.
+msg_to_send = create_binary_msg(register,register_value)
+
 
 
 #----------- DEBUG STATEMENTS ---------------#
@@ -68,3 +83,5 @@ print '         formatted:        ', binary_form[0:7], binary_form[7:31], binary
 print '      In Hex:              ', hex_form
 print '      In Base-10 Integer:  ', integer_form
 print '      Serial String Command:', msg_to_send
+
+
