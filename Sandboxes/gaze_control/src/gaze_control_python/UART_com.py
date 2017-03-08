@@ -4,7 +4,8 @@ import serial
 import time
 from collections import deque
 import rospy
-from gaze_control.srv import HeadJointCmd
+from gaze_control.srv import HeadJointCmd, HeadJointCmdResponse
+from gaze_control.srv import RunProgram, RunProgramResponse
 
 
 #-------- THREADSAFE LOCKING --------#
@@ -29,7 +30,7 @@ REMOTE_CONTROL_PROGRAM = 2
 
 CTRL_FREQ = 550. # Embedded controller loop rate in Hz
 NUM_DOFS = 12
-CONFIRM_TIMEOUT = 10./CTRL_FREQ  # Allow up to 10 control loops to confirm a message before timeout
+CONFIRM_TIMEOUT = 200./CTRL_FREQ  # Allow up to 10 control loops to confirm a message before timeout
 
 
 # -------- CONFIG FILE from Microcontroller --------#
@@ -81,17 +82,54 @@ def joint_cmd_to_enc_cmd(joint_num, des_joint_rads):
 
 
 
-# -------- MESSAGE FUNCTIONS --------#
-def init_serial_port():
-    #-------- INIT SERIAL PORT -------#
+#-------- INIT SERIAL PORT -------#
+
+def init_serial_port_name(port_name):
     global ser
-    ser = serial.Serial('/dev/ttyACM0', 115200, parity='N') # Linux use ls /dev/tty*
+    ser = serial.Serial(port_name, 115200, parity='N') # Linux use ls /dev/tty*
     # ser = serial.Serial('/dev/tty.usbmodem0E21EE91', 115200, parity='N') # Mac use ls /dev/tty.*
     # ser = serial.Serial('COM14', 115200, parity='N') # Windows
 
-    ser.timeout = 1./(CTRL_FREQ*2)  # no idea if this is going to work
-    # 0.0009 s
+    ser.timeout = CONFIRM_TIMEOUT
 
+
+
+
+def init_serial_port():
+    ser_port_initialized = False
+
+    errorlist = []
+    if not ser_port_initialized:            # try ACM0
+        port_name = '/dev/ttyACM0'
+        try:
+            init_serial_port_name(port_name)
+        except serial.SerialException as e:
+            errorlist.append("Could not open serial port: {}".format(e))
+            #rospy.sleep(0.1)
+        else:
+            print 'Serial port initialized: ' + port_name
+            ser_port_initialized = True
+
+
+    if not ser_port_initialized:            # try ACM1
+        port_name = '/dev/ttyACM1'
+        try:
+             init_serial_port_name(port_name)
+        except serial.SerialException as e:
+            errorlist.append("Could not open serial port: {}".format(e))
+        else:
+            print 'Serial port initialized: ' + port_name
+            ser_port_initialized = True
+
+    if not ser_port_initialized:
+        for e in errorlist:
+            rospy.logerr(e)                 # only print error message if neither name works
+        exit()
+
+
+
+
+# -------- MESSAGE FUNCTIONS --------#
 
 def create_binary_msg(register, register_value):
     # ------ FORMAT MESSAGE -------#
@@ -105,40 +143,37 @@ def create_binary_msg(register, register_value):
     # 0000 000 | 0 0000 0000 0000 0000 0000 000 |   0
 
     binary_form = final_cmd
-    hex_form = hex(int(final_cmd, 2))
+    # hex_form = hex(int(final_cmd, 2))
     integer_form = int(final_cmd, 2)
     msg_to_send = str(integer_form) + "\r" # message to send is the integer value.
     return msg_to_send
 
 
 
+
+
 def send_and_confirm(msg_to_send):
-    global ser, empty_msg_count
+    global ser, msg_deq
+    
     start_time = time.time()
-    elapsed_time = 0.
-    msg_recieved = ''
 
-    while (elapsed_time < CONFIRM_TIMEOUT) and (msg_to_send.strip() != msg_recieved.strip()) :
-        ser.write(msg_to_send)
-        
-        msg_recieved = ser.readline()
-        elapsed_time = time.time() - start_time
+    ser.write(msg_to_send)
+    msg_recieved = ser.readline()
 
-        while msg_recieved == serial.to_bytes([]) :
-            # empty_msg_count += 1
-            msg_recieved = ser.readline()
-            elapsed_time = time.time() - start_time
+    elapsed_time = time.time() - start_time
 
-
-        # print 'empty_msg_count = ' + str(empty_msg_count)
-        # print 'msg_sent = ' + str(msg_to_send)
-        # print 'msg_recd = ' + str(msg_recieved)
 
     if msg_to_send.strip() != msg_recieved.strip():
+        msg_deq.append( 'WARNING: Unexpected message recieved: ' + str(msg_recieved) + ', wait_time = ' + str(elapsed_time))
         return False
     else:
+        msg_deq.append( 'Message sent and confirmed: ' + str(msg_recieved.strip()) + ', wait_time = ' + str(elapsed_time) )
         return True
 
+
+def clear_serial_buffer():
+    global ser
+    ser.reset_output_buffer()
 
 
 def send_run_program_msg(program_num):
@@ -185,26 +220,32 @@ def send_move_length_msg(num_ctrl_cycles):  # ctrl loop is 550 Hz => 0.0018s
     return send_and_confirm(msg_to_send)
 
 
-def check_for_emb_signal():
-    global ser
+
+
+
+
+
+
+
+def check_for_mailbox_free_signal():
+    global ser, msg_deq
+
     start_time = time.time()
-    elapsed_time = 0.
-    msg_recieved = serial.to_bytes([])
+    msg_recieved = (ser.readline()).strip()
+    elapsed_time = time.time() - start_time
 
-    while elapsed_time < CONFIRM_TIMEOUT and msg_recieved == serial.to_bytes([]):
-        msg_recieved = (ser.readline()).rstrip()
-        elapsed_time = time.time() - start_time
-
-    if msg_recieved == 'R':
+    if msg_recieved == 'G':
+        msg_deq.append('Correct signal recieved: ' +str(msg_recieved) + ', wait_time = ' + str(elapsed_time))
         return True
-    elif msg_recieved == 'RF':
-        print 'WARNING: speed limit exceeded!'
+    elif msg_recieved == 'GG':
+        msg_deq.append('WARNING: speed limit exceeded!'+ str(msg_recieved) + ', wait_time = ' + str(elapsed_time))
         return True
-    elif msg_recieved != serial.to_bytes([]) :
-        print ("WARNING: unexpected message:" + msg_recieved)
-    else:
+    elif msg_recieved != '' :
+        msg_deq.append( "WARNING: unexpected message recieved: " + str(msg_recieved) + ', wait_time = ' + str(elapsed_time) )
         return False
-
+    else:
+        msg_deq.append( 'Timeout, wait_time = ' + str(elapsed_time))
+        return False
 
 
 def handle_ctrl_deq_append(req):
@@ -213,20 +254,56 @@ def handle_ctrl_deq_append(req):
     for joint_num, joint_cmd_rad in zip( req.joint_mapping.data , req.q_cmd_radians.data ):
         new_cmd[joint_num] = joint_cmd_rad
 
-    ctrl_tup = ( req.numCtrlSteps , new_cmd )
+    ctrl_tup = ( req.numCtrlSteps.data , new_cmd )
     
     ctrl_deq.append( ctrl_tup )   # threadsafe
-    
-    return HeadJointCmdResponse(True)
+
+    resp = HeadJointCmdResponse()
+    resp.success.data = True
+    return resp 
+
+
+def run_program_svc_callback(req):
+    global prog_request
+    resp = RunProgramResponse()
+    if req.new_program_num.data != REMOTE_CONTROL_PROGRAM and req.new_program_num.data != RANDOM_GAZE_PROGRAM:
+        resp.success.data = False
+    else:
+        prog_request = req.new_program_num.data
+        resp.success.data = True
+    return resp
+
+
+
+
+
+
+
+def print_avail_debug_statements(deq):
+    #---------- "less-intrusive" msg printing ----------#
+    try:
+        msg = msg_deq.popleft()    # try to get next msg we recieved
+    except IndexError:
+        msg = None                 # if msg_deq is empty: msg = None
+   
+
+    while msg:
+        print msg
+        try:
+            msg = msg_deq.popleft()    # try to get next msg we recieved
+        except IndexError:
+            msg = None                 # if msg_deq is empty: msg = None
+
 
 
 
 #-------- GLOBAL VARIABLES --------#
 
 # ctrl_deq will hold tuples like:  next_cmd = ( int(numCtrlSteps) , dict(joint_position: joint_cmd_rad) )
-global ser, ctrl_deq, empty_msg_count
+global ser, ctrl_deq, msg_deq, prog_request
 ctrl_deq = deque()
-empty_msg_count = 0
+msg_deq = deque()
+
 
 
 
@@ -235,70 +312,112 @@ if __name__ == '__main__':
     
 
     rospy.init_node('UART_coms', anonymous=True)
-    svc = rospy.Service('ctrl_deq_append', HeadJointCmd, handle_ctrl_deq_append)
+    svc1 = rospy.Service('ctrl_deq_append', HeadJointCmd, handle_ctrl_deq_append)
+    svc2 = rospy.Service('change_program')
 
-
+    prog_request = REMOTE_CONTROL_PROGRAM
+    current_program = RANDOM_GAZE_PROGRAM
     cmd_send_success = True
-    emb_que_available = True
+    emb_mailbox_free = True
     next_cmd = None
 
-    try:
-        init_serial_port()
-    except serial.SerialException as e:
-        rospy.logerr("Could not open serial port: {}".format(e))
 
 
-    cmd_send_success = send_run_program_msg(REMOTE_CONTROL_PROGRAM)
-    while not cmd_send_success:
-        rospy.logerr("Could not start remote control program in embedded controller.")
-        cmd_send_success = send_run_program_msg(REMOTE_CONTROL_PROGRAM)
+    init_serial_port()
 
-
-    print 'Started remote control program...'
 
 
     debug_count = 0
+    debug_block = 0
 
 
 
     #-------- MAIN LOOP ------------#
-    r = rospy.Rate(10) # 1 kHz
+    r = rospy.Rate(1000) # 1 kHz
     while not rospy.is_shutdown():
         
-        # only get next command if: 
-        #    last command was sent successfully and embedded controller can accept another one
-        if cmd_send_success and emb_que_available:
-            print 'Inside Block for Step 1'
-            try:
-                next_cmd = ctrl_deq.popleft()   # try to get next cmd to send (threadsafe)
-            except IndexError:
-                next_cmd = None                 # if ctrl_deq is empty: next_cmd = None
-            else:
-                cmd_send_success = False        # executes if next_cmd is successfully retrieved from ctrl_deq
+        # this will block execution until the program is successfully changed
+        if current_program != prog_request:
+            if debug_block != 0:
+                msg_deq.append( 'Switch to block 0')
+                debug_block = 0
 
 
 
-        # if a cmd was available in the ctrl_deq and embedded controller can accept another one
-        if next_cmd and emb_que_available :
-            print 'Inside Block for Step 2'
-            msg_send_success = True
-            for joint_num, joint_cmd_rad in next_cmd[1].iteritems():
-                # Stop sending if a message fails to send properly (exploiting short-circuit behavior)
-                msg_send_success = msg_send_success and send_joint_msg( joint_num , joint_cmd_rad )  
+            msg_send_success = send_run_program_msg(prog_request)
+            while not msg_send_success:
+                print_avail_debug_statements(msg_deq)
+                if prog_request == RANDOM_GAZE_PROGRAM:
+                    rospy.logerr("Could not start random gaze program in embedded controller.")
+                if prog_request == REMOTE_CONTROL_PROGRAM:
+                    rospy.logerr("Could not start remote control program in embedded controller.")
+                
+                rospy.sleep(0.5)
+                clear_serial_buffer()
 
-            # this only tries to send_start_joint_cmd_mvt() 
-            #    if msg_send_success is true (exploiting short-circuit behavior)
-            msg_send_success = msg_send_success and send_move_length_msg( next_cmd[0] )   \
-                                                and send_start_joint_cmd_mvt()
+                msg_send_success = send_run_program_msg(prog_request)
+
 
             if msg_send_success:
-                cmd_send_success = True
-                emb_que_available = False
+                current_program = prog_request
+                if prog_request == RANDOM_GAZE_PROGRAM:
+                    msg_deq.append("Started RANDOM GAZE program in embedded controller.")
+
+                if prog_request == REMOTE_CONTROL_PROGRAM:
+                    msg_deq.append("Started REMOTE CONTROL program in embedded controller.")
 
 
-        if cmd_send_success and (not emb_que_available):
-            print 'Inside Block for Step 3'
-            emb_que_available = check_for_emb_signal()
+        if current_program == REMOTE_CONTROL_PROGRAM:
+
+            # only get next command if: 
+            #    last command was sent successfully and embedded controller can accept another one
+            if cmd_send_success and emb_mailbox_free:
+                if debug_block != 1:
+                    msg_deq.append( 'Switch to block 1')
+                    debug_block = 1
+
+                try:
+                    next_cmd = ctrl_deq.popleft()   # try to get next cmd to send (threadsafe)
+                except IndexError:
+                    next_cmd = None                 # if ctrl_deq is empty: next_cmd = None
+                else:
+                    cmd_send_success = False        # executes if next_cmd is successfully retrieved from ctrl_deq
+
+
+
+            # if a cmd was available in the ctrl_deq and embedded controller can accept another one
+            if next_cmd and emb_mailbox_free :
+                if debug_block != 2:
+                    msg_deq.append('Switch to block 2')
+                    debug_block = 2
+                
+                msg_send_success = True
+
+                for joint_num, joint_cmd_rad in next_cmd[1].iteritems():
+                    # Stop sending if a message fails to send properly (exploiting short-circuit behavior)
+                    msg_send_success = msg_send_success and send_joint_msg( joint_num , joint_cmd_rad )  
+
+                # this only tries to send_start_joint_cmd_mvt() 
+                #    if msg_send_success is true (exploiting short-circuit behavior)
+                msg_send_success = msg_send_success and send_move_length_msg( next_cmd[0] )   \
+                                                    and send_start_joint_cmd_mvt()
+
+                if msg_send_success:
+                    cmd_send_success = True
+                    emb_mailbox_free = False
+                else:
+                    ser.clear_serial_buffer()
+                    msg_deq.append('Transmission fail. Clear read buffer...')
+
+
+
+            if cmd_send_success and (not emb_mailbox_free):
+                if debug_block != 3:
+                    msg_deq.append( 'Switch to block 3')
+                    debug_block = 3
+                emb_mailbox_free = check_for_mailbox_free_signal()
+
+            print_avail_debug_statements(msg_deq)
 
 
         r.sleep()  # usually it wont sleep because this loop takes longer than 1 ms

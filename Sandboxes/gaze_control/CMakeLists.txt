@@ -53,6 +53,7 @@ catkin_python_setup()
 add_service_files(
   FILES
   HeadJointCmd.srv
+  RunProgram.srv
 )
 
 ## Generate actions in the 'action' folder
