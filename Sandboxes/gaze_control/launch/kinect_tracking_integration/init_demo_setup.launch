@@ -1,0 +1,21 @@
+<launch>
+	<!-- Load Robot -->
+	<param name="robot_description"	textfile="$(find dreamer_viz)/robot/dreamer_ltw.urdf" /> 
+	<!-- State Publisher -->
+	<node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+
+
+	<node name="gaze_marker_node" pkg="viz_tools" type="gaze_markers" output="screen" /> 
+
+
+	<include file="$(find gaze_control)/launch/tracker_launchers/ar_tracker.launch" />
+	<include file="$(find gaze_control)/launch/transform_publishers/tf_broadcasters.launch" />
+
+
+	<!-- Visualize Dreamer @ Home Joint Positions -->
+	<node name="dreamer_head_behavior" pkg="gaze_control" type="dreamer_do_nothing.py" />
+
+
+	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find gaze_control)/launch//kinect_tracking_integration/kinect_tracking_rviz.rviz" required="true" />
+
+</launch>
