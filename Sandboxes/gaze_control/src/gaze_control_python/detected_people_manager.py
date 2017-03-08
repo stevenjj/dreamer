@@ -52,7 +52,7 @@ class Detected_People_Manager():
         self.subscriber = rospy.Subscriber('/human_boxes_3D', MarkerArray, self.detected_callback)
 
         self.last_time_people_detected = 0 
-        self.time_detection_threshold = 1 # Wait 1 second before 
+        self.time_detection_threshold = 3 # Wait 3 seconds before removing the person 
         self.listener = tf.TransformListener()
 
 
@@ -149,7 +149,7 @@ class Detected_People_Manager():
                     continue
                 else:
                     # Find which marker i is the closest to the person 
-                    person_marker = proposed_list_of_people_markers[i]
+                    person_marker = proposed_list_of_people_markers[j]
                     person_xyz_pos = np.array([person_marker.pose.position.x, person_marker.pose.position.y, person_marker.pose.position.z]) 
                     person_position_in_belief = self.list_of_people[i].position
 
@@ -178,19 +178,21 @@ class Detected_People_Manager():
         for i in range(0, len(proposed_list_of_people_markers)):
             # If this person has not been assigned, add them as another person
             if not(i in proposed_id_to_stored_person_id):
+                print ' unassigned ', i
                 person_marker = proposed_list_of_people_markers[i]
                 person_xyz_pos = np.array([person_marker.pose.position.x, person_marker.pose.position.y, person_marker.pose.position.z]) 
                 eye_offset = np.array([0,0,proposed_list_of_people_markers[i].scale.y/2.0])
                 new_person = Person(person_xyz_pos, eye_offset)
                 self.list_of_people.append(new_person)
+              
 
 
 
 
     def loop(self):
         current_time = rospy.Time.now().to_sec()
-        #print 'Last time people were detected', current_time - self.last_time_people_detected 
-        #print '     Num of people ', len(self.list_of_people)
+        print 'Last time people were detected', current_time - self.last_time_people_detected 
+        print '     Num of people ', len(self.list_of_people)
 
         if ((current_time - self.last_time_people_detected) > self.time_detection_threshold):
             self.list_of_people = [] # Remove all people in our belief
