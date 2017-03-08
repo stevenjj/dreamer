@@ -19,14 +19,14 @@ des_enc_cmd = joint_cmd_to_enc_cmd(joint_num, des_rads)
 
 
 
-register = UPDATE_POSITION_REGISTER_ADDRESS
+# register = UPDATE_POSITION_REGISTER_ADDRESS
 # register = RUN_PROGRAM_REGSITER_ADDRESS
-# register = MOVE_LENGTH_REGISTER_ADDRESS
+register = MOVE_LENGTH_REGISTER_ADDRESS
 
 
 # register_value = REMOTE_CONTROL_PROGRAM
 # register_value = RANDOM_GAZE_PROGRAM
-register_value = 0#550
+register_value = 550
 
 
 
@@ -85,3 +85,6 @@ print '      In Base-10 Integer:  ', integer_form
 print '      Serial String Command:', msg_to_send
 
 
+print ''
+print '    Test Decode:'
+print '      ' + decode_message(msg_to_send)

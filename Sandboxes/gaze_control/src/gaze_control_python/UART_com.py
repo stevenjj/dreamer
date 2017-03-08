@@ -151,6 +151,16 @@ def create_binary_msg(register, register_value):
 
 
 
+def decode_message(dec_msg):
+    integer_form = int(dec_msg.strip())
+    binary_form = format(integer_form,'032b')
+    parity =   int(binary_form[-1]    )
+    value =    int(binary_form[7:-1],2)
+    register = int(binary_form[0: 7],2)
+
+    return 'R = {}, V = {}, P = {}'.format(register, value, parity)
+
+
 
 
 def send_and_confirm(msg_to_send):
@@ -168,13 +178,14 @@ def send_and_confirm(msg_to_send):
         msg_deq.append( 'WARNING: Unexpected message recieved: ' + str(msg_recieved) + ', wait_time = ' + str(elapsed_time))
         return False
     else:
-        msg_deq.append( 'Message sent and confirmed: ' + str(msg_recieved.strip()) + ', wait_time = ' + str(elapsed_time) )
+        msg_deq.append( 'Message sent and confirmed: ' + msg_recieved.strip() +
+                             ', ' + decode_message(msg_recieved.strip()) ', wait_time = ' + str(elapsed_time) )
         return True
 
 
 def clear_serial_buffer():
     global ser
-    ser.reset_output_buffer()
+    ser.flushInput()
 
 
 def send_run_program_msg(program_num):
@@ -322,12 +333,12 @@ if __name__ == '__main__':
 
     rospy.init_node('UART_coms', anonymous=True)
     svc1 = rospy.Service('ctrl_deq_append', HeadJointCmd, handle_ctrl_deq_append)
-    svc2 = rospy.Service('change_program')
+    svc2 = rospy.Service('run_gaze_program', RunProgram, run_program_svc_callback)
     r = rospy.Rate(1000) # 1 kHz
 
 
     # Set Initial State
-    prog_request = RANDOM_GAZE_PROGRAM
+    prog_request = CLEAR_CTRL_DEQ_PROGRAM
     current_program = RANDOM_GAZE_PROGRAM
     cmd_send_success = True
     emb_mailbox_free = True
@@ -449,7 +460,7 @@ if __name__ == '__main__':
                     cmd_send_success = True
                     emb_mailbox_free = False
                 else:
-                    ser.clear_serial_buffer()
+                    clear_serial_buffer()
                     msg_deq.append('Transmission fail. Clear read buffer...')
 
 
@@ -462,6 +473,11 @@ if __name__ == '__main__':
                     msg_deq.append( 'Switch to block 3')
                     debug_block = 3
                 emb_mailbox_free = check_for_mailbox_free_signal()
+
+
+            ##########################################
+            ####   PRINT COMMS AND BLOCK SEQNCE   ####
+            ##########################################
 
             print_avail_debug_statements(msg_deq)
 
