@@ -25,7 +25,6 @@ NO_TASK = 100
 GAZE_AVERSION = 101
 TASK_HIERARCHY = 102
 CIRCULAR_HEAD_TRAJ = 103
-TRACK_PERSON = 104
 TRACK_MARKER = 105
 
 EYE_FOCUS = 107
@@ -46,12 +45,13 @@ MAKE_SQUARE_WITH_EYES_ONLY = 204
 MAKE_SQUARE_WITH_HEAD_ONLY = 205
 MAKE_SQUARE_WITH_PRIORITIZED_TASKS_EYES = 206
 MAKE_SQUARE_WITH_PRIORITIZED_TASKS_HEAD = 207
+TRACK_PERSON = 208
 
 class Dreamer_Head():
     command_once = False
     def __init__(self):
         self.behaviors = []
-        self.tasks = [GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY, GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, GO_TO_POINT_HEAD_ONLY, EYE_FOCUS, NO_TASK, GAZE_AVERSION, TASK_HIERARCHY, CIRCULAR_HEAD_TRAJ, TRACK_PERSON, TRACK_MARKER]
+        self.tasks = [GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY, GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, GO_TO_POINT_HEAD_ONLY, EYE_FOCUS, NO_TASK, GAZE_AVERSION, TASK_HIERARCHY, CIRCULAR_HEAD_TRAJ]
         self.states = [IDLE, GO_TO_POINT, FOLLOWING_TRAJECTORY, FINISHED_TRAJECTORY, INTERRUPTED]
 
         self.current_state = IDLE
@@ -79,7 +79,7 @@ class Dreamer_Head():
         self.task_params = []
 
         # Behavior Manager
-        self.behavior_list =[MAKE_SQUARE_WITH_HEAD_ONLY, MAKE_SQUARE_WITH_EYES_ONLY, MAKE_SQUARE, MAKE_SQUARE_WITH_PRIORITIZED_TASKS_EYES,  MAKE_SQUARE_WITH_PRIORITIZED_TASKS_HEAD, DO_NOTHING] #[MAKE_SQUARE_WITH_EYES_ONLY, MAKE_SQUARE, DO_NOTHING]
+        self.behavior_list =[TRACK_PERSON, MAKE_SQUARE_WITH_HEAD_ONLY, MAKE_SQUARE_WITH_EYES_ONLY, MAKE_SQUARE, MAKE_SQUARE_WITH_PRIORITIZED_TASKS_EYES,  MAKE_SQUARE_WITH_PRIORITIZED_TASKS_HEAD, DO_NOTHING] #[MAKE_SQUARE_WITH_EYES_ONLY, MAKE_SQUARE, DO_NOTHING]
         self.current_behavior_index = 0
         self.behavior_commanded = False
         self.behavior_task = self.behavior_list[0]
@@ -139,8 +139,9 @@ class Dreamer_Head():
 
 
     def next_task(self):
-        self.current_task_index += 1
-        self.current_task = self.task_list[self.current_task_index]
+        if (self.current_task_index < len(self.task_list)):
+            self.current_task_index += 1
+            self.current_task = self.task_list[self.current_task_index]
 
     def task_logic(self):
         self.ROS_current_time = rospy.Time.now().to_sec()
@@ -380,9 +381,56 @@ class Dreamer_Head():
 
             self.behavior_commanded = True            
 
+        elif ((self.behavior_task == TRACK_PERSON) and self.behavior_commanded == False) :
+            print ''
+            print 'behavior is to track person'
+            print' '
+            #task_list = [GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, NO_TASK]
+            #task_list = [GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, NO_TASK]            
+            task_list = [GO_TO_POINT_USING_EYES_WITH_HEAD_MAIN_PRIORITY, NO_TASK] 
+
+            task_params = []
+
+            if (len(self.people_manager.list_of_people) > 0):
+                self.track_human_pos = self.people_manager.list_of_people[0].position
+                print self.track_human_pos
+            else:
+                self.track_human_pos = np.array([1,0,0])
+
+            if (self.track_person_condition() == False):
+                return
+
+            print 'HELLO!!!!????'
+
+            task_params.append( self.set_prioritized_go_to_point_params( self.track_human_pos, self.track_human_pos,  0.25) )            
+
+            # Initialize task parameters
+            self.task_list = task_list
+            self.task_params = task_params                      
+
+            self.current_task_index = 0
+            self.task_commanded = False
+            self.current_task = self.task_list[self.current_task_index]            
+            self.behavior_commanded = True
+            
 
 
         return 
+
+    def track_person_condition(self):
+        x_hat = np.array([1,0,0])
+        dp = (self.track_human_pos.dot(np.array([1,0,0])))
+        x_hat_norm = np.linalg.norm( x_hat )
+        xyz_person_norm = np.linalg.norm( self.track_human_pos )
+
+        phi = np.arccos(x_hat.dot(self.track_human_pos) / xyz_person_norm / x_hat_norm)
+
+
+        if ((dp > 0) and (phi < (np.pi/4.0))):
+            return True
+        else:
+            return False
+
 
     def process_task_result(self, Q_des, command_result):
         self.update_head_joints(Q_des)
@@ -390,6 +438,8 @@ class Dreamer_Head():
             self.current_state = IDLE
             self.task_commanded = False
             self.next_task()
+            if (self.behavior_task == TRACK_PERSON):
+                self.behavior_commanded = False
 
     def state_logic(self):
         if (self.current_state == IDLE):

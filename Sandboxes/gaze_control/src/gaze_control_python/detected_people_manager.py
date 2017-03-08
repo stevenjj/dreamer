@@ -163,7 +163,7 @@ class Detected_People_Manager():
     def loop(self):
         current_time = rospy.Time.now().to_sec()
         print 'Last time people were detected', current_time - self.last_time_people_detected 
-        print '     HELLO!!!! num of people ', len(self.list_of_people)
+        print '     Num of people ', len(self.list_of_people)
 
         if ((current_time - self.last_time_people_detected) > self.time_detection_threshold):
             self.list_of_people = [] # Remove all people in our belief
