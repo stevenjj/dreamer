@@ -6,4 +6,6 @@
 
 	<node name="tf_broadcaster_markers" pkg="gaze_control" type="tf_broadcaster_markers.py" /> 
 
+<node pkg="tf2_ros" type="static_transform_publisher" name="link1_broadcaster" args="1 0 0 0 0 0 1 camera_depth_optical_frame amera_rgb_optical_frame" />
+
 </launch>
