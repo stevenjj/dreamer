@@ -82,7 +82,6 @@ def ar_marker_callback(marker_data):
             pose_in_source_frame.header = marker_data.header
             pose_in_source_frame.pose = marker_data.pose
             pose_in_new_frame = listener.transformPose(target_frame, pose_in_source_frame) 
-            print 'hello!'
 
 
             # This frame is not really utilized. We just want to visualize
@@ -117,5 +116,5 @@ if __name__ == '__main__':
     #sub = rospy.Subscriber('/human_bounding_box', Marker, human_marker_callback)
 
 
-    rate = rospy.Rate(100)
+    rate = rospy.Rate(10)
     loop()

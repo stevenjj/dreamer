@@ -11,7 +11,7 @@ from geometry_msgs.msg import TransformStamped
 if __name__ == '__main__':
     rospy.init_node('fixed_marker_to_my_world_neck_tf_broadcaster')
     br = tf.TransformBroadcaster()
-    rate = rospy.Rate(200)
+    rate = rospy.Rate(10)
     while not rospy.is_shutdown():
         # Send a fixed transform from world to the neck.
         # Orientation of the neck is the identity matrix

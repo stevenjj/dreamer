@@ -82,7 +82,7 @@ class Dreamer_Head():
         self.behavior_list =[MAKE_SQUARE_WITH_HEAD_ONLY, MAKE_SQUARE_WITH_EYES_ONLY, MAKE_SQUARE, MAKE_SQUARE_WITH_PRIORITIZED_TASKS_EYES,  MAKE_SQUARE_WITH_PRIORITIZED_TASKS_HEAD, DO_NOTHING] #[MAKE_SQUARE_WITH_EYES_ONLY, MAKE_SQUARE, DO_NOTHING]
         self.current_behavior_index = 0
         self.behavior_commanded = False
-        self.behavior_task = self.behavior_list[3]
+        self.behavior_task = self.behavior_list[0]
 
         # If behavior cycle, we will demonstrate all behaviors.
         self.behavior_cycle = False
@@ -429,11 +429,11 @@ class Dreamer_Head():
     def publish_focus_length(self):
         msg = Float32MultiArray()
         common_length = 0.6
-        focus_lengths = [common_length, common_length, common_length + self.kinematics.l2]
-        msg.data = focus_lengths
-#        msg.data.append(self.traj_manager.current_focus_length[self.traj_manager.LE])                
-#        msg.data.append(self.traj_manager.current_focus_length[self.traj_manager.RE])
-#        msg.data.append(self.traj_manager.current_focus_length[self.traj_manager.H])
+#        focus_lengths = [common_length, common_length, common_length + self.kinematics.l2]
+ #       msg.data = focus_lengths
+        msg.data.append(self.traj_manager.current_focus_length[self.traj_manager.LE])                
+        msg.data.append(self.traj_manager.current_focus_length[self.traj_manager.RE])
+        msg.data.append(self.traj_manager.current_focus_length[self.traj_manager.H])
         self.focus_length_pub.publish(msg)
 
     def loop(self):

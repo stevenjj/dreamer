@@ -15,10 +15,11 @@ if __name__ == '__main__':
     trans = (0, 0, 0)
     rot = (0, 0, 0, 0)     
 
-    rate = rospy.Rate(200)
+    rate = rospy.Rate(10)
     while not rospy.is_shutdown():
-        try:
+        try:    
             (trans,rot) = listener.lookupTransform('/world', '/lower_neck_pitch_link', rospy.Time(0))        
+            
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             continue
 
