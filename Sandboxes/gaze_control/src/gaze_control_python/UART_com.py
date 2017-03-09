@@ -178,8 +178,8 @@ def send_and_confirm(msg_to_send):
         msg_deq.append( 'WARNING: Unexpected message recieved: ' + str(msg_recieved) + ', wait_time = ' + str(elapsed_time))
         return False
     else:
-        msg_deq.append( 'Message sent and confirmed: ' + msg_recieved.strip() +
-                             ', ' + decode_message(msg_recieved.strip()) ', wait_time = ' + str(elapsed_time) )
+        msg_deq.append( 'Message sent and confirmed: ' + msg_recieved.strip() + \
+                             ', ' + decode_message(msg_recieved.strip()) + ', wait_time = ' + str(elapsed_time) )
         return True
 
 
@@ -290,10 +290,6 @@ def run_program_svc_callback(req):
         resp.success.data = False   # Bad program number
 
     return resp
-
-
-
-
 
 
 

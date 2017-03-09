@@ -7,8 +7,8 @@ import numpy as np
 import util_quat as quat
 import head_kinematics as hk
 import dreamer_joint_publisher
-from traj_manager import *
 
+from traj_manager import *
 from detected_people_manager import *
 
 from std_msgs.msg import Float32MultiArray
