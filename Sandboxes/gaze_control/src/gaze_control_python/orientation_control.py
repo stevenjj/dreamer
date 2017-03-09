@@ -122,12 +122,12 @@ class Dreamer_Head():
         self.kinematics.Jlist = head_joint_list
 
         def joint_cmd_bound(val, joint_name, jmax, jmin):
-            if val >= jmax:
+            if val >= 0.9*jmax:
                 print '    MAX Software Joint HIT! for joint', joint_name
-                return jmax
-            elif (val <= jmin):
+                return 0.9*jmax
+            elif (val <= 0.9*jmin):
                 print '    MIN Software Joint HIT! for joint', joint_name                
-                return jmin
+                return 0.9*jmin
             else:
                 return val
 

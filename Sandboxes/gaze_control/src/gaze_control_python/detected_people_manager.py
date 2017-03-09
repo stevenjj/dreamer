@@ -172,13 +172,11 @@ class Detected_People_Manager():
             # Update position of the person in our belief
             eye_offset = np.array([0,0,proposed_list_of_people_markers[index_of_proposed_person].scale.y/2.0])
             self.list_of_people[i].update(new_xyz_pos, eye_offset)
-            #print 'updated!'
 
         # Go through the proposed list of people again and see if they have been assigned.
         for i in range(0, len(proposed_list_of_people_markers)):
             # If this person has not been assigned, add them as another person
             if not(i in proposed_id_to_stored_person_id):
-                print ' unassigned ', i
                 person_marker = proposed_list_of_people_markers[i]
                 person_xyz_pos = np.array([person_marker.pose.position.x, person_marker.pose.position.y, person_marker.pose.position.z]) 
                 eye_offset = np.array([0,0,proposed_list_of_people_markers[i].scale.y/2.0])
