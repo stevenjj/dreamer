@@ -14,9 +14,10 @@ class WayPoints_3D_MinJerk():
 
 # Assumes that all trajectories start at t = 0 and end at Delta_T
 class MinJerk():
-	def __init__(self, max_vel = 0.5): #max_vel is in m/s
+	def __init__(self, max_vel = 0.5, max_accel = 0.1): #max_vel is in m/s
 		self.coeffs = np.zeros((3,6)) #coeffs for x,y,z axes
 		self.max_vel = max_vel
+		self.max_accel
 		self.Delta_Ts = np.array([1,1,1])
 
 	# x_final is a 6x1 vector
@@ -87,6 +88,25 @@ class MinJerk():
 		t_vec = np.array([0, 2*t, 2*t,   3*t**2,       4*t**3,      5*t**4 ])
 		return t_vec.dot(self.coeffs[axis])		
 
+	def sddot_t(self, time, axis=0):
+		t = time
+		if (t < 0):
+			t = 0
+		elif (t > self.Delta_Ts[axis]):
+			t = self.Delta_Ts[axis]
+		else:
+			t = time
+
+		t_vec = np.array([0,  0,     2,    6*(t), 12*(t**2), 20*(t**3)])
+		return t_vec.dot(self.coeffs[axis])				
+
+	def compute_bounded_s_t(self, time, dt, axis=0):
+		accel = sddot_t(time, axis)
+
+
+
+
+		return
 
 
 '''

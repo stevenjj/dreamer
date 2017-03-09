@@ -15,6 +15,8 @@ class Person():
     def __init__(self, xyz_pos, eye_offset=np.array([0,0,0])):
         self.position = xyz_pos # np.array([x, y, z])
         self.eye_position = xyz_pos + eye_offset - np.array([0,0, DIST_TO_EYE])
+        self.velocity = np.array([0,0,0])
+
         self.last_time_updated = rospy.Time.now().to_sec()
 
         self.average_window = 5
@@ -24,8 +26,12 @@ class Person():
         self.window_eye_positions = np.array([self.eye_position for i in range(self.average_window)])
 
     def update(self, xyz_pos, eye_offset=np.array([0,0,0])):
-        self.last_time_updated = rospy.Time.now().to_sec()        
-        self.position = xyz_pos
+        current_time = rospy.Time.now().to_sec()
+        dt = current_time - self.last_time_updated
+        self.last_time_updated = current_time
+
+        self.velocity = (xyz_pos - self.position)/dt
+        self.position = xyz_pos      
         self.eye_position = xyz_pos + eye_offset - np.array([0,0, DIST_TO_EYE])
 
         # Identify current window index to update
@@ -120,12 +126,12 @@ class Detected_People_Manager():
                     person_position = self.list_of_people[i].position
                     person_tuple_position = (person_position[0], person_position[1], person_position[2])
 
-                    br = tf.TransformBroadcaster()
-                    br.sendTransform( person_tuple_position,
-                                     (0.0, 0.0, 0.0, 1.0),
-                                     rospy.Time.now(),
-                                     person_frame_name,
-                                     "/my_world_neck")   
+                    # br = tf.TransformBroadcaster()
+                    # br.sendTransform( person_tuple_position,
+                    #                  (0.0, 0.0, 0.0, 1.0),
+                    #                  rospy.Time.now(),
+                    #                  person_frame_name,
+                    #                  "/my_world_neck")   
 
             except (tf.LookupException, tf.ConnectivityException):
                 print 'Person transform not available yet'
@@ -192,7 +198,14 @@ class Detected_People_Manager():
         print 'Last time people were detected', current_time - self.last_time_people_detected 
         print '     Num of people ', len(self.list_of_people)
 
-        if ((current_time - self.last_time_people_detected) > self.time_detection_threshold):
-            self.list_of_people = [] # Remove all people in our belief
+        new_list_of_people = []
+        for person in self.list_of_people:
+            if not(current_time - person.last_time_updated > self.time_detection_threshold):
+                new_list_of_people.append(person)
+        self.list_of_people = new_list_of_people
+
+
+#        if ((current_time - self.last_time_people_detected) > self.time_detection_threshold):
+#            self.list_of_people = [] # Remove all people in our belief
 
         return

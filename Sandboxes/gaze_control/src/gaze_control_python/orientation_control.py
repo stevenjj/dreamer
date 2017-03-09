@@ -422,7 +422,10 @@ class Dreamer_Head():
             print '         Angle between Head and EYE', phi_eye_head_deg
 
 
-            if ((np.linalg.norm(self.track_human_pos - self.track_prev_human_pos) < 0.3)) and (phi_eye_head_deg < (12.0)):
+            sample_max_vel = 1
+            dx_total = np.linalg.norm(self.track_human_pos - self.track_prev_human_pos) 
+            if  (dx_total < 0.3) and (phi_eye_head_deg < (12.0)):
+                #duration = (15/8.0/sample_max_vel)*dx_total # 0.15
                 duration = 0.15
                 # if eyes are not too far apart. Use head as main priority
                 if(self.are_eyes_focused()):
@@ -433,7 +436,8 @@ class Dreamer_Head():
                 task_params.append( self.set_prioritized_go_to_point_params( self.track_human_pos_head, self.track_human_pos,  duration) )            
             else:
                 self.track_human_pos_head = self.track_human_pos
-                duration = 0.3
+                #duration = (15/8.0/sample_max_vel)*dx_total # 0.3                
+                duration = 0.5
                 task_list = [GO_TO_POINT_USING_HEAD_WITH_EYES_MAIN_PRIORITY, NO_TASK] 
                 task_params.append( self.set_prioritized_go_to_point_params( self.track_human_pos, self.track_human_pos,  duration) )            
 
