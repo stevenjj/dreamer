@@ -25,6 +25,7 @@ UPDATE_POSITION_REGISTER_ADDRESS = 15
 RUN_PROGRAM_REGSITER_ADDRESS = 17
 LIGHT_COLOR_REGSITER_ADDRESS = 19
 
+CLEAR_CTRL_DEQ_PROGRAM = 0
 RANDOM_GAZE_PROGRAM = 1
 REMOTE_CONTROL_PROGRAM = 2
 
@@ -150,6 +151,16 @@ def create_binary_msg(register, register_value):
 
 
 
+def decode_message(dec_msg):
+    integer_form = int(dec_msg.strip())
+    binary_form = format(integer_form,'032b')
+    parity =   int(binary_form[-1]    )
+    value =    int(binary_form[7:-1],2)
+    register = int(binary_form[0: 7],2)
+
+    return 'R = {}, V = {}, P = {}'.format(register, value, parity)
+
+
 
 
 def send_and_confirm(msg_to_send):
@@ -167,13 +178,14 @@ def send_and_confirm(msg_to_send):
         msg_deq.append( 'WARNING: Unexpected message recieved: ' + str(msg_recieved) + ', wait_time = ' + str(elapsed_time))
         return False
     else:
-        msg_deq.append( 'Message sent and confirmed: ' + str(msg_recieved.strip()) + ', wait_time = ' + str(elapsed_time) )
+        msg_deq.append( 'Message sent and confirmed: ' + msg_recieved.strip() +
+                             ', ' + decode_message(msg_recieved.strip()) ', wait_time = ' + str(elapsed_time) )
         return True
 
 
 def clear_serial_buffer():
     global ser
-    ser.reset_output_buffer()
+    ser.flushInput()
 
 
 def send_run_program_msg(program_num):
@@ -264,13 +276,19 @@ def handle_ctrl_deq_append(req):
 
 
 def run_program_svc_callback(req):
-    global prog_request
+    global prog_request, ctrl_deq
     resp = RunProgramResponse()
-    if req.new_program_num.data != REMOTE_CONTROL_PROGRAM and req.new_program_num.data != RANDOM_GAZE_PROGRAM:
-        resp.success.data = False
-    else:
+
+    if req.new_program_num.data == CLEAR_CTRL_DEQ_PROGRAM:
+        ctrl_deq.clear()
         prog_request = req.new_program_num.data
         resp.success.data = True
+    elif req.new_program_num.data == RANDOM_GAZE_PROGRAM or req.new_program_num.data == REMOTE_CONTROL_PROGRAM:
+        prog_request = req.new_program_num.data
+        resp.success.data = True
+    else:
+        resp.success.data = False   # Bad program number
+
     return resp
 
 
@@ -280,6 +298,7 @@ def run_program_svc_callback(req):
 
 
 def print_avail_debug_statements(deq):
+    global msg_deq
     #---------- "less-intrusive" msg printing ----------#
     try:
         msg = msg_deq.popleft()    # try to get next msg we recieved
@@ -298,24 +317,28 @@ def print_avail_debug_statements(deq):
 
 
 #-------- GLOBAL VARIABLES --------#
-
-# ctrl_deq will hold tuples like:  next_cmd = ( int(numCtrlSteps) , dict(joint_position: joint_cmd_rad) )
 global ser, ctrl_deq, msg_deq, prog_request
 ctrl_deq = deque()
 msg_deq = deque()
 
+# ctrl_deq will hold tuples like:  next_cmd = ( int(numCtrlSteps) , dict(joint_position: joint_cmd_rad) )
 
 
 
-#-------- MAIN PROGRAM ------------#
+####################################
+########    MAIN PROGRAM    ########
+####################################
 if __name__ == '__main__':
     
 
     rospy.init_node('UART_coms', anonymous=True)
     svc1 = rospy.Service('ctrl_deq_append', HeadJointCmd, handle_ctrl_deq_append)
-    svc2 = rospy.Service('change_program')
+    svc2 = rospy.Service('run_gaze_program', RunProgram, run_program_svc_callback)
+    r = rospy.Rate(1000) # 1 kHz
 
-    prog_request = REMOTE_CONTROL_PROGRAM
+
+    # Set Initial State
+    prog_request = CLEAR_CTRL_DEQ_PROGRAM
     current_program = RANDOM_GAZE_PROGRAM
     cmd_send_success = True
     emb_mailbox_free = True
@@ -327,14 +350,21 @@ if __name__ == '__main__':
 
 
 
-    debug_count = 0
-    debug_block = 0
+    debug_block = -1
 
 
+    ####################################
+    ########      MAIN LOOP     ########
+    ####################################
+    
 
-    #-------- MAIN LOOP ------------#
-    r = rospy.Rate(1000) # 1 kHz
+
     while not rospy.is_shutdown():
+
+
+        #########################################
+        ####   CHANGE PROGRAM IF NECESSARY   ####
+        #########################################
         
         # this will block execution until the program is successfully changed
         if current_program != prog_request:
@@ -343,31 +373,51 @@ if __name__ == '__main__':
                 debug_block = 0
 
 
+            if prog_request == CLEAR_CTRL_DEQ_PROGRAM:
 
-            msg_send_success = send_run_program_msg(prog_request)
-            while not msg_send_success:
-                print_avail_debug_statements(msg_deq)
-                if prog_request == RANDOM_GAZE_PROGRAM:
-                    rospy.logerr("Could not start random gaze program in embedded controller.")
-                if prog_request == REMOTE_CONTROL_PROGRAM:
-                    rospy.logerr("Could not start remote control program in embedded controller.")
-                
+                # Reset State
+                cmd_send_success = True
+                emb_mailbox_free = True
+                next_cmd = None
+
+                # Reenter current program
+                prog_request = current_program
                 rospy.sleep(0.5)
                 clear_serial_buffer()
 
+
+            else:
+                # Send Run Program message to embedded controller
                 msg_send_success = send_run_program_msg(prog_request)
 
+                while not msg_send_success:
+                    print_avail_debug_statements(msg_deq)
+                    if prog_request == RANDOM_GAZE_PROGRAM:
+                        rospy.logerr("Could not start random gaze program in embedded controller.")
+                    if prog_request == REMOTE_CONTROL_PROGRAM:
+                        rospy.logerr("Could not start remote control program in embedded controller.")
+                    
+                    rospy.sleep(0.5)
+                    clear_serial_buffer()
 
-            if msg_send_success:
-                current_program = prog_request
-                if prog_request == RANDOM_GAZE_PROGRAM:
-                    msg_deq.append("Started RANDOM GAZE program in embedded controller.")
+                    msg_send_success = send_run_program_msg(prog_request)
 
-                if prog_request == REMOTE_CONTROL_PROGRAM:
-                    msg_deq.append("Started REMOTE CONTROL program in embedded controller.")
+
+                if msg_send_success:
+                    current_program = prog_request
+                    if prog_request == RANDOM_GAZE_PROGRAM:
+                        msg_deq.append("Started RANDOM GAZE program in embedded controller.")
+
+                    if prog_request == REMOTE_CONTROL_PROGRAM:
+                        msg_deq.append("Started REMOTE CONTROL program in embedded controller.")
 
 
         if current_program == REMOTE_CONTROL_PROGRAM:
+
+
+            ##########################################
+            ####  GET NEXT COMMAND FROM CTRL DEQ  ####
+            ##########################################
 
             # only get next command if: 
             #    last command was sent successfully and embedded controller can accept another one
@@ -384,6 +434,10 @@ if __name__ == '__main__':
                     cmd_send_success = False        # executes if next_cmd is successfully retrieved from ctrl_deq
 
 
+
+            ##########################################
+            ####  SEND COMMAND TO EMB CONTROLLER  ####
+            ##########################################
 
             # if a cmd was available in the ctrl_deq and embedded controller can accept another one
             if next_cmd and emb_mailbox_free :
@@ -406,10 +460,13 @@ if __name__ == '__main__':
                     cmd_send_success = True
                     emb_mailbox_free = False
                 else:
-                    ser.clear_serial_buffer()
+                    clear_serial_buffer()
                     msg_deq.append('Transmission fail. Clear read buffer...')
 
 
+            ##########################################
+            ####   WAIT FOR MAILBOX FREE SIGNAL   ####
+            ##########################################
 
             if cmd_send_success and (not emb_mailbox_free):
                 if debug_block != 3:
@@ -417,9 +474,14 @@ if __name__ == '__main__':
                     debug_block = 3
                 emb_mailbox_free = check_for_mailbox_free_signal()
 
+
+            ##########################################
+            ####   PRINT COMMS AND BLOCK SEQNCE   ####
+            ##########################################
+
             print_avail_debug_statements(msg_deq)
 
 
-        r.sleep()  # usually it wont sleep because this loop takes longer than 1 ms
+        #r.sleep()  # usually it wont sleep because this loop takes longer than 1 ms
 
 
