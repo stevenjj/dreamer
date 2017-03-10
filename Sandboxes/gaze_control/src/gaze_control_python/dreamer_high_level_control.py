@@ -119,9 +119,9 @@ class Dreamer_Head():
 
         # Class Objects
         self.people_manager = Detected_People_Manager()
-        self.eye_cartesian_states = Gaze_Focus_States(self.kinematics)
+        self.gaze_focus_states = Gaze_Focus_States(self.kinematics)
         self.traj_manager = Trajectory_Manager(self.kinematics)
-        # self.controller_manager = Controller(self.kinematics, self.eye_cartesian_states, self.people_manager)       
+        # self.controller_manager = Controller(self.kinematics, self.gaze_focus_states, self.people_manager)       
 
         # Behaviors, States and Tasks
         self.states = [STATE_IDLE, STATE_GO_TO_POINT, STATE_GO_HOME]
@@ -163,7 +163,7 @@ class Dreamer_Head():
     # Joint and Gaze Focus Update
     def update_head_joints(self, head_joint_list):
         self.kinematics.Jlist = head_joint_list
-        self.eye_cartesian_states.update_gaze_focus_states(self.dt)
+        self.gaze_focus_states.update_gaze_focus_states(self.dt)
 
         def joint_cmd_bound(val, joint_name, jmax, jmin):
             if val >= JOINT_LIM_BOUND*jmax:
@@ -295,6 +295,9 @@ class Dreamer_Head():
             if (time_interval > self.wait_time_go_home):
                 # Reset all Joints to Home Position
                 self.kinematics.Jlist = np.zeros(7)            
+                self.update_head_joints(self.kinematics.Jlist)
+                self.gaze_focus_states.reset()
+
                 self.gui_command_executing = False
                 # Change State Back To Idle
                 self.current_state = STATE_IDLE
@@ -329,6 +332,7 @@ class Dreamer_Head():
             #---------------------------------------------             
             # Change State to Idle
             self.current_state = STATE_IDLE                     
+            self.reset_state_tasks_behaviors()
         
         elif gui_command == GO_HOME:
             self.gui_command = gui_command
@@ -386,14 +390,21 @@ class Dreamer_Head():
             print '    Behavior            :' , BEHAVIOR_ID_TO_STRING[self.current_behavior]
             print '    Low Level           :' , self.low_level_control 
             print '    GUI Command         :' , self.gui_command_string
-            print '    Command Rate (Hz)   :' , self.cmd_rate_measured  
-            print '    Print Rate (Hz)     :' , 1.0/print_interval
-            print '    Node Rate (Hz)      :' , 1.0/self.dt 
-            print '    Node dt(s)          :' , self.dt
+            print '        Command Rate (Hz)   :' , self.cmd_rate_measured  
+            print '        Print Rate (Hz)     :' , 1.0/print_interval
+            print '        Node Rate (Hz)      :' , 1.0/self.dt 
+            print '        Node dt(s)          :' , self.dt
 
-            print self.task_params
-            #self.eye_cartesian_states.print_debug()
-            #self.eye_cartesian_states.print_debug()
+            print '    Semaphores'
+            print "        GUI,   Behavior, Task CMD" 
+            print "       ", self.gui_command_executing, " ", self.behavior_commanded, "   ", self.task_commanded
+
+            # print self.current_task_index
+            # print len(self.task_list)
+            # print self.task_params
+
+            #self.gaze_focus_states.print_debug()
+            #self.gaze_focus_states.print_debug()
             #self.controller_manager.print_debug()
             #self.detected_people_manager.print_debug()
 
@@ -414,7 +425,7 @@ class Dreamer_Head():
             self.update_time()
 
             # Visualization
-            self.eye_cartesian_states.publish_focus_length()
+            self.gaze_focus_states.publish_focus_length()
 
             # Sleep
             self.rate.sleep()
@@ -451,7 +462,7 @@ class Dreamer_Head():
         # This behavior makes a square with the head while the eyes are pointing straight ahead
         elif ((self.current_behavior == BEHAVIOR_DO_SQUARE_FIXED_EYES) and self.behavior_commanded == False):
             task_list = [TASK_GO_TO_POINT_EYE_PRIORITY for i in range(6)]
-            task_list.append(TASK_NO_TASK)
+            #task_list.append(TASK_NO_TASK)
             task_params = []
 
             init_to_go_point = 3 # Take a longer time to go to the initial point
@@ -463,6 +474,7 @@ class Dreamer_Head():
             task_params.append( self.set_prioritized_go_to_point_params( np.array( [2, 0.15, self.kinematics.l1+0.3]),  np.array([6, 0.0, self.kinematics.l1]),      duration) )
             task_params.append( self.set_prioritized_go_to_point_params( np.array( [2, 0.15, self.kinematics.l1-0.3]),   np.array([6, 0.0, self.kinematics.l1]),     duration) )
             self.execute_behavior(task_list, task_params)
+
         return
 
     def task_logic(self):
@@ -486,23 +498,23 @@ class Dreamer_Head():
 
     def next_task(self):
         if (self.current_task_index < len(self.task_list)):
-            self.current_task_index += 1
             self.current_task = self.task_list[self.current_task_index]
-        else:
-            # Behavior is finished
-            self.behavior = BEHAVIOR_NO_BEHAVIOR
 
     def process_task_result(self, Q_des, command_result):
         self.update_head_joints(Q_des)
         if (command_result == True):
-            self.current_state = STATE_IDLE
             self.task_commanded = False
-            self.next_task()
+            self.current_task_index += 1
+            self.next_task()          
 
+            if self.current_task_index == len(self.task_list):
+                self.reset_state_tasks_behaviors()
 
-
-
-
+    def reset_state_tasks_behaviors(self):
+        self.current_state = STATE_IDLE
+        self.current_task = TASK_NO_TASK 
+        self.current_behavior = BEHAVIOR_NO_BEHAVIOR
+        self.behavior_commanded = False
 
 
 
