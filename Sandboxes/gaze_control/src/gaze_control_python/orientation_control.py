@@ -82,7 +82,7 @@ class Dreamer_Head():
         self.behavior_list =[TRACK_PERSON, MAKE_SQUARE_WITH_HEAD_ONLY, MAKE_SQUARE_WITH_EYES_ONLY, MAKE_SQUARE, MAKE_SQUARE_WITH_PRIORITIZED_TASKS_EYES,  MAKE_SQUARE_WITH_PRIORITIZED_TASKS_HEAD, DO_NOTHING] #[MAKE_SQUARE_WITH_EYES_ONLY, MAKE_SQUARE, DO_NOTHING]
         self.current_behavior_index = 0
         self.behavior_commanded = False
-        self.behavior_task = self.behavior_list[1]
+        self.behavior_task = self.behavior_list[2]
 
         # If behavior cycle, we will demonstrate all behaviors.
         self.behavior_cycle = False

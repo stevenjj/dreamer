@@ -8,24 +8,20 @@ import head_kinematics as hk
 from std_msgs.msg import Float32MultiArray
 
 FOCUS_THRESH = 0.2
+INIT_FOCUS_LENGTH = 0.6
 class Gaze_Focus_States():
     H = "head"
     RE = "right_eye"
     LE = "left_eye"
     def __init__(self, head_kinematics):
-
         self.kinematics = head_kinematics
-
-        self.current_focus_length = {self.H : 1, self.RE : 1, self.LE : 1 }
+        self.current_focus_length = {self.H : INIT_FOCUS_LENGTH, self.RE : INIT_FOCUS_LENGTH, self.LE : INIT_FOCUS_LENGTH}
         # Current Focus Location
         self.position = {self.H : np.zeros(3), self.RE : np.zeros(3), self.LE : np.zeros(3) }
-
         # Focus Velocity        
         self.old_position = {self.H : np.zeros(3), self.RE : np.zeros(3), self.LE : np.zeros(3) }
         self.velocity = {self.H : np.zeros(3), self.RE : np.zeros(3), self.LE : np.zeros(3) }
-
-        # Update the Position of the Focus Initially
-        self.update_focus_location()
+        self.update_focus_location()         # Update the Position of the Focus Initially
 
         self.focus_length_pub = rospy.Publisher('setArrLength', Float32MultiArray, queue_size=1)
 
@@ -33,14 +29,10 @@ class Gaze_Focus_States():
         self.current_focus_length = {self.H : 1, self.RE : 1, self.LE : 1 }
         # Current Focus Location
         self.position = {self.H : np.zeros(3), self.RE : np.zeros(3), self.LE : np.zeros(3) }
-
         # Focus Velocity        
         self.old_position = {self.H : np.zeros(3), self.RE : np.zeros(3), self.LE : np.zeros(3) }
         self.velocity = {self.H : np.zeros(3), self.RE : np.zeros(3), self.LE : np.zeros(3) }
-        self.update_focus_location()
-
-        
-
+        self.update_focus_location()           # Update the Position of the Focus Initially
 
 
     def initialize_gaze_focus_states(head_kinematics):
