@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # GUI Command list
 GUI_CMD_TOPIC = 'GUI_cmd_int'
-INVALID_CMD = -1
+INVALID_CMD = -2
+NO_COMMAND, NO_COMMAND_STRING = -1, "No Command"
 LOW_LEVEL_OFF, LOW_LEVEL_OFF_STRING  = 0, "Low Level OFF"
 LOW_LEVEL_ON,  LOW_LEVEL_ON_STRING   = 1, "Low Level ON"
 STATE_TO_IDLE, STATE_TO_IDLE_STRING  = 2, "State to Idle"
