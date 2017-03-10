@@ -5,13 +5,13 @@ from GUI_params import *
 
 import rospy
 import sys
-import rospkg
+#import rospkg
 import yaml
 from std_msgs.msg import String
 from std_msgs.msg import Int8
 from PyQt4 import QtGui, QtCore
 
-class SpeechGui(QtGui.QWidget):
+class DreamerGui(QtGui.QWidget):
 
   def __init__(self):
       QtGui.QWidget.__init__(self)
@@ -27,8 +27,8 @@ class SpeechGui(QtGui.QWidget):
       # Initialize rosnode
       rospy.init_node("dreamer_gui") 
 
-      rospack = rospkg.RosPack()
-      default_pub_topic = 'dreamer_high_level_commands'
+      #rospack = rospkg.RosPack()
+      default_pub_topic = GUI_CMD_TOPIC
 
       # Set Commands
       self.commands = [LOW_LEVEL_OFF_STRING,
@@ -65,7 +65,7 @@ class SpeechGui(QtGui.QWidget):
       self.raise_()
 
       # # Create the publisher to publish the commands to
-      self.pub = rospy.Publisher("GUI_cmd_int", Int8, queue_size=1)
+      self.pub = rospy.Publisher(default_pub_topic, Int8, queue_size=1)
 
       rospy.loginfo("Finished initializing Dreamer GUI")
 
@@ -116,7 +116,7 @@ class SpeechGui(QtGui.QWidget):
 
 def gui_start():
     app = QtGui.QApplication(sys.argv)
-    sg = SpeechGui()
+    sg = DreamerGui()
     sys.exit(app.exec_())
 
 

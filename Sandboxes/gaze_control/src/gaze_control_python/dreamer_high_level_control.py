@@ -14,7 +14,10 @@ from detected_people_manager import *
 import dreamer_joint_publisher
 from gaze_control.srv import RunProgram, RunProgramRequest
 from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Int8
 import tf
+
+from GUI_params import *
 
 #-----------------------------------------------
 # ROS Client for Low Level control 
@@ -58,6 +61,8 @@ class Dreamer_Head():
         self.kinematics = hk.Head_Kinematics() 
 
         self.joint_publisher = dreamer_joint_publisher.Custom_Joint_Publisher()
+        self.GUI_listener    = rospy.Subscriber(GUI_CMD_TOPIC, Int8, self.gui_callback)
+
         if LOW_LEVEL_CONTROL:
             self.ctrl_deq_append = setup_ctrl_deq_append()
             self.run_gaze_program = setup_run_program()
@@ -74,6 +79,52 @@ class Dreamer_Head():
         self.CMD_rate = CMD_RATE # rate to send commands to low levelin Hz
         self.time_since_last_cmd_sent = self.ROS_start_time
         self.cmd_rate_measured = 0 #self.CMD_rate
+
+
+    def loop(self):
+        while not rospy.is_shutdown():
+            self.update_time()
+            self.send_low_level_commands()
+            self.rate.sleep()
+
+    def gui_callback(self, msg):
+        gui_command = msg.data
+        if gui_command == LOW_LEVEL_OFF:
+            print gui_command, LOW_LEVEL_OFF_STRING
+        
+        elif gui_command == LOW_LEVEL_ON:
+            print gui_command, LOW_LEVEL_ON_STRING            
+        
+        elif gui_command == STATE_TO_IDLE:
+            print gui_command, STATE_TO_IDLE_STRING
+        
+        elif gui_command == GO_HOME:
+            print gui_command, GO_HOME_STRING
+        
+        elif gui_command == DO_SQUARE_FIXED_EYES:  
+            print gui_command, DO_SQUARE_FIXED_EYES_STRING
+
+        elif gui_command == DO_SQUARE_FIXED_HEAD:
+            print gui_command, DO_SQUARE_FIXED_HEAD_STRING
+        
+        elif gui_command == DO_SQUARE_EYE_PRIORITY:
+            print gui_command, DO_SQUARE_EYE_PRIORITY_STRING
+        
+        elif gui_command == DO_SQUARE_HEAD_PRIORITY:
+            print gui_command, DO_SQUARE_HEAD_PRIORITY_STRING
+        
+        elif gui_command == TRACK_NEAR_PERSON:
+            print gui_command, TRACK_NEAR_PERSON_STRING
+        
+        elif gui_command == AVOID_NEAR_PERSON:
+            print gui_command, AVOID_NEAR_PERSON_STRING
+        
+        elif gui_command == DO_WAYPOINT_TRAJ:      
+            print gui_command, DO_WAYPOINT_TRAJ_STRING      
+        
+        else:
+            print gui_command, "Invalid Command"
+
 
     def update_head_joints(self, head_joint_list):
         self.kinematics.Jlist = head_joint_list
@@ -99,8 +150,8 @@ class Dreamer_Head():
     def update_time(self):
         self.ROS_current_time = rospy.get_time()
         relative_time =  self.ROS_current_time - self.ROS_start_time
-        print 'ROS time (sec): ', relative_time
-        print  '    LL Command Rate (Hz)', self.cmd_rate_measured                    
+        # print 'ROS time (sec): ', relative_time
+        # print  '    LL Command Rate (Hz)', self.cmd_rate_measured                    
         return
 
     def prepare_joint_command(self):
@@ -112,17 +163,15 @@ class Dreamer_Head():
     def send_low_level_commands(self):      
         cmd_interval = self.ROS_current_time - self.time_since_last_cmd_sent
         if (cmd_interval > (1.0/( float(self.CMD_rate))) ):
+            if LOW_LEVEL_CONTROL:
+                print 'sending low level commands now'
             # Send latest joint list
             # client.req(self.kinematics.Jlist)
             self.cmd_rate_measured = 1.0/cmd_interval
             self.time_since_last_cmd_sent = rospy.get_time()
+            self.joint_publisher.publish_joints()
         return
 
-    def loop(self):
-        while not rospy.is_shutdown():
-            self.update_time()
-            self.send_low_level_commands()
-            self.rate.sleep()
 
 
 if __name__ == "__main__":

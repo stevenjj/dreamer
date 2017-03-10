@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # GUI Command list
+GUI_CMD_TOPIC = 'GUI_cmd_int'
 INVALID_CMD = -1
 LOW_LEVEL_OFF, LOW_LEVEL_OFF_STRING  = 0, "Low Level OFF"
 LOW_LEVEL_ON,  LOW_LEVEL_ON_STRING   = 1, "Low Level ON"
