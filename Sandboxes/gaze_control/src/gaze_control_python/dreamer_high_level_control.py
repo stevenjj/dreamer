@@ -7,9 +7,9 @@ import modern_robotics as mr
 import head_kinematics as hk
 import util_quat as quat
 
-from traj_manager import *
 from detected_people_manager import *
 from gaze_focus_states import *
+from dreamer_controller import *
 
 # ROS 
 import dreamer_joint_publisher
@@ -24,8 +24,10 @@ from GUI_params import *
 JOINT_LIM_BOUND = 0.9 #between 0 to 1.0
 
 # Rate Constants
-NODE_RATE = 2000 # Update rate of this node in Hz
+NODE_RATE = 1000 # Update rate of this node in Hz
 CMD_RATE = 100 # Update rate for publishing joint positions to client
+
+SEND_RATE = 20 # Trusted Rate of sending
 PRINT_RATE = 10 # Print rate for Debugging
 
 # Time Constants
@@ -122,8 +124,7 @@ class Dreamer_Head():
         # Class Objects
         self.people_manager = Detected_People_Manager()
         self.gaze_focus_states = Gaze_Focus_States(self.kinematics)
-        self.traj_manager = Trajectory_Manager(self.kinematics)
-        # self.controller_manager = Controller(self.kinematics, self.gaze_focus_states, self.people_manager)       
+        self.controller_manager = Controller(self.kinematics, self.gaze_focus_states, self.people_manager)       
 
         # Behaviors, States and Tasks
         self.states = [STATE_IDLE, STATE_GO_TO_POINT, STATE_GO_HOME]
@@ -232,6 +233,7 @@ class Dreamer_Head():
     #   and to low Level if possible @ the control loop frequency
     def send_command(self):      
         cmd_interval = self.ROS_current_time - self.time_since_last_cmd_sent
+
         if (cmd_interval > (1.0/( float(self.CMD_rate))) ):   
             # Send Low Level Commands if LL Control is enabled
             if (self.low_level_control and 
@@ -263,11 +265,11 @@ class Dreamer_Head():
         # STATE GO TO POINT
         elif (self.current_state == STATE_GO_TO_POINT):
             if (self.current_task == TASK_GO_TO_POINT_EYE_PRIORITY):
-                 Q_des, command_result = self.traj_manager.fixed_eye_head_trajectory_look_at_point()
+                 Q_des, command_result = self.controller_manager.fixed_eye_head_trajectory_look_at_point()
                  self.process_task_result(Q_des, command_result)
 
             elif (self.current_task == TASK_GO_TO_POINT_HEAD_PRIORITY):
-                 Q_des, command_result = self.traj_manager.fixed_head_eye_trajectory_look_at_point()                
+                 Q_des, command_result = self.controller_manager.fixed_head_eye_trajectory_look_at_point()                
                  self.process_task_result(Q_des, command_result)
             return
 
@@ -285,9 +287,7 @@ class Dreamer_Head():
             time_interval = self.ROS_current_time - self.gui_command_execute_time
             if (time_interval > self.wait_time_go_home):
                 # Reset all Joints to Home Position
-                self.kinematics.Jlist = np.zeros(7)            
-                self.update_head_joints(self.kinematics.Jlist)
-                self.gaze_focus_states.reset()
+                self.reset_all_joints_to_home()
 
                 self.gui_command_executing = False
                 # Change State Back To Idle
@@ -298,6 +298,10 @@ class Dreamer_Head():
 
 
 
+    def reset_all_joints_to_home(self):
+        self.kinematics.Jlist = np.zeros(7)            
+        self.update_head_joints(self.kinematics.Jlist)
+        self.gaze_focus_states.reset()  
 
     # ---------------------------------------------------------
     # GUI Callback Commands
@@ -501,7 +505,7 @@ class Dreamer_Head():
             eye_xyz_gaze_loc = self.task_params[self.current_task_index][1]            
             movement_duration = self.task_params[self.current_task_index][2]
 
-            self.traj_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration)  
+            self.controller_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration)  
         #     self.controller_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration, priority_type)          
             self.task_commanded = True
 
@@ -512,7 +516,7 @@ class Dreamer_Head():
             eye_xyz_gaze_loc = self.task_params[self.current_task_index][1]            
             movement_duration = self.task_params[self.current_task_index][2]
 
-            self.traj_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration)  
+            self.controller_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration)  
         #     self.controller_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration, priority_type)          
             self.task_commanded = True
 
