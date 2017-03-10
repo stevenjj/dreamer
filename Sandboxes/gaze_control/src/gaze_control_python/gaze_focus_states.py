@@ -34,9 +34,9 @@ class Gaze_Focus_States():
         self.old_position = self.position
         self.update_focus_location()
 
-        self.velocity[self.H] =  (self.old_position[H]  - self.position[self.H] ) /dt
-        self.velocity[self.RE] = (self.old_position[RE] - self.position[self.RE])/dt
-        self.velocity[self.LE] = (self.old_position[LE] - self.position[self.LE])/dt                
+        self.velocity[self.H] =  (self.old_position[self.H]  - self.position[self.H] ) /dt
+        self.velocity[self.RE] = (self.old_position[self.RE] - self.position[self.RE])/dt
+        self.velocity[self.LE] = (self.old_position[self.LE] - self.position[self.LE])/dt                
 
     # Update current focus location using latest joint positions
     def update_focus_location(self):

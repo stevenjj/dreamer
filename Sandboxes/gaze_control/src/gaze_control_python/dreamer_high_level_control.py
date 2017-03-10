@@ -260,10 +260,9 @@ class Dreamer_Head():
         #--------------
         # STATE GO TO POINT
         elif (self.current_state == STATE_GO_TO_POINT):
-            # if (self.current_task == GO_TO_POINT_EYES_ONLY):
-            #     print '  Current_Task:', 'GO_TO_POINT_EYES_ONLY'
-            #     Q_des, command_result = self.traj_manager.eye_trajectory_look_at_point()
-            #     self.process_task_result(Q_des, command_result)
+            if (self.current_task == TASK_GO_TO_POINT_EYE_PRIORITY):
+                 Q_des, command_result = self.traj_manager.fixed_eye_head_trajectory_look_at_point()
+                 self.process_task_result(Q_des, command_result)
 
             # elif (self.current_task == GO_TO_POINT_HEAD_ONLY):
             #     print '  Current_Task:', 'GO_TO_POINT_HEAD_ONLY'
@@ -300,10 +299,10 @@ class Dreamer_Head():
                 # Change State Back To Idle
                 self.current_state = STATE_IDLE
         #--------------
-
-
         else:
             print "ERROR Not a valid state" 
+
+
 
 
     # ---------------------------------------------------------
@@ -424,7 +423,6 @@ class Dreamer_Head():
     # Behavior and Task Logic
 
 
-
     #----------------------------------------------------------
     # Behavior Helper Functions
     def set_prioritized_go_to_point_params(self, head_gaze_location, eye_gaze_location, move_duration):
@@ -474,19 +472,32 @@ class Dreamer_Head():
 
         elif ((self.current_task == TASK_GO_TO_POINT_EYE_PRIORITY) and (self.task_commanded == False)):
             self.current_state = STATE_GO_TO_POINT
-            start_time = self.ROS_current_time
+            start_time = rospy.Time.now().to_sec()  #self.ROS_current_time
             head_xyz_gaze_loc = self.task_params[self.current_task_index][0]
             eye_xyz_gaze_loc = self.task_params[self.current_task_index][1]            
             movement_duration = self.task_params[self.current_task_index][2]
 
-        #     self.traj_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration)  
+            self.traj_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration)  
         #     self.controller_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration, priority_type)          
 
             self.task_commanded = True
         return
 
 
+    def next_task(self):
+        if (self.current_task_index < len(self.task_list)):
+            self.current_task_index += 1
+            self.current_task = self.task_list[self.current_task_index]
+        else:
+            # Behavior is finished
+            self.behavior = BEHAVIOR_NO_BEHAVIOR
 
+    def process_task_result(self, Q_des, command_result):
+        self.update_head_joints(Q_des)
+        if (command_result == True):
+            self.current_state = STATE_IDLE
+            self.task_commanded = False
+            self.next_task()
 
 
 

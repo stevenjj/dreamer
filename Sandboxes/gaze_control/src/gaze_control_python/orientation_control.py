@@ -82,7 +82,7 @@ class Dreamer_Head():
         self.behavior_list =[TRACK_PERSON, MAKE_SQUARE_WITH_HEAD_ONLY, MAKE_SQUARE_WITH_EYES_ONLY, MAKE_SQUARE, MAKE_SQUARE_WITH_PRIORITIZED_TASKS_EYES,  MAKE_SQUARE_WITH_PRIORITIZED_TASKS_HEAD, DO_NOTHING] #[MAKE_SQUARE_WITH_EYES_ONLY, MAKE_SQUARE, DO_NOTHING]
         self.current_behavior_index = 0
         self.behavior_commanded = False
-        self.behavior_task = self.behavior_list[0]
+        self.behavior_task = self.behavior_list[1]
 
         # If behavior cycle, we will demonstrate all behaviors.
         self.behavior_cycle = False
@@ -150,7 +150,6 @@ class Dreamer_Head():
         self.ROS_current_time = rospy.Time.now().to_sec()
         relative_time =  self.ROS_current_time - self.ROS_start_time
         print 'ROS time (sec): ', relative_time            
-
 
         # TASK GO TO POINT Using Eyes Only
         if ((self.current_task == GO_TO_POINT_EYES_ONLY) and (self.task_commanded == False)):
