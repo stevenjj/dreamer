@@ -144,6 +144,8 @@ class Dreamer_Head():
         self.time_since_last_print = self.ROS_start_time               
         self.gui_command_execute_time = self.ROS_start_time                
 
+        self.dt = 1.0/NODE_RATE
+
         # Custom Wait Times
         self.wait_time_go_home = WAIT_TIME_GO_HOME
 
@@ -157,7 +159,7 @@ class Dreamer_Head():
     # Joint and Gaze Focus Update
     def update_head_joints(self, head_joint_list):
         self.kinematics.Jlist = head_joint_list
-        self.eye_cartesian_states.update_gaze_focus_states()
+        self.eye_cartesian_states.update_gaze_focus_states(self.dt)
 
         def joint_cmd_bound(val, joint_name, jmax, jmin):
             if val >= JOINT_LIM_BOUND*jmax:
@@ -178,7 +180,9 @@ class Dreamer_Head():
 
     # Time Update
     def update_time(self):
-        self.ROS_current_time = rospy.get_time()
+        current_time = rospy.get_time()
+        self.dt = current_time - self.ROS_current_time
+        self.ROS_current_time = current_time
         self.relative_time =  self.ROS_current_time - self.ROS_start_time                 
         return
 
@@ -385,9 +389,11 @@ class Dreamer_Head():
             print '    Task                :' , TASK_ID_TO_STRING[self.current_task]
             print '    Behavior            :' , BEHAVIOR_ID_TO_STRING[self.current_behavior]
             print '    Low Level           :' , self.low_level_control 
+            print '    GUI Command         :' , self.gui_command_string
             print '    Command Rate (Hz)   :' , self.cmd_rate_measured  
             print '    Print Rate (Hz)     :' , 1.0/print_interval
-            print '    GUI Command         :' , self.gui_command_string
+            print '    Node Rate (Hz)      :' , 1.0/self.dt 
+            print '    Node dt(s)          :' , self.dt
 
             #self.eye_cartesian_states.print_debug()
 
