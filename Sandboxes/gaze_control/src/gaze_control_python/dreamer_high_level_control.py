@@ -40,6 +40,7 @@ def setup_run_program():
     else:
         return run_gaze_program
 #-----------------------------------------------
+LOW_LEVEL_CONTROL = False
 
 # Program Constants
 JOINT_LIM_BOUND = 0.9 #between 0 to 1.0
@@ -57,14 +58,19 @@ class Dreamer_Head():
         self.kinematics = hk.Head_Kinematics() 
 
         self.joint_publisher = dreamer_joint_publisher.Custom_Joint_Publisher()
-#        self.ctrl_deq_append = setup_ctrl_deq_append()
-#        self.run_gaze_program = setup_run_program()
+        if LOW_LEVEL_CONTROL:
+            self.ctrl_deq_append = setup_ctrl_deq_append()
+            self.run_gaze_program = setup_run_program()
+        else:
+            self.ctrl_deq_append, self.run_gaze_program = False, False
 
         # Node rates
+        # ROS Rate
         self.rate = rospy.Rate(NODE_RATE) 
         self.ROS_start_time = rospy.get_time()
         self.ROS_current_time = self.ROS_start_time        
 
+        # Command Rate
         self.CMD_rate = CMD_RATE # rate to send commands to low levelin Hz
         self.time_since_last_cmd_sent = self.ROS_start_time
         self.cmd_rate_measured = 0 #self.CMD_rate
@@ -96,6 +102,12 @@ class Dreamer_Head():
         print 'ROS time (sec): ', relative_time
         print  '    LL Command Rate (Hz)', self.cmd_rate_measured                    
         return
+
+    def prepare_joint_command(self):
+        # Only control the first 4 joints for now
+        joints = range(4)
+        joint_rads = self.kinematics.Jlist[0:4]
+        return joints, joint_rads
 
     def send_low_level_commands(self):      
         cmd_interval = self.ROS_current_time - self.time_since_last_cmd_sent
