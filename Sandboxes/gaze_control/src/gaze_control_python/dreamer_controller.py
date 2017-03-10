@@ -284,15 +284,18 @@ class Controller():
 
         # If focused, use that point as the initial_gaze_point
 
-        if not(eyes_focused):
+        if eyes_focused:
+            self.gaze_focus_states.focus_point_init[self.H]  = (p_head_init      + x_head_hat*self.gaze_focus_states.current_focus_length[self.H])
+            self.gaze_focus_states.focus_point_init[self.RE] = (p_right_eye_init + x_right_eye_hat*self.gaze_focus_states.current_focus_length[self.RE])        
+            self.gaze_focus_states.focus_point_init[self.LE] = (p_left_eye_init  + x_left_eye_hat*self.gaze_focus_states.current_focus_length[self.LE])
+        else:
             self.gaze_focus_states.focus_length[self.H]  =  np.linalg.norm(xyz_head_gaze_loc - p_head_init)
             self.gaze_focus_states.focus_length[self.RE] = np.linalg.norm(xyz_eye_gaze_loc - p_right_eye_init)        
             self.gaze_focus_states.focus_length[self.LE] = np.linalg.norm(xyz_eye_gaze_loc - p_left_eye_init)
 
-
-        self.gaze_focus_states.focus_point_init[self.H]  = (p_head_init      + x_head_hat*self.gaze_focus_states.focus_length[self.H])
-        self.gaze_focus_states.focus_point_init[self.RE] = (p_right_eye_init + x_right_eye_hat*self.gaze_focus_states.focus_length[self.RE])        
-        self.gaze_focus_states.focus_point_init[self.LE] = (p_left_eye_init  + x_left_eye_hat*self.gaze_focus_states.focus_length[self.LE])
+            self.gaze_focus_states.focus_point_init[self.H]  = (p_head_init      + x_head_hat*self.gaze_focus_states.focus_length[self.H])
+            self.gaze_focus_states.focus_point_init[self.RE] = (p_right_eye_init + x_right_eye_hat*self.gaze_focus_states.focus_length[self.RE])        
+            self.gaze_focus_states.focus_point_init[self.LE] = (p_left_eye_init  + x_left_eye_hat*self.gaze_focus_states.focus_length[self.LE])
 
     def xi_to_xf_vec(self, t, initial_point, final_point):
         x_f, x_i = final_point, initial_point
