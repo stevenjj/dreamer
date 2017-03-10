@@ -15,6 +15,9 @@ class Gaze_Focus_States():
     LE = "left_eye"
     def __init__(self, head_kinematics):
         self.kinematics = head_kinematics
+
+        self.focus_length = {self.H : INIT_FOCUS_LENGTH, self.RE : INIT_FOCUS_LENGTH, self.LE : INIT_FOCUS_LENGTH}
+        self.focus_point_init = {self.H : INIT_FOCUS_LENGTH, self.RE : INIT_FOCUS_LENGTH, self.LE : INIT_FOCUS_LENGTH}
         self.current_focus_length = {self.H : INIT_FOCUS_LENGTH, self.RE : INIT_FOCUS_LENGTH, self.LE : INIT_FOCUS_LENGTH}
         # Current Focus Location
         self.position = {self.H : np.zeros(3), self.RE : np.zeros(3), self.LE : np.zeros(3) }

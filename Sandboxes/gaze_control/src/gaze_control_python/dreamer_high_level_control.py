@@ -25,7 +25,7 @@ JOINT_LIM_BOUND = 0.9 #between 0 to 1.0
 
 # Rate Constants
 NODE_RATE = 1000 # Update rate of this node in Hz
-CMD_RATE = 100 # Update rate for publishing joint positions to client
+CMD_RATE = 20 # Update rate for publishing joint positions to client
 
 SEND_RATE = 20 # Trusted Rate of sending
 PRINT_RATE = 10 # Print rate for Debugging
