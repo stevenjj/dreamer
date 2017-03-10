@@ -15,8 +15,6 @@ class Gaze_Focus_States():
     def __init__(self, head_kinematics):
         self.kinematics = head_kinematics
 
-        # self.focus_length = {self.H : 1, self.RE : 1, self.LE : 1 }
-        # self.focus_point_init = {self.H : 1, self.RE : 1, self.LE : 1 }
         self.current_focus_length = {self.H : 1, self.RE : 1, self.LE : 1 }
 
         # Current Focus Location
@@ -56,7 +54,7 @@ class Gaze_Focus_States():
 
         self.position[self.H]  = x_head_eye_hat*head_fl + p_head
         self.position[self.RE] = x_right_eye_hat*re_fl  + p_right_eye        
-        self.position[self.LE] = x_left_eye_hat*le_fl   + p_head
+        self.position[self.LE] = x_left_eye_hat*le_fl   + p_left_eye
 
 
     def are_eyes_focused(self):
@@ -64,6 +62,9 @@ class Gaze_Focus_States():
             return True
         else:
             return False
+
+    def print_debug(self):
+        print self.position
 
     def publish_focus_length(self):
         msg = Float32MultiArray()

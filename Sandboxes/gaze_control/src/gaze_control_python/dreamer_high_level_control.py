@@ -154,9 +154,10 @@ class Dreamer_Head():
 
 
     #-------------------------------------------------------------
-    # Joint Update
+    # Joint and Gaze Focus Update
     def update_head_joints(self, head_joint_list):
         self.kinematics.Jlist = head_joint_list
+        self.eye_cartesian_states.update_gaze_focus_states()
 
         def joint_cmd_bound(val, joint_name, jmax, jmin):
             if val >= JOINT_LIM_BOUND*jmax:
@@ -388,6 +389,7 @@ class Dreamer_Head():
             print '    Print Rate (Hz)     :' , 1.0/print_interval
             print '    GUI Command         :' , self.gui_command_string
 
+            #self.eye_cartesian_states.print_debug()
 
 
     # --------------------------------------------------------
@@ -402,6 +404,10 @@ class Dreamer_Head():
             # Print out
             self.print_debug()
             self.update_time()
+
+            # Visualization
+            self.eye_cartesian_states.loop()
+
             # Sleep
             self.rate.sleep()
 
