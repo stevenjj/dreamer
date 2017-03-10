@@ -125,7 +125,7 @@ class Dreamer_Head():
 
         # Behaviors, States and Tasks
         self.states = [STATE_IDLE, STATE_GO_TO_POINT, STATE_GO_HOME]
-        self.behaviors =[BEHAVIOR_NO_BEHAVIOR]
+        self.behaviors =[BEHAVIOR_NO_BEHAVIOR, BEHAVIOR_DO_SQUARE_FIXED_EYES]
         self.tasks = [TASK_NO_TASK]
 
         # Current State, Behavior, Task
@@ -133,6 +133,9 @@ class Dreamer_Head():
         self.current_behavior = BEHAVIOR_NO_BEHAVIOR
         self.current_task     = TASK_NO_TASK
 
+        # Task Variables
+        self.task_list = []
+        self.task_params = []
         self.current_task_index = 0                
 
 
@@ -152,6 +155,7 @@ class Dreamer_Head():
         # Semaphores
         self.gui_command_executing = False
         self.behavior_commanded = False
+        self.task_commanded = False
 
 
 
@@ -243,13 +247,6 @@ class Dreamer_Head():
             self.joint_publisher.publish_joints()
         return
 
-
-    #----------------------------------------------------------
-    def behavior_logic(self):
-        return
-
-    def task_logic(self):
-        return
 
     # ---------------------------------------------------------
     # Main State Machine
@@ -395,7 +392,11 @@ class Dreamer_Head():
             print '    Node Rate (Hz)      :' , 1.0/self.dt 
             print '    Node dt(s)          :' , self.dt
 
+            print self.task_params
             #self.eye_cartesian_states.print_debug()
+            #self.eye_cartesian_states.print_debug()
+            #self.controller_manager.print_debug()
+            #self.detected_people_manager.print_debug()
 
 
     # --------------------------------------------------------
@@ -403,6 +404,8 @@ class Dreamer_Head():
     def loop(self):
         while not rospy.is_shutdown():
             # Process Logic
+            self.behavior_logic()
+            self.task_logic()
             self.state_logic()
             # Send Commands
             self.send_command()
@@ -412,10 +415,84 @@ class Dreamer_Head():
             self.update_time()
 
             # Visualization
-            self.eye_cartesian_states.loop()
+            self.eye_cartesian_states.publish_focus_length()
 
             # Sleep
             self.rate.sleep()
+
+
+    # Behavior and Task Logic
+
+
+
+    #----------------------------------------------------------
+    # Behavior Helper Functions
+    def set_prioritized_go_to_point_params(self, head_gaze_location, eye_gaze_location, move_duration):
+        params = (head_gaze_location, eye_gaze_location, move_duration)
+        return params       
+
+    def execute_behavior(self, task_list, task_params):
+        # Update Task Variables
+        self.task_list   = task_list
+        self.task_params = task_params
+
+        self.current_task_index = 0
+        self.current_task = self.task_list[self.current_task_index]
+        
+        # Update Semaphores
+        self.task_commanded     = False
+        self.behavior_commanded = True
+
+
+    def behavior_logic(self):
+        if self.current_behavior == BEHAVIOR_NO_BEHAVIOR:
+            self.task_list = [TASK_NO_TASK]
+            self.task_params = []
+            return
+
+        # This behavior makes a square with the head while the eyes are pointing straight ahead
+        elif ((self.current_behavior == BEHAVIOR_DO_SQUARE_FIXED_EYES) and self.behavior_commanded == False):
+            task_list = [TASK_GO_TO_POINT_EYE_PRIORITY for i in range(6)]
+            task_list.append(TASK_NO_TASK)
+            task_params = []
+
+            init_to_go_point = 3 # Take a longer time to go to the initial point
+            duration = 1
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [2, 0.15, self.kinematics.l1+0.3]),  np.array([6, 0.0, self.kinematics.l1]),      init_to_go_point) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [2, 0.15, self.kinematics.l1-0.3]),   np.array([6, 0.0, self.kinematics.l1]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [2, -0.15, self.kinematics.l1-0.3]),  np.array([6, 0.0, self.kinematics.l1]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [2, -0.15, self.kinematics.l1+0.3]), np.array([6, 0.0, self.kinematics.l1]),      duration) )                       
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [2, 0.15, self.kinematics.l1+0.3]),  np.array([6, 0.0, self.kinematics.l1]),      duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [2, 0.15, self.kinematics.l1-0.3]),   np.array([6, 0.0, self.kinematics.l1]),     duration) )
+            self.execute_behavior(task_list, task_params)
+        return
+
+    def task_logic(self):
+        # TASK GO TO POINT Using Head Only
+        if self.current_task == TASK_NO_TASK:
+            return
+
+        elif ((self.current_task == TASK_GO_TO_POINT_EYE_PRIORITY) and (self.task_commanded == False)):
+            self.current_state = STATE_GO_TO_POINT
+            start_time = self.ROS_current_time
+            head_xyz_gaze_loc = self.task_params[self.current_task_index][0]
+            eye_xyz_gaze_loc = self.task_params[self.current_task_index][1]            
+            movement_duration = self.task_params[self.current_task_index][2]
+
+        #     self.traj_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration)  
+        #     self.controller_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration, priority_type)          
+
+            self.task_commanded = True
+        return
+
+
+
+
+
+
+
+
+
 
 
 if __name__ == "__main__":

@@ -77,5 +77,5 @@ class Gaze_Focus_States():
         self.focus_length_pub.publish(msg)
 
 
-    def loop(self):
-        self.publish_focus_length()
+    #def loop(self):
+    #    self.publish_focus_length()
