@@ -7,7 +7,7 @@ import head_kinematics as hk
 
 from std_msgs.msg import Float32MultiArray
 
-FOCUS_THRESH = 0.2
+FOCUS_THRESH = 0.08
 INIT_FOCUS_LENGTH = 0.6
 class Gaze_Focus_States():
     H = "head"
@@ -19,6 +19,7 @@ class Gaze_Focus_States():
         self.focus_length = {self.H : INIT_FOCUS_LENGTH, self.RE : INIT_FOCUS_LENGTH, self.LE : INIT_FOCUS_LENGTH}
         self.focus_point_init = {self.H : INIT_FOCUS_LENGTH, self.RE : INIT_FOCUS_LENGTH, self.LE : INIT_FOCUS_LENGTH}
         self.current_focus_length = {self.H : INIT_FOCUS_LENGTH, self.RE : INIT_FOCUS_LENGTH, self.LE : INIT_FOCUS_LENGTH}
+
         # Current Focus Location
         self.position = {self.H : np.zeros(3), self.RE : np.zeros(3), self.LE : np.zeros(3) }
         # Focus Velocity        
@@ -29,7 +30,10 @@ class Gaze_Focus_States():
         self.focus_length_pub = rospy.Publisher('setArrLength', Float32MultiArray, queue_size=1)
 
     def reset(self):
-        self.current_focus_length = {self.H : 1, self.RE : 1, self.LE : 1 }
+        self.focus_length = {self.H : INIT_FOCUS_LENGTH, self.RE : INIT_FOCUS_LENGTH, self.LE : INIT_FOCUS_LENGTH}
+        self.focus_point_init = {self.H : INIT_FOCUS_LENGTH, self.RE : INIT_FOCUS_LENGTH, self.LE : INIT_FOCUS_LENGTH}
+        self.current_focus_length = {self.H : INIT_FOCUS_LENGTH, self.RE : INIT_FOCUS_LENGTH, self.LE : INIT_FOCUS_LENGTH}
+
         # Current Focus Location
         self.position = {self.H : np.zeros(3), self.RE : np.zeros(3), self.LE : np.zeros(3) }
         # Focus Velocity        
@@ -56,12 +60,14 @@ class Gaze_Focus_States():
     # Update gaze focus states 
     def update_gaze_focus_states(self, dt): 
         # Assume that current self.position was computed using old self.kinematics.Jlist
-        self.old_position = self.position
+        self.old_position[self.H] = self.position[self.H]
+        self.old_position[self.RE] = self.position[self.RE]
+        self.old_position[self.LE] = self.position[self.LE]        
         self.update_focus_location()
 
-        self.velocity[self.H] =  (self.old_position[self.H]  - self.position[self.H] ) /dt
-        self.velocity[self.RE] = (self.old_position[self.RE] - self.position[self.RE])/dt
-        self.velocity[self.LE] = (self.old_position[self.LE] - self.position[self.LE])/dt                
+        self.velocity[self.H] =  (self.position[self.H] - self.old_position[self.H]) /dt
+        self.velocity[self.RE] = (self.position[self.RE] - self.old_position[self.RE])/dt
+        self.velocity[self.LE] = (self.position[self.LE] - self.old_position[self.LE])/dt                
 
     # Update current focus location using latest joint positions
     def update_focus_location(self):

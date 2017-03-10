@@ -257,6 +257,7 @@ class Controller():
         self.current_traj_time = start_time
         self.prev_traj_time = 0     
 
+
         self.initialize_head_eye_focus_point(xyz_head_gaze_loc, xyz_eye_gaze_loc, eyes_focused)
 
         # Set Minimum Jerk parameters
@@ -282,20 +283,16 @@ class Controller():
         x_left_eye_hat = np.array(R_left_eye_init)[:,0]
 
         # If focused, use that point as the initial_gaze_point
-        if (eyes_focused):
-            # Do stuff here
-            self.gaze_focus_states.focus_point_init = self.gaze_focus_states.focus_point_init
-            raise 'hello'
-        else:       
-            self.gaze_focus_states.focus_length[self.H] =  np.linalg.norm(xyz_head_gaze_loc - p_head_init)
+
+        if not(eyes_focused):
+            self.gaze_focus_states.focus_length[self.H]  =  np.linalg.norm(xyz_head_gaze_loc - p_head_init)
             self.gaze_focus_states.focus_length[self.RE] = np.linalg.norm(xyz_eye_gaze_loc - p_right_eye_init)        
             self.gaze_focus_states.focus_length[self.LE] = np.linalg.norm(xyz_eye_gaze_loc - p_left_eye_init)
 
 
-            self.gaze_focus_states.focus_point_init[self.H]  = (p_head_init      + x_head_hat*self.gaze_focus_states.focus_length[self.H])
-            self.gaze_focus_states.focus_point_init[self.RE] = (p_right_eye_init + x_right_eye_hat*self.gaze_focus_states.focus_length[self.RE])        
-            self.gaze_focus_states.focus_point_init[self.LE] = (p_left_eye_init  + x_left_eye_hat*self.gaze_focus_states.focus_length[self.LE])
-
+        self.gaze_focus_states.focus_point_init[self.H]  = (p_head_init      + x_head_hat*self.gaze_focus_states.focus_length[self.H])
+        self.gaze_focus_states.focus_point_init[self.RE] = (p_right_eye_init + x_right_eye_hat*self.gaze_focus_states.focus_length[self.RE])        
+        self.gaze_focus_states.focus_point_init[self.LE] = (p_left_eye_init  + x_left_eye_hat*self.gaze_focus_states.focus_length[self.LE])
 
     def xi_to_xf_vec(self, t, initial_point, final_point):
         x_f, x_i = final_point, initial_point
@@ -329,7 +326,7 @@ class Controller():
 
 
     # Fixed Head, Move Eyes Task Only
-    def fixed_head_eye_trajectory_look_at_point(self):
+    def head_priority_eye_trajectory_look_at_point(self):
         # Calculate Time
         t, t_prev = self.calculate_t_t_prev()
         dt = t - t_prev
@@ -461,7 +458,7 @@ class Controller():
 
 
     # Fixed Eye, Move Head Task Only
-    def fixed_eye_head_trajectory_look_at_point(self):
+    def eye_priority_head_trajectory_look_at_point(self):
         # Calculate Time
         t, t_prev = self.calculate_t_t_prev()
         dt = t - t_prev

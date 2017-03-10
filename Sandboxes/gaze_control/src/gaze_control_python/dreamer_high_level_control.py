@@ -265,11 +265,11 @@ class Dreamer_Head():
         # STATE GO TO POINT
         elif (self.current_state == STATE_GO_TO_POINT):
             if (self.current_task == TASK_GO_TO_POINT_EYE_PRIORITY):
-                 Q_des, command_result = self.controller_manager.fixed_eye_head_trajectory_look_at_point()
+                 Q_des, command_result = self.controller_manager.eye_priority_head_trajectory_look_at_point()
                  self.process_task_result(Q_des, command_result)
 
             elif (self.current_task == TASK_GO_TO_POINT_HEAD_PRIORITY):
-                 Q_des, command_result = self.controller_manager.fixed_head_eye_trajectory_look_at_point()                
+                 Q_des, command_result = self.controller_manager.head_priority_eye_trajectory_look_at_point()                
                  self.process_task_result(Q_des, command_result)
             return
 
@@ -400,6 +400,8 @@ class Dreamer_Head():
             print "        GUI,   Behavior, Task CMD" 
             print "       ", self.gui_command_executing, " ", self.behavior_commanded, "   ", self.task_commanded
 
+            print self.gaze_focus_states.velocity
+
             # print self.current_task_index
             # print len(self.task_list)
             # print self.task_params
@@ -516,7 +518,7 @@ class Dreamer_Head():
             eye_xyz_gaze_loc = self.task_params[self.current_task_index][1]            
             movement_duration = self.task_params[self.current_task_index][2]
 
-            self.controller_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration)  
+            self.controller_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration, self.gaze_focus_states.are_eyes_focused())  
         #     self.controller_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration, priority_type)          
             self.task_commanded = True
 
