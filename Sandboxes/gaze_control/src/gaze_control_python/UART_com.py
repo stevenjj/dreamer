@@ -17,6 +17,13 @@ from gaze_control.srv import RunProgram, RunProgramResponse
 # lock_deq.release()
 
 
+#----- EMBEDDED CTRL STATES ---------#
+
+
+
+
+
+
 
 
 #------ DEFINE COMS PROTOCOL ------#
@@ -164,25 +171,73 @@ def decode_message(dec_msg):
 
 
 def send_and_confirm(msg_to_send):
-    global ser, msg_deq
+    global ser, msg_deq, ctrl_deq, reset_flag
     
-    # start_time = time.time()
+    start_time = time.time()
 
     ser.write(msg_to_send)
-    rospy.sleep(0.001)
-    # msg_recieved = ser.readline()
+    msg_recieved = ser.readline()
 
-    # elapsed_time = time.time() - start_time
+    elapsed_time = time.time() - start_time
 
-    return True
+    msg_recieved = msg_recieved.strip()
 
-    # if msg_to_send.strip() != msg_recieved.strip():
-    #     msg_deq.append( 'WARNING: Unexpected message recieved: ' + str(msg_recieved) + ', wait_time = ' + str(elapsed_time))
-    #     return False
-    # else:
-    #     msg_deq.append( 'Message sent and confirmed: ' + msg_recieved.strip() + \
-    #                          ', ' + decode_message(msg_recieved.strip()) + ', wait_time = ' + str(elapsed_time) )
-    #     return True
+    if msg_recieved != '' and msg_recieved[-1] == 'R':      # RESET flag recieved from embedded controller
+        
+        reset_flag = True
+        ctrl_deq.clear()
+
+        first_half_msg = msg_recieved[0:-1]                 # Get the stuff before the 'R'
+        second_half_msg = (ser.readline()).strip()          # Get the second half of the original message, assume no timeout
+        msg_recieved = first_half_msg + second_half_msg     # Stitch the original message back together
+        elapsed_time = time.time() - start_time
+
+        msg_deq.append('Reset flag recieved, interrupted msg: ' + first_half_msg + '-R-' + second_half_msg + ', wait_time = ' + str(elapsed_time))
+        if msg_to_send.strip() == msg_recieved:             # If another message was interrupted to send the reset flag
+            msg_deq.append( '   ... Confirm:        ' + msg_recieved + ', ' + decode_message(msg_recieved) )
+            return True
+        else:
+            msg_deq.append( '   ... WARNING - sent: ' + msg_to_send.strip() + ', response: ' + msg_recieved )
+            return False
+            
+    elif msg_to_send.strip() != msg_recieved:
+        msg_deq.append( 'WARNING - sent: ' + msg_to_send.strip() + ', response: ' + msg_recieved + ', wait_time = ' + str(elapsed_time))
+        return False
+    else:
+        msg_deq.append( 'Confirm:        ' + msg_recieved + \
+                             ', ' + decode_message(msg_recieved) + ', wait_time = ' + str(elapsed_time) )
+        return True
+
+
+
+def check_for_mailbox_free_signal():
+    global ser, msg_deq, ctrl_deq, reset_flag
+
+    start_time = time.time()
+    msg_recieved = (ser.readline()).strip()
+    elapsed_time = time.time() - start_time
+
+    if msg_recieved == 'R':
+        msg_deq.append('Reset flag recieved, wait_time = ' + str(elapsed_time))
+
+        reset_flag = True
+        ctrl_deq.clear()
+        return False
+
+    elif msg_recieved == 'G':
+        msg_deq.append('Correct signal recieved: ' +str(msg_recieved) + ', wait_time = ' + str(elapsed_time))
+        return True
+    elif msg_recieved == 'F':
+        msg_deq.append('WARNING: speed limit exceeded, wait_time = ' + str(elapsed_time))
+        return True
+    elif msg_recieved != '' :
+        msg_deq.append( "WARNING: unexpected message recieved: " + str(msg_recieved) + ', wait_time = ' + str(elapsed_time) )
+        return False
+    else:
+        msg_deq.append( 'Timeout, wait_time = ' + str(elapsed_time))
+        return False
+
+
 
 
 def clear_serial_buffer():
@@ -236,44 +291,31 @@ def send_move_length_msg(num_ctrl_cycles):  # ctrl loop is 550 Hz => 0.0018s
 
 
 
+def append_go_to_center(seconds):
+    seconds = max(seconds,3)                    # must be at least 3 seconds
+    new_cmd = {}
+    for joint_num in range(NUM_DOFS):
+        new_cmd[joint_num] = 0
+
+    numCtrlSteps = CTRL_FREQ * seconds
+    ctrl_tup = ( numCtrlSteps , new_cmd )
+    
+    ctrl_deq.append( ctrl_tup )
 
 
 
 
-
-def check_for_mailbox_free_signal():
-    global ser, msg_deq
-
-    start_time = time.time()
-    msg_recieved = (ser.readline()).strip()
-    elapsed_time = time.time() - start_time
-
-    if msg_recieved == 'G':
-        msg_deq.append('Correct signal recieved: ' +str(msg_recieved) + ', wait_time = ' + str(elapsed_time))
-        return True
-    elif msg_recieved == 'F':
-        msg_deq.append('WARNING: speed limit exceeded!'+ str(msg_recieved) + ', wait_time = ' + str(elapsed_time))
-        return True
-    elif msg_recieved != '' :
-        msg_deq.append( "WARNING: unexpected message recieved: " + str(msg_recieved) + ', wait_time = ' + str(elapsed_time) )
-        return False
-    else:
-        msg_deq.append( 'Timeout, wait_time = ' + str(elapsed_time))
-        return False
 
 
 def handle_ctrl_deq_append(req):
     global ctrl_deq
     new_cmd = {}
-    
     for joint_num, joint_cmd_rad in zip( req.joint_mapping.data , req.q_cmd_radians.data ):
         new_cmd[joint_num] = joint_cmd_rad
-        
+
     ctrl_tup = ( req.numCtrlSteps.data , new_cmd )
     
     ctrl_deq.append( ctrl_tup )   # threadsafe
-
-    #print 'FIFO size = ', len(ctrl_deq)
 
     resp = HeadJointCmdResponse()
     resp.success.data = True
@@ -298,17 +340,24 @@ def run_program_svc_callback(req):
 
 
 
+
+
+
+
+
 def print_avail_debug_statements(deq):
+    global msg_deq
     #---------- "less-intrusive" msg printing ----------#
     try:
-        msg = deq.popleft()    # try to get next msg we recieved
+        msg = msg_deq.popleft()    # try to get next msg we recieved
     except IndexError:
         msg = None                 # if msg_deq is empty: msg = None
+   
 
     while msg:
         print msg
         try:
-            msg = deq.popleft()    # try to get next msg we recieved
+            msg = msg_deq.popleft()    # try to get next msg we recieved
         except IndexError:
             msg = None                 # if msg_deq is empty: msg = None
 
@@ -316,7 +365,7 @@ def print_avail_debug_statements(deq):
 
 
 #-------- GLOBAL VARIABLES --------#
-global ser, ctrl_deq, msg_deq, prog_request
+global ser, ctrl_deq, msg_deq, prog_request, reset_flag
 ctrl_deq = deque()
 msg_deq = deque()
 
@@ -336,20 +385,13 @@ if __name__ == '__main__':
     r = rospy.Rate(1000) # 1 kHz
 
 
-    # while not rospy.is_shutdown():
-    #     print_avail_debug_statements(ctrl_deq)
-    #     r.sleep()
-
-
-
-
     # Set Initial State
     prog_request = CLEAR_CTRL_DEQ_PROGRAM
     current_program = RANDOM_GAZE_PROGRAM
     cmd_send_success = True
     emb_mailbox_free = True
     next_cmd = None
-    last_time = None
+    reset_flag = False
 
 
 
@@ -382,15 +424,21 @@ if __name__ == '__main__':
 
             if prog_request == CLEAR_CTRL_DEQ_PROGRAM:
 
+                ctrl_deq.clear()
+
                 # Reset State
                 cmd_send_success = True
-                emb_mailbox_free = True
+                emb_mailbox_free = False   
                 next_cmd = None
 
                 # Reenter current program
                 prog_request = current_program
-                rospy.sleep(0.5)
-                clear_serial_buffer()
+                #rospy.sleep(0.5)
+                #clear_serial_buffer()
+                reset_flag = False
+
+
+                msg_deq.append("Cleared ctrl_deq and reset state.")
 
 
             else:
@@ -404,22 +452,40 @@ if __name__ == '__main__':
                     if prog_request == REMOTE_CONTROL_PROGRAM:
                         rospy.logerr("Could not start remote control program in embedded controller.")
                     
-                    rospy.sleep(0.5)
-                    clear_serial_buffer()
+                    # rospy.sleep(0.5)
+                    # clear_serial_buffer()
 
                     msg_send_success = send_run_program_msg(prog_request)
 
 
                 if msg_send_success:
                     current_program = prog_request
+                    # prog_request = CLEAR_CTRL_DEQ_PROGRAM
+
                     if prog_request == RANDOM_GAZE_PROGRAM:
                         msg_deq.append("Started RANDOM GAZE program in embedded controller.")
 
                     if prog_request == REMOTE_CONTROL_PROGRAM:
                         msg_deq.append("Started REMOTE CONTROL program in embedded controller.")
+                    
 
 
-        if current_program == REMOTE_CONTROL_PROGRAM:
+
+        if (current_program == REMOTE_CONTROL_PROGRAM) and (not reset_flag):
+
+
+
+            ##########################################
+            ####   WAIT FOR MAILBOX FREE SIGNAL   ####
+            ##########################################
+
+            if cmd_send_success and (not emb_mailbox_free):
+                if debug_block != 1:
+                    msg_deq.append( "Switch to block 1 - Wait for 'GO' or 'RESET'")
+                    debug_block = 1
+                emb_mailbox_free = check_for_mailbox_free_signal()
+
+
 
             ##########################################
             ####  GET NEXT COMMAND FROM CTRL DEQ  ####
@@ -428,9 +494,9 @@ if __name__ == '__main__':
             # only get next command if: 
             #    last command was sent successfully and embedded controller can accept another one
             if cmd_send_success and emb_mailbox_free:
-                if debug_block != 1:
-                    msg_deq.append( 'Switch to block 1')
-                    debug_block = 1
+                if debug_block != 2:
+                    msg_deq.append( 'Switch to block 2 - Check for available ctrl_deq commands')
+                    debug_block = 2
 
                 try:
                     next_cmd = ctrl_deq.popleft()   # try to get next cmd to send (threadsafe)
@@ -447,16 +513,9 @@ if __name__ == '__main__':
 
             # if a cmd was available in the ctrl_deq and embedded controller can accept another one
             if next_cmd and emb_mailbox_free :
-                if debug_block != 2:
-                    msg_deq.append('Switch to block 2')
-                    debug_block = 2
-
-
-                this_time = time.time()
-                if last_time:
-                    send_rate = 1./(this_time - last_time)
-                    print 'Send rate = ', send_rate, ' hz, FIFO size = ', len(ctrl_deq)
-                last_time = this_time
+                if debug_block != 3:
+                    msg_deq.append('Switch to block 3 - Send joint commands to embedded controller')
+                    debug_block = 3
                 
                 msg_send_success = True
 
@@ -472,20 +531,12 @@ if __name__ == '__main__':
                 if msg_send_success:
                     cmd_send_success = True
                     emb_mailbox_free = False
-                else:
-                    clear_serial_buffer()
-                    msg_deq.append('Transmission fail. Clear read buffer...')
+                # else:
+                    # clear_serial_buffer()
+                    # msg_deq.append('Transmission fail. Clear read buffer...')
 
 
-            ##########################################
-            ####   WAIT FOR MAILBOX FREE SIGNAL   ####
-            ##########################################
 
-            if cmd_send_success and (not emb_mailbox_free):
-                if debug_block != 3:
-                    msg_deq.append( 'Switch to block 3')
-                    debug_block = 3
-                emb_mailbox_free = check_for_mailbox_free_signal()
 
 
             ##########################################
@@ -493,7 +544,7 @@ if __name__ == '__main__':
             ##########################################
 
             print_avail_debug_statements(msg_deq)
-            
+
 
         #r.sleep()  # usually it wont sleep because this loop takes longer than 1 ms
 
