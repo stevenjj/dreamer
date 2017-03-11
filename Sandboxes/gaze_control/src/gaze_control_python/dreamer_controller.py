@@ -244,7 +244,7 @@ class Controller():
         self.xyz_eye_gaze_loc = np.array([0,0,0])
 
 
-    def specify_head_eye_gaze_point(self, start_time, xyz_head_gaze_loc, xyz_eye_gaze_loc, movement_duration, eyes_focused = False, eye_focal_point = np.array([1,0,0])):
+    def specify_head_eye_gaze_point(self, start_time, xyz_head_gaze_loc, xyz_eye_gaze_loc, movement_duration, eye_focal_point = np.array([1,0,0])):
         # Initialize kinematic positions
         self.Q_o_at_start = self.kinematics.Jlist
 
@@ -258,7 +258,7 @@ class Controller():
         self.prev_traj_time = 0     
 
 
-        self.initialize_head_eye_focus_point(xyz_head_gaze_loc, xyz_eye_gaze_loc, eyes_focused)
+        self.initialize_head_eye_focus_point(xyz_head_gaze_loc, xyz_eye_gaze_loc)
 
         # Set Minimum Jerk parameters
         # Set total cartesian trajectory length
@@ -273,7 +273,7 @@ class Controller():
         return
 
 
-    def initialize_head_eye_focus_point(self, xyz_head_gaze_loc, xyz_eye_gaze_loc, eyes_focused = False, eye_focal_point = np.array([1,0,0])):
+    def initialize_head_eye_focus_point(self, xyz_head_gaze_loc, xyz_eye_gaze_loc, eye_focal_point = np.array([1,0,0])):
         R_head_init, p_head_init = self.kinematics.get_6D_Head_Position(self.kinematics.Jlist)
         R_right_eye_init, p_right_eye_init = self.kinematics.get_6D_Right_Eye_Position(self.kinematics.Jlist)
         R_left_eye_init, p_left_eye_init = self.kinematics.get_6D_Left_Eye_Position(self.kinematics.Jlist)                
@@ -283,8 +283,7 @@ class Controller():
         x_left_eye_hat = np.array(R_left_eye_init)[:,0]
 
         # If focused, use that point as the initial_gaze_point
-
-        if eyes_focused:
+        if self.gaze_focus_states.are_eyes_focused():
             self.gaze_focus_states.focus_point_init[self.H]  = (p_head_init      + x_head_hat*self.gaze_focus_states.current_focus_length[self.H])
             self.gaze_focus_states.focus_point_init[self.RE] = (p_right_eye_init + x_right_eye_hat*self.gaze_focus_states.current_focus_length[self.RE])        
             self.gaze_focus_states.focus_point_init[self.LE] = (p_left_eye_init  + x_left_eye_hat*self.gaze_focus_states.current_focus_length[self.LE])
@@ -459,8 +458,7 @@ class Controller():
 
         return Q_des, result
 
-
-    # Fixed Eye, Move Head Task Only
+    # Eye has higher priority than head
     def eye_priority_head_trajectory_look_at_point(self):
         # Calculate Time
         t, t_prev = self.calculate_t_t_prev()
@@ -498,6 +496,161 @@ class Controller():
         # Current desired gaze point
         p_des_cur_re = x_i_right_eye + e_hat_re*L_re*(self.min_jerk_time_scaling(t, DT))
         p_des_cur_le = x_i_left_eye + e_hat_le*L_le*(self.min_jerk_time_scaling(t, DT))        
+
+        # Calculate current orientation error for each eye
+        d_theta_error_re, angular_vel_hat_re = smooth_orientation_error(p_des_cur_re, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'right_eye') 
+        d_theta_error_le, angular_vel_hat_le = smooth_orientation_error(p_des_cur_le, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'left_eye')         
+        dx_re = d_theta_error_re * angular_vel_hat_re
+        dx_le = d_theta_error_le * angular_vel_hat_le
+
+        #dx_re = np.concatenate( (dx_re, np.array([0,0,0])),  axis=1)
+        #dx_le = np.concatenate( (dx_le, np.array([0,0,0])),  axis=1)
+
+ 
+        dx1 = np.concatenate( (dx_re, dx_le),  axis=1)
+ 
+ 
+        dq1 = calculate_dQ(J1, dx1)
+
+        Q_des = Q_cur + dq1 
+
+        theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'right_eye')
+        theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'left_eye')
+
+        #print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
+        #print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
+
+
+        J1_bar = np.linalg.pinv(J1)        
+        pJ1_J1 = J1_bar.dot(J1)
+
+        # print np.shape(np.linalg.pinv(J1.T))
+        # print np.shape(np.linalg.pinv(J1.T).dot(J1.T))
+        # print np.shape(J1_bar), np.shape(pJ1_J1)
+
+        I_1 = np.eye(np.shape(pJ1_J1)[0])
+        N1 = I_1 - pJ1_J1
+
+        J2 = J_head
+        pinv_J2_N1 = np.linalg.pinv(J2.dot(N1))
+        J2_pinv_J1 = J2.dot(J1_bar)
+        J2_pinv_J1_x1dot = (J2.dot(J1_bar)).dot(dx1)
+
+        # Head task second
+
+        # Calculate FeedForward ---------------------------------
+        # Calculate new Q_des (desired configuration)
+
+        # Calculate Current Desired Gaze Point
+        # Get initial focus point
+        x_i_head = self.gaze_focus_states.focus_point_init[self.H]
+
+        #print '         Focus Point', x_i
+
+        # Find vector from initial focus point to final focus point
+        e_hat_head, L_head = self.xi_to_xf_vec(t, x_i_head, xyz_head_gaze_loc)
+        # Current desired gaze point
+        p_head_des_cur = x_i_head + e_hat_head*L_head*(self.min_jerk_time_scaling(t, DT))
+
+        # Calculate current orientation error
+        #d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT))
+        d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT)) 
+        dx2 = d_theta_error * angular_vel_hat
+        #dx2 = np.concatenate( (dx2, np.array([0,0,0])),  axis=1)
+        
+        
+
+        #dq2 = N1.dot(pinv_J2_N1.dot(dx2 -J2_pinv_J1_x1dot))
+
+        dq2 = calculate_dQ(J_head, dx2)
+        dq2 = np.dot(N1, dq2)
+        
+
+        #Q_des = Q_cur + dq2
+        Q_des = Q_des + dq2
+
+
+        J2_bar = np.linalg.pinv(J2)        
+        pJ2_J2 = J2_bar.dot(J2)
+
+        # print np.shape(np.linalg.pinv(J1.T))
+        # print np.shape(np.linalg.pinv(J1.T).dot(J1.T))
+        # print np.shape(J1_bar), np.shape(pJ1_J1)
+
+        I_2 = np.eye(np.shape(pJ2_J2)[0])
+        N2 = I_2 - pJ2_J2
+
+        #print N1.dot(N2)
+        #print dt
+
+        #Q_des = Q_des + N1.dot(N2.dot(-0.01*(Q_des-Q_cur)/dt))
+        #Q_des = Q_des + N1.dot(N2.dot(1.0*(Q_cur-Q_des)))        
+
+        self.prev_traj_time = t
+        # Loop Done
+
+        R_cur_head, p_cur_head = self.kinematics.get_6D_Head_Position(Q_cur)
+        R_cur, p_cur_right_eye = self.kinematics.get_6D_Right_Eye_Position(Q_cur)
+        R_cur, p_cur_left_eye = self.kinematics.get_6D_Left_Eye_Position(Q_cur)
+
+
+        self.gaze_focus_states.current_focus_length[self.H] =   np.linalg.norm(p_cur_head - p_head_des_cur)  
+        self.gaze_focus_states.current_focus_length[self.RE] =  np.linalg.norm(p_cur_right_eye - p_des_cur_re)         
+        self.gaze_focus_states.current_focus_length[self.LE] =  np.linalg.norm(p_cur_left_eye -p_des_cur_le)
+ 
+
+        # Prepare result of command
+        result = False
+        if (t > DT):
+            result = True
+
+        return Q_des, result
+
+
+
+    # Eye has higher priority than head
+    def velocity_track_eye_priority_head_look_at_point(self, des_vel):
+        # Calculate Time
+        t, t_prev = self.calculate_t_t_prev()
+        dt = t - t_prev
+        DT = self.movement_duration
+
+        # Specify current (x,y,z) gaze location, joint config and jacobian
+        xyz_eye_gaze_loc = self.xyz_eye_gaze_loc
+        xyz_head_gaze_loc = self.xyz_head_gaze_loc
+
+        Q_cur = self.kinematics.Jlist
+        J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
+        J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
+
+        J_1 = J_1[0:3,:] #Grab the first 3 rows      
+        J_2 = J_2[0:3,:] #Grab the first 3 rows  
+
+        J_head = self.kinematics.get_6D_Head_Jacobian(Q_cur)
+        J_head = J_head[0:3,:]        
+    
+        J1 = np.concatenate((J_1,J_2) ,axis=0)
+
+        # Calculate FeedForward ---------------------------------
+        # Calculate new Q_des (desired configuration)
+
+        # Calculate Current Desired Gaze Point
+        # Get initial focus point for each eye
+        x_i_right_eye = self.gaze_focus_states.focus_point_init[self.RE]
+        x_i_left_eye = self.gaze_focus_states.focus_point_init[self.LE]
+
+        # Find vector from initial focus point to final focus point
+        e_hat_re, L_re = self.xi_to_xf_vec(t, x_i_right_eye, xyz_eye_gaze_loc)
+        e_hat_le, L_le = self.xi_to_xf_vec(t, x_i_left_eye, xyz_eye_gaze_loc)        
+
+        # Current desired gaze point
+        p_des_cur_re = x_i_right_eye + e_hat_re*L_re*(self.min_jerk_time_scaling(t, DT))
+        p_des_cur_le = x_i_left_eye + e_hat_le*L_le*(self.min_jerk_time_scaling(t, DT))    
+
+        # p_des_cur_re = x_i_cur + v_sat*v_des * dt
+        # v_sat = sat(V_max / norm(v_des))
+        # sat(x) = x        if |x| <= 1.0
+        #        = sgn(x)   if |x| > 1.0
 
         # Calculate current orientation error for each eye
         d_theta_error_re, angular_vel_hat_re = smooth_orientation_error(p_des_cur_re, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'right_eye') 
