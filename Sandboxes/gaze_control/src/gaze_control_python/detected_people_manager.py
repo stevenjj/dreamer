@@ -25,6 +25,8 @@ class Person():
         self.window_center_positions = np.array([self.position for i in range(self.average_window)])
         self.window_eye_positions = np.array([self.eye_position for i in range(self.average_window)])
 
+        self.current_time = rospy.Time.now().to_sec()
+
     def update(self, xyz_pos, eye_offset=np.array([0,0,0])):
         current_time = rospy.Time.now().to_sec()
         dt = current_time - self.last_time_updated
@@ -191,12 +193,33 @@ class Detected_People_Manager():
               
 
 
+    def identify_closest_person_from_gaze_focus(self):
+        if len(self.list_of_people) > 0:
+            min_dist = 1000.0
+            person_index = 0
+            for i in range(0, len(self.list_of_people)):
+                person_eye_pos = self.list_of_people[i].eye_position
+                distance = np.linalg.norm( person_eye_pos )
+                if (distance) < min_dist:
+                    person_index = i
+                    min_dist = distance
+
+            return self.list_of_people[person_index].eye_position 
+        else:
+            return np.array([1,0,0])
+
+
+
+    def print_debug(self):
+        print 'Last time people were detected', self.current_time - self.last_time_people_detected 
+        print '     Num of people ', len(self.list_of_people)        
 
 
     def loop(self):
         current_time = rospy.Time.now().to_sec()
-        print 'Last time people were detected', current_time - self.last_time_people_detected 
-        print '     Num of people ', len(self.list_of_people)
+        self.current_time = current_time
+        #print 'Last time people were detected', current_time - self.last_time_people_detected 
+        #print '     Num of people ', len(self.list_of_people)
 
         new_list_of_people = []
         for person in self.list_of_people:

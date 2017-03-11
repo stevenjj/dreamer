@@ -25,7 +25,7 @@ JOINT_LIM_BOUND = 0.9 #between 0 to 1.0
 
 # Rate Constants
 NODE_RATE = 1000 # Update rate of this node in Hz
-CMD_RATE = 20 # Update rate for publishing joint positions to client
+CMD_RATE = 30 # Update rate for publishing joint positions to client
 
 SEND_RATE = 20 # Trusted Rate of sending
 PRINT_RATE = 10 # Print rate for Debugging
@@ -60,10 +60,11 @@ TASK_ID_TO_STRING = {TASK_NO_TASK: "TASK_NO_TASK",
 BEHAVIOR_NO_BEHAVIOR = 200
 BEHAVIOR_DO_SQUARE_FIXED_EYES = 201
 BEHAVIOR_DO_SQUARE_FIXED_HEAD = 202
-
+BEHAVIOR_TRACK_NEAR_PERSON = 203
 BEHAVIOR_ID_TO_STRING = {BEHAVIOR_NO_BEHAVIOR: "BEHAVIOR_NO_BEHAVIOR",
                          BEHAVIOR_DO_SQUARE_FIXED_EYES: "BEHAVIOR_DO_SQUARE_FIXED_EYES",
-                         BEHAVIOR_DO_SQUARE_FIXED_HEAD: "BEHAVIOR_DO_SQUARE_FIXED_HEAD"
+                         BEHAVIOR_DO_SQUARE_FIXED_HEAD: "BEHAVIOR_DO_SQUARE_FIXED_HEAD",
+                         BEHAVIOR_TRACK_NEAR_PERSON: "BEHAVIOR_TRACK_NEAR_PERSON"
                     }
 
 #-----------------------------------------------
@@ -213,19 +214,19 @@ class Dreamer_Head():
 
     def send_low_level_commands(self):
         # Prepare Latest Joint List
-        # joint_map, joint_val = self.prepare_joint_command()
+        joint_map, joint_val = self.prepare_joint_command()
 
-        # hjc = HeadJointCmdRequest()
-        # hjc.numCtrlSteps.data = 550 #this should be CMD_RATE = 50 
+        hjc = HeadJointCmdRequest()
+        hjc.numCtrlSteps.data = 550 #this should be CMD_RATE = 50 
 
-        # joints = joint_map
-        # rads = joint_val
+        joints = joint_map
+        rads = joint_val
 
-        # hjc.joint_mapping.data = joints
-        # hjc.q_cmd_radians.data = rads
+        hjc.joint_mapping.data = joints
+        hjc.q_cmd_radians.data = rads
 
         # Send latest joint list
-        # self.ctrl_deq_append(hjc)
+        self.ctrl_deq_append(hjc)
         return
 
     # -----------------------------------------------------------------
@@ -271,6 +272,12 @@ class Dreamer_Head():
             elif (self.current_task == TASK_GO_TO_POINT_HEAD_PRIORITY):
                  Q_des, command_result = self.controller_manager.head_priority_eye_trajectory_look_at_point()                
                  self.process_task_result(Q_des, command_result)
+
+            elif (self.current_task == TASK_VEL_TRACK_EYE_PRIORITY):
+                 self.controller_manager.control_track_person(self.dt)
+                 print 'im here'
+                 #Q_des, command_result = self.controller_manager.head_priority_eye_trajectory_look_at_point()                
+                 #self.process_task_result(Q_des, command_result)                 
             return
 
         #--------------
@@ -367,6 +374,9 @@ class Dreamer_Head():
         elif gui_command == TRACK_NEAR_PERSON:
             self.gui_command = gui_command
             self.gui_command_string = TRACK_NEAR_PERSON_STRING
+            self.reset_state_tasks_behaviors()
+            self.current_behavior = BEHAVIOR_TRACK_NEAR_PERSON
+
         
         elif gui_command == AVOID_NEAR_PERSON:
             self.gui_command = gui_command
@@ -409,7 +419,7 @@ class Dreamer_Head():
             #self.gaze_focus_states.print_debug()
             #self.gaze_focus_states.print_debug()
             #self.controller_manager.print_debug()
-            #self.detected_people_manager.print_debug()
+            self.people_manager.print_debug()
 
 
     # --------------------------------------------------------
@@ -429,6 +439,9 @@ class Dreamer_Head():
 
             # Visualization
             self.gaze_focus_states.publish_focus_length()
+
+            # Find People
+            self.people_manager.loop()
 
             # Sleep
             self.rate.sleep()
@@ -478,8 +491,6 @@ class Dreamer_Head():
             self.execute_behavior(task_list, task_params)
 
         elif ((self.current_behavior == BEHAVIOR_DO_SQUARE_FIXED_HEAD) and self.behavior_commanded == False):
-            #task_list = [GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, GO_TO_POINT_HEAD_ONLY, NO_TASK]
-            #task_list = [GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, NO_TASK]            
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY for i in range(6)]            
             task_params = []
 
@@ -492,6 +503,11 @@ class Dreamer_Head():
             task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.6, 0.15, self.kinematics.l1-0.2]),      1) )                   
             self.execute_behavior(task_list, task_params)
 
+
+        elif ((self.current_behavior == BEHAVIOR_TRACK_NEAR_PERSON) and self.behavior_commanded == False):
+            task_list = [TASK_VEL_TRACK_EYE_PRIORITY]            
+            task_params = []
+            self.execute_behavior(task_list, task_params)
         return
 
     def task_logic(self):
@@ -520,6 +536,9 @@ class Dreamer_Head():
             self.controller_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration)  
             self.task_commanded = True
 
+        elif ((self.current_task == TASK_VEL_TRACK_EYE_PRIORITY) and (self.task_commanded == False)):
+            self.current_state = STATE_GO_TO_POINT
+            self.task_commanded = True
 
         return
 
@@ -548,6 +567,6 @@ class Dreamer_Head():
 
 
 if __name__ == "__main__":
-    rospy.init_node('dreamer_high_level_control')
+    rospy.init_node('dreamer_head_behavior')
     dreamer_head = Dreamer_Head()
     dreamer_head.loop()

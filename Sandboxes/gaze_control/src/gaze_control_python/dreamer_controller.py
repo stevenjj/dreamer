@@ -8,6 +8,8 @@ import head_kinematics as hk
 global head_kin
 head_kin = hk.Head_Kinematics()
 
+MAX_EYE_VEL = 0.1 # Maximum Eye Velocity
+
 
 def calculate_dQ(J, dx):
     dQ = np.linalg.pinv(J).dot(dx)
@@ -244,7 +246,7 @@ class Controller():
         self.xyz_eye_gaze_loc = np.array([0,0,0])
 
 
-    def specify_head_eye_gaze_point(self, start_time, xyz_head_gaze_loc, xyz_eye_gaze_loc, movement_duration, eye_focal_point = np.array([1,0,0])):
+    def specify_head_eye_gaze_point(self, start_time, xyz_head_gaze_loc, xyz_eye_gaze_loc, movement_duration):
         # Initialize kinematic positions
         self.Q_o_at_start = self.kinematics.Jlist
 
@@ -273,7 +275,7 @@ class Controller():
         return
 
 
-    def initialize_head_eye_focus_point(self, xyz_head_gaze_loc, xyz_eye_gaze_loc, eye_focal_point = np.array([1,0,0])):
+    def initialize_head_eye_focus_point(self, xyz_head_gaze_loc, xyz_eye_gaze_loc):
         R_head_init, p_head_init = self.kinematics.get_6D_Head_Position(self.kinematics.Jlist)
         R_right_eye_init, p_right_eye_init = self.kinematics.get_6D_Right_Eye_Position(self.kinematics.Jlist)
         R_left_eye_init, p_left_eye_init = self.kinematics.get_6D_Left_Eye_Position(self.kinematics.Jlist)                
@@ -606,13 +608,63 @@ class Controller():
 
         return Q_des, result
 
+    def control_track_person(self, dt):
+        human_eye_pos = np.array([1, 0, self.kinematics.l1])
+        if (len(self.people_manager.list_of_people) > 0):
+            human_eye_pos = self.people_manager.identify_closest_person_from_gaze_focus()
 
+
+        print human_eye_pos
+
+        tracking_condition = self.track_person_condition(human_eye_pos)
+
+        if tracking_condition:
+            print 'tracking_person'
+        else:
+            print 'will not track person'
+            human_eye_pos = np.array([1,0,0])
+
+        # Call initialized
+        start_time = rospy.get_time()
+        xyz_eye_gaze_loc = human_eye_pos
+        xyz_head_gaze_loc = human_eye_pos
+        # movement_duration = 0 
+        self.specify_head_eye_gaze_point(start_time, xyz_head_gaze_loc, xyz_eye_gaze_loc)
+        # Decide which control law to use
+
+        # Feed des_velocity to controller
+        #Q_des, result = self.velocity_track_eye_priority_head_look_at_point(dt_in, MAX_EYE_VEL)
+        return # Q_des, result
+
+    def track_person_condition(self, human_pos):
+        (x,y,z) = human_pos[0], human_pos[1], human_pos[2] 
+        if ( ((z < -0.2) or (z > 0.5)) and ((x < 0.2) or (x > 3)) ):
+            return False
+
+        x_hat = np.array([1,0,0])
+        dp = (human_pos.dot(np.array([1,0,0])))
+        x_hat_norm = np.linalg.norm( x_hat )
+        xyz_person_norm = np.linalg.norm( human_pos )
+
+        phi = np.arccos(x_hat.dot(human_pos) / xyz_person_norm / x_hat_norm)
+
+        if ((dp > 0) and (phi < (np.pi/4.0))):
+            return True
+        else:
+            return False
+
+
+    def sat(x):
+        if np.abs(x) <= 1:
+            return x
+        else:
+            return np.sign(x) 
 
     # Eye has higher priority than head
-    def velocity_track_eye_priority_head_look_at_point(self, des_vel):
+    def velocity_track_eye_priority_head_look_at_point(self, dt_in, des_vel):
         # Calculate Time
         t, t_prev = self.calculate_t_t_prev()
-        dt = t - t_prev
+        dt = dt_in
         DT = self.movement_duration
 
         # Specify current (x,y,z) gaze location, joint config and jacobian
@@ -643,14 +695,18 @@ class Controller():
         e_hat_re, L_re = self.xi_to_xf_vec(t, x_i_right_eye, xyz_eye_gaze_loc)
         e_hat_le, L_le = self.xi_to_xf_vec(t, x_i_left_eye, xyz_eye_gaze_loc)        
 
+        #v_des = e_har_re * des_vel 
+
         # Current desired gaze point
         p_des_cur_re = x_i_right_eye + e_hat_re*L_re*(self.min_jerk_time_scaling(t, DT))
         p_des_cur_le = x_i_left_eye + e_hat_le*L_le*(self.min_jerk_time_scaling(t, DT))    
+
 
         # p_des_cur_re = x_i_cur + v_sat*v_des * dt
         # v_sat = sat(V_max / norm(v_des))
         # sat(x) = x        if |x| <= 1.0
         #        = sgn(x)   if |x| > 1.0
+        # scaling = v_sat*v_des * dt
 
         # Calculate current orientation error for each eye
         d_theta_error_re, angular_vel_hat_re = smooth_orientation_error(p_des_cur_re, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'right_eye') 
@@ -658,13 +714,7 @@ class Controller():
         dx_re = d_theta_error_re * angular_vel_hat_re
         dx_le = d_theta_error_le * angular_vel_hat_le
 
-        #dx_re = np.concatenate( (dx_re, np.array([0,0,0])),  axis=1)
-        #dx_le = np.concatenate( (dx_le, np.array([0,0,0])),  axis=1)
-
- 
         dx1 = np.concatenate( (dx_re, dx_le),  axis=1)
- 
- 
         dq1 = calculate_dQ(J1, dx1)
 
         Q_des = Q_cur + dq1 
@@ -672,16 +722,8 @@ class Controller():
         theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'right_eye')
         theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'left_eye')
 
-        #print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
-        #print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
-
-
         J1_bar = np.linalg.pinv(J1)        
         pJ1_J1 = J1_bar.dot(J1)
-
-        # print np.shape(np.linalg.pinv(J1.T))
-        # print np.shape(np.linalg.pinv(J1.T).dot(J1.T))
-        # print np.shape(J1_bar), np.shape(pJ1_J1)
 
         I_1 = np.eye(np.shape(pJ1_J1)[0])
         N1 = I_1 - pJ1_J1
@@ -691,7 +733,6 @@ class Controller():
         J2_pinv_J1 = J2.dot(J1_bar)
         J2_pinv_J1_x1dot = (J2.dot(J1_bar)).dot(dx1)
 
-        # Head task second
 
         # Calculate FeedForward ---------------------------------
         # Calculate new Q_des (desired configuration)
@@ -711,35 +752,17 @@ class Controller():
         #d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT))
         d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT)) 
         dx2 = d_theta_error * angular_vel_hat
-        #dx2 = np.concatenate( (dx2, np.array([0,0,0])),  axis=1)
-        
-        
-
-        #dq2 = N1.dot(pinv_J2_N1.dot(dx2 -J2_pinv_J1_x1dot))
 
         dq2 = calculate_dQ(J_head, dx2)
-        dq2 = np.dot(N1, dq2)
-        
-
-        #Q_des = Q_cur + dq2
+        dq2 = np.dot(N1, dq2)     
         Q_des = Q_des + dq2
 
 
         J2_bar = np.linalg.pinv(J2)        
         pJ2_J2 = J2_bar.dot(J2)
 
-        # print np.shape(np.linalg.pinv(J1.T))
-        # print np.shape(np.linalg.pinv(J1.T).dot(J1.T))
-        # print np.shape(J1_bar), np.shape(pJ1_J1)
-
         I_2 = np.eye(np.shape(pJ2_J2)[0])
         N2 = I_2 - pJ2_J2
-
-        #print N1.dot(N2)
-        #print dt
-
-        #Q_des = Q_des + N1.dot(N2.dot(-0.01*(Q_des-Q_cur)/dt))
-        #Q_des = Q_des + N1.dot(N2.dot(1.0*(Q_cur-Q_des)))        
 
         self.prev_traj_time = t
         # Loop Done
@@ -756,7 +779,5 @@ class Controller():
 
         # Prepare result of command
         result = False
-        if (t > DT):
-            result = True
 
         return Q_des, result
