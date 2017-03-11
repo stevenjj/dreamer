@@ -658,7 +658,7 @@ class Controller():
             return False
 
 
-    def sat(x):
+    def sat(self, x):
         if np.abs(x) <= 1:
             return x
         else:
@@ -699,12 +699,25 @@ class Controller():
         e_hat_re, L_re = self.xi_to_xf_vec(t, x_i_right_eye, xyz_eye_gaze_loc)
         e_hat_le, L_le = self.xi_to_xf_vec(t, x_i_left_eye, xyz_eye_gaze_loc)        
 
-        v_des_re = e_hat_re * DES_VEL 
-        v_des_le = e_hat_le * DES_VEL        
+        # v_des_re = e_hat_re * DES_VEL 
+        # v_des_le = e_hat_le * DES_VEL        
 
-        v_re_command = v_des_re #v_cur_re - v_des_re 
-        v_le_command = v_des_le #v_cur_le - v_des_le       
+        # v_re_command = v_des_re #v_cur_re - v_des_re 
+        # v_le_command = v_des_le #v_cur_le - v_des_le       
 
+        # -------------------
+        re_pos_error = (xyz_eye_gaze_loc - x_i_right_eye)
+        kv = 0.5
+        v_re_des = kv*re_pos_error
+        v_re_sat = self.sat(MAX_EYE_VEL/np.linalg.norm(v_re_des))
+
+        le_pos_error = (xyz_eye_gaze_loc - x_i_left_eye)
+        v_le_des = kv*le_pos_error
+        v_le_sat = self.sat(MAX_EYE_VEL/np.linalg.norm(v_le_des))
+
+        v_re_command = v_re_sat*v_re_des
+        v_le_command = v_le_sat*v_le_des        
+        #------------------------
 
         # Current desired gaze point
         p_des_cur_re = x_i_right_eye +  v_re_command*dt #e_hat_le*0.01 #np.array([0.1,0.1,0])  #v_des_re*dt #np.array([0,0,0.1]) #v_re_command*dt#  e_hat_re*dt # np.array([5,0,0])#+ v_re_command*dt #e_hat_re*L_re*(self.min_jerk_time_scaling(t, DT))
@@ -760,10 +773,23 @@ class Controller():
         e_hat_head, L_head = self.xi_to_xf_vec(t, x_i_head, xyz_head_gaze_loc)
 
 
-        v_des_h = e_hat_head * DES_VEL 
+#        v_des_h = e_hat_head * DES_VEL 
+
+
+        h_pos_error = (xyz_head_gaze_loc - x_i_head)
+        kv = 2.0
+        v_h_des = kv*h_pos_error
+        v_h_sat = self.sat(MAX_EYE_VEL/np.linalg.norm(v_re_des))
+
+        v_des_h = v_h_sat*v_h_des
+
+
 
         # Current desired gaze point
         p_head_des_cur = x_i_head + v_des_h*dt 
+
+
+
 
 
         # Calculate current orientation error

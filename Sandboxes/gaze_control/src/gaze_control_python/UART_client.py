@@ -62,83 +62,83 @@ if __name__ == "__main__":
 
 
 
-	print 'Sleep 1 s...'
-	rospy.sleep(1)
-	print ''
+	# print 'Sleep 1 s...'
+	# rospy.sleep(1)
+	# print ''
 
 
-	hjc = HeadJointCmdRequest()
-	hjc.numCtrlSteps.data = 550
+	# hjc = HeadJointCmdRequest()
+	# hjc.numCtrlSteps.data = 550
    
-	joints = [2]
-	rads = [10.*np.pi/180. for j in joints]
+	# joints = [2]
+	# rads = [10.*np.pi/180. for j in joints]
 
-	hjc.joint_mapping.data = joints
-	hjc.q_cmd_radians.data = rads		
+	# hjc.joint_mapping.data = joints
+	# hjc.q_cmd_radians.data = rads		
 
-	resp = ctrl_deq_append(hjc)
+	# resp = ctrl_deq_append(hjc)
 
-	print resp.success.data
+	# print resp.success.data
 
-	print ''
-	print 'Sleep 1 s...'
-	rospy.sleep(1)
-	print ''
+	# print ''
+	# print 'Sleep 1 s...'
+	# rospy.sleep(1)
+	# print ''
 
 
 
-	print 'Send 1 second duration, 8 joint command.'
+	# print 'Send 1 second duration, 8 joint command.'
 
-	hjc = HeadJointCmdRequest()
-	hjc.numCtrlSteps.data = 550
+	# hjc = HeadJointCmdRequest()
+	# hjc.numCtrlSteps.data = 550
    
-	joints = [0, 1, 2, 3]
-	rads = [10.*np.pi/180. for j in joints]
+	# joints = [0, 1, 2, 3]
+	# rads = [10.*np.pi/180. for j in joints]
 
-	hjc.joint_mapping.data = joints
-	hjc.q_cmd_radians.data = rads		
+	# hjc.joint_mapping.data = joints
+	# hjc.q_cmd_radians.data = rads		
 
-	resp = ctrl_deq_append(hjc)
+	# resp = ctrl_deq_append(hjc)
 
-	print resp.success.data
+	# print resp.success.data
 
-	print ''
-	print 'Sleep 1 s...'
-	rospy.sleep(1)
-	print ''
+	# print ''
+	# print 'Sleep 1 s...'
+	# rospy.sleep(1)
+	# print ''
 
-	print 'Try sending 10 commands in a row...'
-	for cmd_num in range(10):
-		print 'Cmd {}: 1 second duration, 8 joint command.'.format(cmd_num)
+	# print 'Try sending 10 commands in a row...'
+	# for cmd_num in range(10):
+	# 	print 'Cmd {}: 1 second duration, 8 joint command.'.format(cmd_num)
 
-		hjc = HeadJointCmdRequest()
-		hjc.numCtrlSteps.data = 550
+	# 	hjc = HeadJointCmdRequest()
+	# 	hjc.numCtrlSteps.data = 550
 	   
-		joints = [0, 1, 2, 3, 4, 5, 6, 7]
-		rads = [cmd_num*2.*np.pi/180. for j in joints]
+	# 	joints = [0, 1, 2, 3, 4, 5, 6, 7]
+	# 	rads = [cmd_num*2.*np.pi/180. for j in joints]
 
-		hjc.joint_mapping.data = joints
-		hjc.q_cmd_radians.data = rads
+	# 	hjc.joint_mapping.data = joints
+	# 	hjc.q_cmd_radians.data = rads
 
-		resp = ctrl_deq_append(hjc)
-		print resp
+	# 	resp = ctrl_deq_append(hjc)
+	# 	print resp
 
-	print ''
-	print 'Sleep 2 s...'
-	rospy.sleep(2)
-	print ''
+	# print ''
+	# print 'Sleep 2 s...'
+	# rospy.sleep(2)
+	# print ''
 
-	for cmd_num in range(10, -20, -1):
-		print 'Cmd {}: 91 ms duration, 8 joint command.'.format(cmd_num)
+	# for cmd_num in range(10, -20, -1):
+	# 	print 'Cmd {}: 91 ms duration, 8 joint command.'.format(cmd_num)
 
-		hjc = HeadJointCmdRequest()
-		hjc.numCtrlSteps.data = 50
+	# 	hjc = HeadJointCmdRequest()
+	# 	hjc.numCtrlSteps.data = 50
 	   
-		joints = [0, 1, 2, 3, 4, 5, 6, 7]
-		rads = [cmd_num*2.*np.pi/180. for j in joints]
+	# 	joints = [0, 1, 2, 3, 4, 5, 6, 7]
+	# 	rads = [cmd_num*2.*np.pi/180. for j in joints]
 
-		hjc.joint_mapping.data = joints
-		hjc.q_cmd_radians.data = rads
+	# 	hjc.joint_mapping.data = joints
+	# 	hjc.q_cmd_radians.data = rads
 
-		resp = ctrl_deq_append(hjc)
-		print resp
+	# 	resp = ctrl_deq_append(hjc)
+	# 	print resp

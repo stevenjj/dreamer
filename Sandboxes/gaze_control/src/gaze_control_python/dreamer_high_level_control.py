@@ -24,7 +24,7 @@ from GUI_params import *
 JOINT_LIM_BOUND = 0.9 #between 0 to 1.0
 
 # Rate Constants
-NODE_RATE = 15 # Update rate of this node in Hz
+NODE_RATE = 10 # Update rate of this node in Hz
 CMD_RATE = 20 # Update rate for publishing joint positions to client
 
 SEND_RATE = 20 # Trusted Rate of sending
@@ -213,9 +213,9 @@ class Dreamer_Head():
         self.run_gaze_program = None        
 
     def prepare_joint_command(self):
-        # Only control the first 4 joints for now
-        joints = range(4)
-        joint_rads = self.kinematics.Jlist[0:4]
+        # Send 7 joints
+        joints = range(7)
+        joint_rads = self.kinematics.Jlist[0:7]
         return joints, joint_rads
 
     def send_low_level_commands(self):
