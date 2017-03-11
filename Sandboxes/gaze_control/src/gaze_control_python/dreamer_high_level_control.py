@@ -24,7 +24,7 @@ from GUI_params import *
 JOINT_LIM_BOUND = 0.9 #between 0 to 1.0
 
 # Rate Constants
-NODE_RATE = 1000 # Update rate of this node in Hz
+NODE_RATE = 30 # Update rate of this node in Hz
 CMD_RATE = 20 # Update rate for publishing joint positions to client
 
 SEND_RATE = 20 # Trusted Rate of sending
@@ -113,7 +113,6 @@ class Dreamer_Head():
         self.rate = rospy.Rate(NODE_RATE) 
         # Command Rate
         self.CMD_rate = CMD_RATE # rate to send commands to low levelin Hz
-        self.cmd_rate_measured = 0 #self.CMD_rate
         # Print Rate
         self.print_rate = PRINT_RATE
 
@@ -152,6 +151,9 @@ class Dreamer_Head():
         self.gui_command_execute_time = self.ROS_start_time                
 
         self.dt = 1.0/NODE_RATE
+
+
+        self.cmd_rate_measured = 1/self.dt        
 
         # Custom Wait Times
         self.wait_time_go_home = WAIT_TIME_GO_HOME
@@ -217,7 +219,7 @@ class Dreamer_Head():
         joint_map, joint_val = self.prepare_joint_command()
 
         hjc = HeadJointCmdRequest()
-        hjc.numCtrlSteps.data = 550 #this should be CMD_RATE = 50 
+        hjc.numCtrlSteps.data = 550*self.dt #this should be CMD_RATE = 50 
 
         joints = joint_map
         rads = joint_val
@@ -235,21 +237,21 @@ class Dreamer_Head():
     def send_command(self):      
         cmd_interval = self.ROS_current_time - self.time_since_last_cmd_sent
 
-        if (cmd_interval > (1.0/( float(self.CMD_rate))) ):   
+        # if (cmd_interval > (1.0/( float(self.CMD_rate))) ):   
             # Send Low Level Commands if LL Control is enabled
-            if (self.low_level_control and 
-                self.current_state != STATE_IDLE and 
-                self.current_state != STATE_GO_HOME):
+        if (self.low_level_control and 
+            self.current_state != STATE_IDLE and 
+            self.current_state != STATE_GO_HOME):
 
-                print 'sending low level commands now'
-                self.send_low_level_commands()
-  
+            print 'sending low level commands now'
+            self.send_low_level_commands()
 
-            self.cmd_rate_measured = 1.0/cmd_interval
-            self.time_since_last_cmd_sent = rospy.get_time()
 
-            # Send to Rviz
-            self.joint_publisher.publish_joints()
+        self.cmd_rate_measured = 1.0/self.dt #1.0/cmd_interval
+        self.time_since_last_cmd_sent = rospy.get_time()
+
+        # Send to Rviz
+        self.joint_publisher.publish_joints()
         return
 
 
