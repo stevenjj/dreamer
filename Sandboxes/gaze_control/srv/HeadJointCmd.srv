@@ -1,5 +1,5 @@
 std_msgs/Int16 numCtrlSteps
 std_msgs/Int16MultiArray joint_mapping
-std_msgs/Int16MultiArray q_cmd_radians
+std_msgs/Float32MultiArray q_cmd_radians
 ---
 std_msgs/Bool success

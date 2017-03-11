@@ -6,10 +6,10 @@
 
 from UART_com import *
 
-des_joint_num = 0
+des_joint_num = 3
 joint_num = bound_joint_num(des_joint_num)
 
-des_degs = 0
+des_degs = -10
 des_rads = degs_to_rads(des_degs)
 des_enc_cmd = joint_cmd_to_enc_cmd(joint_num, des_rads)
 
@@ -26,7 +26,7 @@ register = MOVE_LENGTH_REGISTER_ADDRESS
 
 # register_value = REMOTE_CONTROL_PROGRAM
 # register_value = RANDOM_GAZE_PROGRAM
-register_value = 550
+register_value = 100
 
 
 
