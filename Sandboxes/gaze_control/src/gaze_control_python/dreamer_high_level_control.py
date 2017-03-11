@@ -24,7 +24,7 @@ from GUI_params import *
 JOINT_LIM_BOUND = 0.9 #between 0 to 1.0
 
 # Rate Constants
-NODE_RATE = 30 # Update rate of this node in Hz
+NODE_RATE = 15 # Update rate of this node in Hz
 CMD_RATE = 20 # Update rate for publishing joint positions to client
 
 SEND_RATE = 20 # Trusted Rate of sending
@@ -147,7 +147,11 @@ class Dreamer_Head():
         self.ROS_current_time = self.ROS_start_time        
         self.relative_time = self.ROS_current_time - self.ROS_start_time
         self.time_since_last_cmd_sent = self.ROS_start_time
-        self.time_since_last_print = self.ROS_start_time               
+        self.time_since_last_print = self.ROS_start_time
+        self.time_since_last_loop = self.ROS_start_time        
+
+        self.interval= 1.0/NODE_RATE
+
         self.gui_command_execute_time = self.ROS_start_time                
 
         self.dt = 1.0/NODE_RATE
@@ -169,7 +173,7 @@ class Dreamer_Head():
     # Joint and Gaze Focus Update
     def update_head_joints(self, head_joint_list):
         self.kinematics.Jlist = head_joint_list
-        self.gaze_focus_states.update_gaze_focus_states(self.dt)
+        self.gaze_focus_states.update_gaze_focus_states(self.interval)
 
         def joint_cmd_bound(val, joint_name, jmax, jmin):
             if val >= JOINT_LIM_BOUND*jmax:
@@ -219,10 +223,12 @@ class Dreamer_Head():
         joint_map, joint_val = self.prepare_joint_command()
 
         hjc = HeadJointCmdRequest()
-        hjc.numCtrlSteps.data = 550*self.dt #this should be CMD_RATE = 50 
+        hjc.numCtrlSteps.data = 550*self.interval #this should be CMD_RATE = 50 
 
         joints = joint_map
         rads = joint_val
+
+        print rads
 
         hjc.joint_mapping.data = joints
         hjc.q_cmd_radians.data = rads
@@ -247,7 +253,7 @@ class Dreamer_Head():
             self.send_low_level_commands()
 
 
-        self.cmd_rate_measured = 1.0/self.dt #1.0/cmd_interval
+        self.cmd_rate_measured = 1.0/self.interval #1.0/self.dt #1.0/cmd_interval
         self.time_since_last_cmd_sent = rospy.get_time()
 
         # Send to Rviz
@@ -276,7 +282,7 @@ class Dreamer_Head():
                  self.process_task_result(Q_des, command_result)
 
             elif (self.current_task == TASK_VEL_TRACK_EYE_PRIORITY):
-                 Q_des, command_result = self.controller_manager.control_track_person(self.dt)
+                 Q_des, command_result = self.controller_manager.control_track_person(self.interval)
                  self.process_task_result(Q_des, command_result)                 
             return
 
@@ -403,12 +409,16 @@ class Dreamer_Head():
             print '    GUI Command         :' , self.gui_command_string
             print '        Command Rate (Hz)   :' , self.cmd_rate_measured  
             print '        Print Rate (Hz)     :' , 1.0/print_interval
-            print '        Node Rate (Hz)      :' , 1.0/self.dt 
-            print '        Node dt(s)          :' , self.dt
+            print '        Node Rate (Hz)      :' , 1.0/self.interval #self.dt 
+            print '        Node dt(s)          :' , self.interval #self.dt
+            print '        Custom Sleep(Hz)    ;' , 1.0/self.interval
 
             print '    Semaphores'
             print "        GUI,   Behavior, Task CMD" 
             print "       ", self.gui_command_executing, " ", self.behavior_commanded, "   ", self.task_commanded
+
+            print '     Joint List:'
+            print '       ', self.kinematics.Jlist
 
             # print self.current_task_index
             # print len(self.task_list)
@@ -423,26 +433,30 @@ class Dreamer_Head():
     # --------------------------------------------------------
     # Main Program Loop
     def loop(self):
-        while not rospy.is_shutdown():
-            # Process Logic
-            self.behavior_logic()
-            self.task_logic()
-            self.state_logic()
-            # Send Commands
-            self.send_command()
 
-            # Print out
-            self.print_debug()
+        while not rospy.is_shutdown():
             self.update_time()
 
-            # Visualization
-            self.gaze_focus_states.publish_focus_length()
+            self.interval = self.ROS_current_time - self.time_since_last_loop                       
 
-            # Find People
-            self.people_manager.loop()
+            if self.interval > (1.0/( float(NODE_RATE))):
+                # Process Logic
+                self.behavior_logic()
+                self.task_logic()
+                self.state_logic()
+                # Send Commands
+                self.send_command()
 
-            # Sleep
-            self.rate.sleep()
+                # Visualization
+                self.gaze_focus_states.publish_focus_length()
+
+                # Find People
+                self.people_manager.loop()
+
+                # Print out
+                self.print_debug()
+                # Sleep
+                self.time_since_last_loop = self.ROS_current_time
 
 
     # Behavior and Task Logic

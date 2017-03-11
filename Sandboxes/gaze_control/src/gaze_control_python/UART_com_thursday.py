@@ -45,7 +45,7 @@ JOINTS_CEN = {0: 6500, 1: (JOINTS_MIN[1]+JOINTS_MAX[1])/2, 2: (JOINTS_MIN[2]+JOI
 ENC_MAX = 16384 # (2^14)
 ENC_MIN = 0
 
-
+JOINTS_CAL = {0: 1, 1: -1,  2: 1, 3: -1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1}
 
 # -------- HELPER FUNCTIONS --------#
 def bound_joint_num(joint_num):
@@ -77,7 +77,7 @@ def rads_to_enc(rads):
     return int(np.floor(rads * (float) ((ENC_MAX - ENC_MIN) / (2*np.pi))))
 
 def joint_cmd_to_enc_cmd(joint_num, des_joint_rads):
-  raw_cmd = JOINTS_CEN[joint_num] + rads_to_enc(des_joint_rads)
+  raw_cmd = JOINTS_CEN[joint_num] + JOINTS_CAL[joint_num]*rads_to_enc(des_joint_rads)
   return bound_enc_cmd(joint_num, raw_cmd)
 
 
@@ -169,7 +169,8 @@ def send_and_confirm(msg_to_send):
     # start_time = time.time()
 
     ser.write(msg_to_send)
-    rospy.sleep(0.001)
+    rospy.sleep(0.0025)
+    msg_deq.append( 'Message sent: '+decode_message(msg_to_send) )
     # msg_recieved = ser.readline()
 
     # elapsed_time = time.time() - start_time
