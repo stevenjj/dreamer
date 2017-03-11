@@ -25,7 +25,7 @@ JOINT_LIM_BOUND = 0.9 #between 0 to 1.0
 
 # Rate Constants
 NODE_RATE = 1000 # Update rate of this node in Hz
-CMD_RATE = 30 # Update rate for publishing joint positions to client
+CMD_RATE = 20 # Update rate for publishing joint positions to client
 
 SEND_RATE = 20 # Trusted Rate of sending
 PRINT_RATE = 10 # Print rate for Debugging
@@ -274,10 +274,10 @@ class Dreamer_Head():
                  self.process_task_result(Q_des, command_result)
 
             elif (self.current_task == TASK_VEL_TRACK_EYE_PRIORITY):
-                 self.controller_manager.control_track_person(self.dt)
+                 Q_des, command_result = self.controller_manager.control_track_person(self.dt)
                  print 'im here'
                  #Q_des, command_result = self.controller_manager.head_priority_eye_trajectory_look_at_point()                
-                 #self.process_task_result(Q_des, command_result)                 
+                 self.process_task_result(Q_des, command_result)                 
             return
 
         #--------------
@@ -434,7 +434,7 @@ class Dreamer_Head():
             self.send_command()
 
             # Print out
-            self.print_debug()
+            #self.print_debug()
             self.update_time()
 
             # Visualization
