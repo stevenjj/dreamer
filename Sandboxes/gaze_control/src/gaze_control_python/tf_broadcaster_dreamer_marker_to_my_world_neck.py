@@ -15,7 +15,7 @@ if __name__ == '__main__':
     while not rospy.is_shutdown():
         # Send a fixed transform from world to the neck.
         # Orientation of the neck is the identity matrix
-        br.sendTransform((0.4, 0.0, 0.08),
+        br.sendTransform((0.190, 0.0, 0.001),
                          (0, 0.0, 0.0, 1.0),
                          rospy.Time.now(),
                          "/my_world_neck",

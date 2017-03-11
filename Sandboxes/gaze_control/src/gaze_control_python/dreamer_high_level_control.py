@@ -275,8 +275,6 @@ class Dreamer_Head():
 
             elif (self.current_task == TASK_VEL_TRACK_EYE_PRIORITY):
                  Q_des, command_result = self.controller_manager.control_track_person(self.dt)
-                 print 'im here'
-                 #Q_des, command_result = self.controller_manager.head_priority_eye_trajectory_look_at_point()                
                  self.process_task_result(Q_des, command_result)                 
             return
 
@@ -410,8 +408,6 @@ class Dreamer_Head():
             print "        GUI,   Behavior, Task CMD" 
             print "       ", self.gui_command_executing, " ", self.behavior_commanded, "   ", self.task_commanded
 
-            print self.gaze_focus_states.velocity
-
             # print self.current_task_index
             # print len(self.task_list)
             # print self.task_params
@@ -434,7 +430,7 @@ class Dreamer_Head():
             self.send_command()
 
             # Print out
-            #self.print_debug()
+            self.print_debug()
             self.update_time()
 
             # Visualization

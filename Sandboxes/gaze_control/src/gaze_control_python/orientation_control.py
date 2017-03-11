@@ -389,11 +389,7 @@ class Dreamer_Head():
             #task_list = [GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, GO_TO_POINT_EYES_ONLY, NO_TASK]            
 
             if (len(self.people_manager.list_of_people) > 0):
-                
-
                 self.track_human_pos = self.identify_closest_person_from_gaze_focus()#self.people_manager.list_of_people[0].eye_position
-
-
             else:
                 self.track_human_pos = np.array([1,0,self.kinematics.l1])
 
