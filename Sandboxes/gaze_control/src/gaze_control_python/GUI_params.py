@@ -12,7 +12,8 @@ DO_SQUARE_FIXED_HEAD,   	  DO_SQUARE_FIXED_HEAD_STRING 		 		 = 5,  "Square w/ Fi
 
 TRACK_NEAR_PERSON,	    	 	  TRACK_NEAR_PERSON_STRING   		         = 6,  "Track Near Person" # Eye Priority
 TRACK_NEAR_PERSON_EYES,	    	  TRACK_NEAR_PERSON_EYES_STRING 	         = 7,  "Track Near Person Eyes" # Eye Priority
+TRACK_NEAR_PERSON_BEST,	    	  TRACK_NEAR_PERSON_BEST_STRING 	         = 8,  "Track Near Person Best" # Eye Priority
 
-AVOID_NEAR_PERSON,	    	  AVOID_NEAR_PERSON_STRING   		         = 8, "Avoid Near Person" # Eye Priority
-DO_WAYPOINT_TRAJ,   	 	  DO_WAYPOINT_TRAJ_STRING   		         = 9, "Go To Waypoints" # Eye Priority
+AVOID_NEAR_PERSON,	    	  AVOID_NEAR_PERSON_STRING   		         = 9, "Avoid Near Person" # Eye Priority
+DO_WAYPOINT_TRAJ,   	 	  DO_WAYPOINT_TRAJ_STRING   		         = 10, "Go To Waypoints" # Eye Priority
 

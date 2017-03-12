@@ -8,7 +8,7 @@ import head_kinematics as hk
 global head_kin
 head_kin = hk.Head_Kinematics()
 
-MAX_EYE_VEL = 0.5 # Maximum Eye Velocity
+MAX_EYE_VEL = 0.8#0.5 # Maximum Eye Velocity
 
 
 def calculate_dQ(J, dx):
@@ -686,6 +686,42 @@ class Controller():
 
         return Q_res, result
 
+
+    # Track with mainly the eyes
+    def control_track_person_eye_priority(self, dt):
+        human_eye_pos = np.array([1, 0, self.kinematics.l1])
+        if (len(self.people_manager.list_of_people) > 0):
+            human_eye_pos = self.people_manager.identify_closest_person_from_gaze_focus()            
+
+
+        tracking_condition = self.track_person_condition(human_eye_pos)
+
+        if not(tracking_condition):
+            human_eye_pos = np.array([1,0,self.kinematics.l1])
+
+        Q_res = self.kinematics.Jlist
+        result = False
+
+        if not( ( np.linalg.norm(human_eye_pos - self.gaze_focus_states.focus_point_init[self.RE]) < 0.05 ) and \
+                ( np.linalg.norm(human_eye_pos - self.gaze_focus_states.focus_point_init[self.LE]) < 0.05 ) ):
+
+            # Call initialized
+            start_time = rospy.get_time()
+
+            # print self.gaze_focus_states.focus_point_init[self.H]
+            xyz_eye_gaze_loc =  human_eye_pos #self.gaze_focus_states.focus_point_init[self.H]
+            xyz_head_gaze_loc = human_eye_pos
+            movement_duration = 1
+            # movement_duration = 0 
+            self.specify_head_eye_gaze_point(start_time, xyz_head_gaze_loc, xyz_eye_gaze_loc, movement_duration)
+            # Decide which control law to use
+
+            # Feed des_velocity to controller
+            Q_des, result = self.velocity_track_eye_priority_head_look_at_point(dt, MAX_EYE_VEL)
+            #Q_des, result = self.velocity_track_head_priority_eye_look_at_point(dt, MAX_EYE_VEL)            
+            Q_res = Q_des
+
+        return Q_res, result
 
 
     # Track with the head
