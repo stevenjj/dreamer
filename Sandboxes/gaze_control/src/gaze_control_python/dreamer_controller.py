@@ -742,6 +742,24 @@ class Controller():
         else:
             return False
 
+    def specify_avoid_person_params(self, start_time, movement_duration):
+        human_eye_pos = np.array([1, 0, self.kinematics.l1])
+        if (len(self.people_manager.list_of_people) > 0):
+            human_eye_pos = self.people_manager.identify_closest_person_from_gaze_focus()            
+        # Left
+        look_left  = np.array([1,0.5, self.kinematics.l1])
+        look_right =  np.array([1,-0.5, self.kinematics.l1])        
+
+        look_direction = look_left       
+
+        if (human_eye_pos[1] > 0):
+            look_direction = look_right 
+
+        xyz_head_gaze_loc = look_direction 
+        xyz_eye_gaze_loc = look_direction
+
+        self.specify_head_eye_gaze_point(start_time, xyz_head_gaze_loc, xyz_eye_gaze_loc, movement_duration)
+
 
     def sat(self, x):
         if np.abs(x) <= 1:

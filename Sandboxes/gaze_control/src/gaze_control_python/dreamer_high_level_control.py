@@ -53,14 +53,16 @@ TASK_GO_TO_POINT_HEAD_PRIORITY    = 101
 TASK_GO_TO_POINT_EYE_PRIORITY     = 102
 TASK_TRACK_PERSON_HEAD       = 103
 TASK_TRACK_PERSON_EYES       = 104
-TASK_GO_TO_WAYPOINTS_EYE_PRIORITY = 105
+TASK_AVOID_NEAR_PERSON = 105
+TASK_GO_TO_WAYPOINTS_EYE_PRIORITY = 106
 
 
 TASK_ID_TO_STRING = {TASK_NO_TASK: "TASK_NO_TASK",
                      TASK_GO_TO_POINT_HEAD_PRIORITY: "TASK_GO_TO_POINT_HEAD_PRIORITY",
                      TASK_GO_TO_POINT_EYE_PRIORITY: "TASK_GO_TO_POINT_EYE_PRIORITY",
                      TASK_TRACK_PERSON_HEAD: "TASK_TRACK_PERSON_HEAD",
-                     TASK_TRACK_PERSON_EYES: "TASK_TRACK_PERSON_EYES",                     
+                     TASK_TRACK_PERSON_EYES: "TASK_TRACK_PERSON_EYES",         
+                     TASK_AVOID_NEAR_PERSON: "TASK_AVOID_NEAR_PERSON",            
                      TASK_GO_TO_WAYPOINTS_EYE_PRIORITY: "TASK_GO_TO_WAYPOINTS_EYE_PRIORITY"}
 
 # Behavior List
@@ -69,11 +71,13 @@ BEHAVIOR_DO_SQUARE_FIXED_EYES = 201
 BEHAVIOR_DO_SQUARE_FIXED_HEAD = 202
 BEHAVIOR_TRACK_NEAR_PERSON = 203
 BEHAVIOR_TRACK_NEAR_PERSON_EYES = 204
+BEHAVIOR_AVOID_NEAR_PERSON = 205
 BEHAVIOR_ID_TO_STRING = {BEHAVIOR_NO_BEHAVIOR: "BEHAVIOR_NO_BEHAVIOR",
                          BEHAVIOR_DO_SQUARE_FIXED_EYES: "BEHAVIOR_DO_SQUARE_FIXED_EYES",
                          BEHAVIOR_DO_SQUARE_FIXED_HEAD: "BEHAVIOR_DO_SQUARE_FIXED_HEAD",
                          BEHAVIOR_TRACK_NEAR_PERSON: "BEHAVIOR_TRACK_NEAR_PERSON",
-                         BEHAVIOR_TRACK_NEAR_PERSON_EYES: "BEHAVIOR_TRACK_NEAR_PERSON_EYES"
+                         BEHAVIOR_TRACK_NEAR_PERSON_EYES: "BEHAVIOR_TRACK_NEAR_PERSON_EYES",
+                         BEHAVIOR_AVOID_NEAR_PERSON: "BEHAVIOR_AVOID_NEAR_PERSON"                         
                     }
 
 #-----------------------------------------------
@@ -328,8 +332,14 @@ class Dreamer_Head():
                  Q_des, command_result = self.controller_manager.control_track_person_eyes_only(self.interval)
                  self.process_task_result(Q_des, command_result)                 
 
+            elif (self.current_task == TASK_AVOID_NEAR_PERSON):
+                 Q_des, command_result = self.controller_manager.head_priority_eye_trajectory_look_at_point()
 
+                 self.process_task_result(Q_des, False)                 
 
+                 if (command_result == True):
+                    self.behavior_commanded = False
+                    self.task_commanded = False
 
             return
 
@@ -409,7 +419,6 @@ class Dreamer_Head():
             self.reset_state_tasks_behaviors()
             self.current_behavior = BEHAVIOR_DO_SQUARE_FIXED_EYES
 
-
         elif gui_command == DO_SQUARE_FIXED_HEAD:
             self.gui_command = gui_command
             self.gui_command_string = DO_SQUARE_FIXED_HEAD_STRING
@@ -429,11 +438,12 @@ class Dreamer_Head():
             self.reset_state_tasks_behaviors()
             self.current_behavior = BEHAVIOR_TRACK_NEAR_PERSON_EYES            
 
-
         elif gui_command == AVOID_NEAR_PERSON:
             self.gui_command = gui_command
             self.gui_command_string = AVOID_NEAR_PERSON_STRING
-        
+            self.reset_state_tasks_behaviors()
+            self.current_behavior = BEHAVIOR_AVOID_NEAR_PERSON
+
         elif gui_command == DO_WAYPOINT_TRAJ:      
             self.gui_command = gui_command
             self.gui_command_string = DO_WAYPOINT_TRAJ_STRING
@@ -572,6 +582,15 @@ class Dreamer_Head():
             task_params = []
             self.execute_behavior(task_list, task_params)
 
+
+        elif ((self.current_behavior == BEHAVIOR_AVOID_NEAR_PERSON) and self.behavior_commanded == False):
+            task_list = [TASK_AVOID_NEAR_PERSON]            
+            movement_duration = 1.0 # Take 1. look away
+            task_params = [ [movement_duration] ]
+
+            self.execute_behavior(task_list, task_params)
+
+
         return
 
     def task_logic(self):
@@ -608,6 +627,15 @@ class Dreamer_Head():
         elif ((self.current_task == TASK_TRACK_PERSON_EYES) and (self.task_commanded == False)):
             self.current_state = STATE_GO_TO_POINT
             self.task_commanded = True
+
+        elif ((self.current_task == TASK_AVOID_NEAR_PERSON) and (self.task_commanded == False)):
+            self.current_state = STATE_GO_TO_POINT
+
+            start_time = rospy.Time.now().to_sec()  #self.ROS_current_time
+            movement_duration = self.task_params[self.current_task_index][0]            
+            self.controller_manager.specify_avoid_person_params(start_time, movement_duration)
+            self.task_commanded = True
+
 
         return
 
