@@ -25,6 +25,11 @@ JOINT_LIM_BOUND = 0.9 #between 0 to 1.0
 
 # Rate Constants
 NODE_RATE = 10 # Update rate of this node in Hz
+
+LOW_LEVEL_FREQ = 550
+
+
+
 CMD_RATE = 20 # Update rate for publishing joint positions to client
 
 SEND_RATE = 20 # Trusted Rate of sending
@@ -46,14 +51,16 @@ STATE_ID_TO_STRING = {STATE_IDLE: "STATE_IDLE",
 TASK_NO_TASK = 100
 TASK_GO_TO_POINT_HEAD_PRIORITY    = 101
 TASK_GO_TO_POINT_EYE_PRIORITY     = 102
-TASK_VEL_TRACK_EYE_PRIORITY       = 103
-TASK_GO_TO_WAYPOINTS_EYE_PRIORITY = 104
+TASK_TRACK_PERSON_HEAD       = 103
+TASK_TRACK_PERSON_EYES       = 104
+TASK_GO_TO_WAYPOINTS_EYE_PRIORITY = 105
 
 
 TASK_ID_TO_STRING = {TASK_NO_TASK: "TASK_NO_TASK",
                      TASK_GO_TO_POINT_HEAD_PRIORITY: "TASK_GO_TO_POINT_HEAD_PRIORITY",
                      TASK_GO_TO_POINT_EYE_PRIORITY: "TASK_GO_TO_POINT_EYE_PRIORITY",
-                     TASK_VEL_TRACK_EYE_PRIORITY: "TASK_VEL_TRACK_EYE_PRIORITY",
+                     TASK_TRACK_PERSON_HEAD: "TASK_TRACK_PERSON_HEAD",
+                     TASK_TRACK_PERSON_EYES: "TASK_TRACK_PERSON_EYES",                     
                      TASK_GO_TO_WAYPOINTS_EYE_PRIORITY: "TASK_GO_TO_WAYPOINTS_EYE_PRIORITY"}
 
 # Behavior List
@@ -61,10 +68,12 @@ BEHAVIOR_NO_BEHAVIOR = 200
 BEHAVIOR_DO_SQUARE_FIXED_EYES = 201
 BEHAVIOR_DO_SQUARE_FIXED_HEAD = 202
 BEHAVIOR_TRACK_NEAR_PERSON = 203
+BEHAVIOR_TRACK_NEAR_PERSON_EYES = 204
 BEHAVIOR_ID_TO_STRING = {BEHAVIOR_NO_BEHAVIOR: "BEHAVIOR_NO_BEHAVIOR",
                          BEHAVIOR_DO_SQUARE_FIXED_EYES: "BEHAVIOR_DO_SQUARE_FIXED_EYES",
                          BEHAVIOR_DO_SQUARE_FIXED_HEAD: "BEHAVIOR_DO_SQUARE_FIXED_HEAD",
-                         BEHAVIOR_TRACK_NEAR_PERSON: "BEHAVIOR_TRACK_NEAR_PERSON"
+                         BEHAVIOR_TRACK_NEAR_PERSON: "BEHAVIOR_TRACK_NEAR_PERSON",
+                         BEHAVIOR_TRACK_NEAR_PERSON_EYES: "BEHAVIOR_TRACK_NEAR_PERSON_EYES"
                     }
 
 #-----------------------------------------------
@@ -223,7 +232,7 @@ class Dreamer_Head():
         joint_map, joint_val = self.prepare_joint_command()
 
         hjc = HeadJointCmdRequest()
-        hjc.numCtrlSteps.data = 550*self.interval #this should be CMD_RATE = 50 
+        hjc.numCtrlSteps.data = LOW_LEVEL_FREQ*self.interval 
 
         joints = joint_map
         rads = joint_val
@@ -234,8 +243,39 @@ class Dreamer_Head():
         hjc.q_cmd_radians.data = rads
 
         # Send latest joint list
-        self.ctrl_deq_append(hjc)
+        try:
+            self.ctrl_deq_append(hjc)
+        except:
+            print 'failed to send message'
+            print 'ctrl_deq_append must not be initialized'
         return
+
+    def send_go_home_low_level_command(self):
+        # Prepare Latest Joint List
+        joint_map, joint_val = range(7), np.zeros(7)
+
+        hjc = HeadJointCmdRequest()
+        hjc.numCtrlSteps.data = LOW_LEVEL_FREQ*self.wait_time_go_home 
+
+        joints = joint_map
+        rads = joint_val
+
+        print rads
+
+        hjc.joint_mapping.data = joints
+        hjc.q_cmd_radians.data = rads
+
+        # Send latest joint list
+        try:
+            self.ctrl_deq_append(hjc)
+        except:
+            print 'Failed to go home. ctrl_deq_append must not be initialized'
+            rospy.sleep(1)
+            self.gui_command_executing = False
+            self.current_state = STATE_IDLE
+        return
+
+
 
     # -----------------------------------------------------------------
     # Send Joint Commands to RVIZ
@@ -281,9 +321,16 @@ class Dreamer_Head():
                  Q_des, command_result = self.controller_manager.head_priority_eye_trajectory_look_at_point()                
                  self.process_task_result(Q_des, command_result)
 
-            elif (self.current_task == TASK_VEL_TRACK_EYE_PRIORITY):
+            elif (self.current_task == TASK_TRACK_PERSON_HEAD):
                  Q_des, command_result = self.controller_manager.control_track_person(self.interval)
                  self.process_task_result(Q_des, command_result)                 
+            elif (self.current_task == TASK_TRACK_PERSON_EYES):
+                 Q_des, command_result = self.controller_manager.control_track_person_eyes_only(self.interval)
+                 self.process_task_result(Q_des, command_result)                 
+
+
+
+
             return
 
         #--------------
@@ -293,18 +340,20 @@ class Dreamer_Head():
             # BLOCK All Behavior Commands
             self.current_behavior = BEHAVIOR_NO_BEHAVIOR 
             if (self.gui_command_executing == False):
-                # send go home low level program command here
                 self.gui_command_executing = True
+                self.send_go_home_low_level_command()
+                # send go home low level program command here
 
-            # Wait for a few seconds before changing state back to IDLE
-            time_interval = self.ROS_current_time - self.gui_command_execute_time
-            if (time_interval > self.wait_time_go_home):
-                # Reset all Joints to Home Position
-                self.reset_all_joints_to_home()
+            if self.gui_command_executing:
+                # Wait for a few seconds before changing state back to IDLE
+                time_interval = self.ROS_current_time - self.gui_command_execute_time
+                if (time_interval > self.wait_time_go_home):
+                    # Reset all Joints to Home Position
+                    self.reset_all_joints_to_home()
 
-                self.gui_command_executing = False
-                # Change State Back To Idle
-                self.current_state = STATE_IDLE
+                    self.gui_command_executing = False
+                    # Change State Back To Idle
+                    self.current_state = STATE_IDLE
         #--------------
         else:
             print "ERROR Not a valid state" 
@@ -368,22 +417,19 @@ class Dreamer_Head():
             self.reset_state_tasks_behaviors()
             self.current_behavior = BEHAVIOR_DO_SQUARE_FIXED_HEAD
         
-
-        elif gui_command == DO_SQUARE_EYE_PRIORITY:
-            self.gui_command = gui_command
-            self.gui_command_string = DO_SQUARE_EYE_PRIORITY_STRING
-        
-        elif gui_command == DO_SQUARE_HEAD_PRIORITY:
-            self.gui_command = gui_command
-            self.gui_command_string = DO_SQUARE_HEAD_PRIORITY_STRING
-        
         elif gui_command == TRACK_NEAR_PERSON:
             self.gui_command = gui_command
             self.gui_command_string = TRACK_NEAR_PERSON_STRING
             self.reset_state_tasks_behaviors()
             self.current_behavior = BEHAVIOR_TRACK_NEAR_PERSON
 
-        
+        elif gui_command == TRACK_NEAR_PERSON_EYES:
+            self.gui_command = gui_command
+            self.gui_command_string = TRACK_NEAR_PERSON_EYES_STRING
+            self.reset_state_tasks_behaviors()
+            self.current_behavior = BEHAVIOR_TRACK_NEAR_PERSON_EYES            
+
+
         elif gui_command == AVOID_NEAR_PERSON:
             self.gui_command = gui_command
             self.gui_command_string = AVOID_NEAR_PERSON_STRING
@@ -517,9 +563,15 @@ class Dreamer_Head():
 
 
         elif ((self.current_behavior == BEHAVIOR_TRACK_NEAR_PERSON) and self.behavior_commanded == False):
-            task_list = [TASK_VEL_TRACK_EYE_PRIORITY]            
+            task_list = [TASK_TRACK_PERSON_HEAD]            
             task_params = []
             self.execute_behavior(task_list, task_params)
+
+        elif ((self.current_behavior == BEHAVIOR_TRACK_NEAR_PERSON_EYES) and self.behavior_commanded == False):
+            task_list = [TASK_TRACK_PERSON_EYES]            
+            task_params = []
+            self.execute_behavior(task_list, task_params)
+
         return
 
     def task_logic(self):
@@ -548,7 +600,12 @@ class Dreamer_Head():
             self.controller_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration)  
             self.task_commanded = True
 
-        elif ((self.current_task == TASK_VEL_TRACK_EYE_PRIORITY) and (self.task_commanded == False)):
+        elif ((self.current_task == TASK_TRACK_PERSON_HEAD) and (self.task_commanded == False)):
+            self.current_state = STATE_GO_TO_POINT
+            self.task_commanded = True
+
+
+        elif ((self.current_task == TASK_TRACK_PERSON_EYES) and (self.task_commanded == False)):
             self.current_state = STATE_GO_TO_POINT
             self.task_commanded = True
 

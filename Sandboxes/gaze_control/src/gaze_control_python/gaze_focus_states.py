@@ -17,7 +17,7 @@ class Gaze_Focus_States():
         self.kinematics = head_kinematics
 
         self.focus_length = {self.H : INIT_FOCUS_LENGTH, self.RE : INIT_FOCUS_LENGTH, self.LE : INIT_FOCUS_LENGTH}
-        self.focus_point_init = {self.H : INIT_FOCUS_LENGTH, self.RE : INIT_FOCUS_LENGTH, self.LE : INIT_FOCUS_LENGTH}
+        self.focus_point_init = {self.H : np.array([1,0,0]), self.RE : np.array([1,0,0]), self.LE : np.array([1,0,0]) }
         self.current_focus_length = {self.H : INIT_FOCUS_LENGTH, self.RE : INIT_FOCUS_LENGTH, self.LE : INIT_FOCUS_LENGTH}
 
         # Current Focus Location
@@ -31,7 +31,7 @@ class Gaze_Focus_States():
 
     def reset(self):
         self.focus_length = {self.H : INIT_FOCUS_LENGTH, self.RE : INIT_FOCUS_LENGTH, self.LE : INIT_FOCUS_LENGTH}
-        self.focus_point_init = {self.H : INIT_FOCUS_LENGTH, self.RE : INIT_FOCUS_LENGTH, self.LE : INIT_FOCUS_LENGTH}
+        self.focus_point_init = {self.H :  np.array([1,0,0]), self.RE :  np.array([1,0,0]), self.LE :  np.array([1,0,0]) }
         self.current_focus_length = {self.H : INIT_FOCUS_LENGTH, self.RE : INIT_FOCUS_LENGTH, self.LE : INIT_FOCUS_LENGTH}
 
         # Current Focus Location
