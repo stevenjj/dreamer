@@ -10,7 +10,7 @@ Panels:
         - /TF1
         - /TF1/Frames1
       Splitter Ratio: 0.773256
-    Tree Height: 828
+    Tree Height: 437
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -101,7 +101,7 @@ Visualization Manager:
       Marker Topic: /visualization_marker
       Name: AR Markers
       Namespaces:
-        basic_shapes: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Axes
@@ -116,8 +116,6 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        ar_marker_3:
-          Value: false
         camera_depth_frame:
           Value: false
         camera_depth_optical_frame:
@@ -238,8 +236,7 @@ Visualization Manager:
               {}
           camera_rgb_frame:
             camera_rgb_optical_frame:
-              ar_marker_3:
-                {}
+              {}
             dreamer_marker_frame:
               my_world_neck:
                 world:
@@ -625,22 +622,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 3.12101
+      Distance: 5.80998
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.0583
-        Y: 0.230001
-        Z: 0.0822115
+        X: 1.19838
+        Y: 1.12333
+        Z: -0.0253734
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.039796
+      Pitch: 0.494796
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.40223
+      Yaw: 3.11223
     Saved: ~
 Window Geometry:
   Displays:

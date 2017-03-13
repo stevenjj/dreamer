@@ -27,8 +27,8 @@ def loop():
         if ((DREAMER_MARKER_PRESENT == False) or (current_time - last_dreamer_marker_update > TIME_BEFORE_PUBLISHING_FAKE_MARKER)):
             print 'Dreamer marker not present, publishing a fake tf'
             DREAMER_MARKER_PRESENT = False
-            fake_marker_x = -0.6
-            fake_marker_y = 0.15
+            fake_marker_x = 0.0
+            fake_marker_y = 0.7
             fake_marker_z = 0.0            
             br.sendTransform( (fake_marker_x, fake_marker_y, fake_marker_z),
                              (0.0, 0.0, 0.0, 1.0),
@@ -60,6 +60,7 @@ def ar_marker_callback(marker_data):
         #                   Pos z  ->  Pos x
         #                   Pos x  ->  Neg y
         #                   Pos y  ->  Neg z
+
         br.sendTransform( (p_z, -p_x, -p_y),
                          (0.0, 0.0, 0.0, 1.0),
                          rospy.Time.now(),
