@@ -9,36 +9,36 @@ TODO:
 	- Bound the velocity/acceleration
 '''
 
+'''
+Questions:
+'''
+class Waypoint():
+	def __init__(self, x, dot_x, ddot_x, Dt):
+		self.s = np.array([x, dot_x, ddot_x])
+		self.Dt = Dt
 
 class MinimumJerk():
-	def __init__(self, max_vel = 0.5, max_accel = 0.1):
+	def __init__(self, waypoint_list, max_vel = 0.5, max_accel = 0.1):
 		self.coeffs = np.zeros((3,6)) #coeffs for x,y,z axes
 		self.max_vel = max_vel
 		self.max_accel = max_accel
-		self.waypoints = self.read_Waypoints()
+		self.waypoint_list = absolute_time(waypoint_list)
 	
+
 	def bound_this_vel(self, des_vel):
 		desired_vel = des_vel
 		if (des_vel > self.max_vel):
 			desired_vel = self.max_vel
 		return desired_vel
 
-	# This function will read waypoints having 3 parameters
-	# 	for now, it will be a hardcoded 2D array
-	# Not a particularly useful function
-	def read_Waypoints(self):
-		#waypoint = np.empty([1,3])
-		return np.array([[0,0,0]])
+	# Will create a list of times and points from the waypoint differences
+	def absolute_time(waypoint_list):
 
-	# Add waypoint(s) onto the end of the array of waypoints
-	# Input must be in the form of a 2D array
-	def append_waypoint(self, waypoint):
-		self.waypoints = np.concatenate((self.waypoints, waypoint), axis=0)
 
 	# Low level calculator given two waypoints, will be called by a higher loop
 	# Returns the minimum jerk coefficients for the two specified points
 	# Waypoints will be 1D arrays with 3 elements
-	def get_min_jerk_coeffs(self, to, tf, waypoint_i, waypoint_f, axis=0):
+	def point_min_jerk_coeffs(self, waypoint_i, waypoint_f, axis=0):
 		T_matrix_coeffs = np.array([ 
 			[1, to, to**2,   to**3,       to**4,      to**5 ],
 			[0,  1,  2*to, 3*(to**2), 4*(to**3),   5*(to**4)],
@@ -53,15 +53,15 @@ class MinimumJerk():
 
 		self.coeffs[axis] = coeffs
 		return coeffs
-	
 
+	# Main Function, will go through our np array and calculate all coefficients
+	def all_min_jerk_coeffs(self, DT_des=1):
+		num_waypoints = self.waypoints.shape[0] # Gets how many waypoints we have
 
-x_coord = MinimumJerk()
-print "Initial Waypoints"
-print x_coord.waypoints
+x_coord = []
+x_coord.append(Waypoint(0, 0, 0, 1))
+x_coord.append(Waypoint(10, 0, 0, 0))
+print x_coord[1].s
 
-x_coord.append_waypoint(np.array([[10,0,0]]))
-print "Appended Waypoints"
-print x_coord.waypoints
-
-print x_coord.get_min_jerk_coeffs(0, .5, x_coord.waypoints[0], x_coord.waypoints[1])
+test_move = MinimumJerk(x_coord)
+test_move.point_min_jerk_coeffs(test_move.waypoint_list[0], test_move.waypoint_list[1])
