@@ -37,9 +37,9 @@ class DreamerGui(QtGui.QWidget):
                        GO_HOME_STRING,
                        DO_SQUARE_FIXED_EYES_STRING,
                        DO_SQUARE_FIXED_HEAD_STRING,
-                       DO_SQUARE_EYE_PRIORITY_STRING,
-                       DO_SQUARE_HEAD_PRIORITY_STRING,
                        TRACK_NEAR_PERSON_STRING,
+                       TRACK_NEAR_PERSON_EYES_STRING,
+                       TRACK_NEAR_PERSON_BEST_STRING,                       
                        AVOID_NEAR_PERSON_STRING,
                        DO_WAYPOINT_TRAJ_STRING
                        ] 
@@ -84,24 +84,34 @@ class DreamerGui(QtGui.QWidget):
 
       if command == LOW_LEVEL_OFF_STRING: 
         num_cmd = LOW_LEVEL_OFF
+
       elif command == LOW_LEVEL_ON_STRING: 
         num_cmd = LOW_LEVEL_ON 
+
       elif command == STATE_TO_IDLE_STRING: 
         num_cmd = STATE_TO_IDLE
+
       elif command == GO_HOME_STRING: 
         num_cmd = GO_HOME
+
       elif command == DO_SQUARE_FIXED_EYES_STRING: 
         num_cmd = DO_SQUARE_FIXED_EYES                        
+
       elif command == DO_SQUARE_FIXED_HEAD_STRING: 
         num_cmd = DO_SQUARE_FIXED_HEAD
-      elif command == DO_SQUARE_EYE_PRIORITY_STRING: 
-        num_cmd = DO_SQUARE_EYE_PRIORITY
-      elif command == DO_SQUARE_HEAD_PRIORITY_STRING: 
-        num_cmd = DO_SQUARE_HEAD_PRIORITY
+
       elif command == TRACK_NEAR_PERSON_STRING: 
         num_cmd = TRACK_NEAR_PERSON
+
+      elif command == TRACK_NEAR_PERSON_EYES_STRING: 
+        num_cmd = TRACK_NEAR_PERSON_EYES        
+
+      elif command == TRACK_NEAR_PERSON_BEST_STRING: 
+        num_cmd = TRACK_NEAR_PERSON_BEST
+      
       elif command == AVOID_NEAR_PERSON_STRING: 
         num_cmd = AVOID_NEAR_PERSON
+
       elif command == DO_WAYPOINT_TRAJ_STRING: 
         num_cmd = DO_WAYPOINT_TRAJ
       else:

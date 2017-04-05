@@ -111,8 +111,9 @@ if __name__ == "__main__":
 	for cmd_num in range(10):
 		print 'Cmd {}: 1 second duration, 8 joint command.'.format(cmd_num)
 
+
 		hjc = HeadJointCmdRequest()
-		hjc.numCtrlSteps.data = 1100
+		hjc.numCtrlSteps.data = 550
 	   
 		joints = [0, 1, 2, 3, 4, 5, 6, 7]
 		rads = [cmd_num*2.*np.pi/180. for j in joints]
@@ -123,10 +124,10 @@ if __name__ == "__main__":
 		resp = ctrl_deq_append(hjc)
 		print resp
 
-	print ''
-	print 'Sleep 2 s...'
-	rospy.sleep(2)
-	print ''
+	# print ''
+	# print 'Sleep 2 s...'
+	# rospy.sleep(2)
+	# print ''
 
 	# for cmd_num in range(10, -20, -1):
 	# 	print 'Cmd {}: 91 ms duration, 8 joint command.'.format(cmd_num)

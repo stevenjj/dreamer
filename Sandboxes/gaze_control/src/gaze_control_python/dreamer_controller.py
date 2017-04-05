@@ -8,7 +8,7 @@ import head_kinematics as hk
 global head_kin
 head_kin = hk.Head_Kinematics()
 
-MAX_EYE_VEL = 0.5 # Maximum Eye Velocity
+MAX_EYE_VEL = 0.8#0.5 # Maximum Eye Velocity
 
 
 def calculate_dQ(J, dx):
@@ -608,6 +608,9 @@ class Controller():
 
         return Q_des, result
 
+
+
+    # Track with the head
     def control_track_person(self, dt):
         human_eye_pos = np.array([1, 0, self.kinematics.l1])
         if (len(self.people_manager.list_of_people) > 0):
@@ -617,16 +620,96 @@ class Controller():
         tracking_condition = self.track_person_condition(human_eye_pos)
 
         if not(tracking_condition):
-            human_eye_pos = np.array([1,0,0])
+            human_eye_pos = np.array([1,0,self.kinematics.l1])
 
         Q_res = self.kinematics.Jlist
         result = False
+ 
+        #head main priority
+        if not (np.linalg.norm(human_eye_pos- self.gaze_focus_states.focus_point_init[self.H]) < 0.05 ):
+
+            # Call initialized
+            start_time = rospy.get_time()
+
+            # print self.gaze_focus_states.focus_point_init[self.H]
+            xyz_eye_gaze_loc =  self.gaze_focus_states.focus_point_init[self.H]
+            xyz_head_gaze_loc = human_eye_pos
+            movement_duration = 1
+            # movement_duration = 0 
+            self.specify_head_eye_gaze_point(start_time, xyz_head_gaze_loc, xyz_eye_gaze_loc, movement_duration)
+            # Decide which control law to use
+
+            # Feed des_velocity to controller
+            #Q_des, result = self.velocity_track_eye_priority_head_look_at_point(dt, MAX_EYE_VEL)
+            Q_des, result = self.velocity_track_head_priority_eye_look_at_point(dt, MAX_EYE_VEL)            
+            Q_res = Q_des
+
+        # if not( ( np.linalg.norm(human_eye_pos - self.gaze_focus_states.focus_point_init[self.RE]) < 0.05 ) and \
+        #          ( np.linalg.norm(human_eye_pos - self.gaze_focus_states.focus_point_init[self.LE]) < 0.05 ) ):
+
+        #     # Call initialized
+        #     start_time = rospy.get_time()
+
+        #     # print self.gaze_focus_states.focus_point_init[self.H]
+        #     xyz_eye_gaze_loc =  human_eye_pos
+        #     xyz_head_gaze_loc = self.gaze_focus_states.focus_point_init[self.H]
+        #     movement_duration = 1
+
+        #     # movement_duration = 0 
+        #     self.specify_head_eye_gaze_point(start_time, xyz_head_gaze_loc, xyz_eye_gaze_loc, movement_duration)
+        #     # Decide which control law to use
+
+        #     # Feed des_velocity to controller
+        #     #Q_des, result = self.velocity_track_eye_priority_head_look_at_point(dt, MAX_EYE_VEL)
+        #     Q_des, result = self.velocity_track_head_priority_eye_look_at_point(dt, MAX_EYE_VEL)            
+        #     Q_res = Q_des
+
+        # head main priority
+        # if not( ( np.linalg.norm(human_eye_pos - self.gaze_focus_states.focus_point_init[self.RE]) < 0.05 ) and \
+        #         ( np.linalg.norm(human_eye_pos - self.gaze_focus_states.focus_point_init[self.LE]) < 0.05 ) ):
+
+        #     # Call initialized
+        #     start_time = rospy.get_time()
+
+        #     # print self.gaze_focus_states.focus_point_init[self.H]
+        #     xyz_eye_gaze_loc =  human_eye_pos #self.gaze_focus_states.focus_point_init[self.H]
+        #     xyz_head_gaze_loc = human_eye_pos
+        #     movement_duration = 1
+        #     # movement_duration = 0 
+        #     self.specify_head_eye_gaze_point(start_time, xyz_head_gaze_loc, xyz_eye_gaze_loc, movement_duration)
+        #     # Decide which control law to use
+
+        #     # Feed des_velocity to controller
+        #     #Q_des, result = self.velocity_track_eye_priority_head_look_at_point(dt, MAX_EYE_VEL)
+        #     Q_des, result = self.velocity_track_head_priority_eye_look_at_point(dt, MAX_EYE_VEL)            
+        #     Q_res = Q_des
+
+        return Q_res, result
+
+
+    # Track with mainly the eyes
+    def control_track_person_eye_priority(self, dt):
+        human_eye_pos = np.array([1, 0, self.kinematics.l1])
+        if (len(self.people_manager.list_of_people) > 0):
+            human_eye_pos = self.people_manager.identify_closest_person_from_gaze_focus()            
+
+
+        tracking_condition = self.track_person_condition(human_eye_pos)
+
+        if not(tracking_condition):
+            human_eye_pos = np.array([1,0,self.kinematics.l1])
+
+        Q_res = self.kinematics.Jlist
+        result = False
+
         if not( ( np.linalg.norm(human_eye_pos - self.gaze_focus_states.focus_point_init[self.RE]) < 0.05 ) and \
                 ( np.linalg.norm(human_eye_pos - self.gaze_focus_states.focus_point_init[self.LE]) < 0.05 ) ):
 
             # Call initialized
             start_time = rospy.get_time()
-            xyz_eye_gaze_loc = human_eye_pos
+
+            # print self.gaze_focus_states.focus_point_init[self.H]
+            xyz_eye_gaze_loc =  human_eye_pos #self.gaze_focus_states.focus_point_init[self.H]
             xyz_head_gaze_loc = human_eye_pos
             movement_duration = 1
             # movement_duration = 0 
@@ -640,9 +723,47 @@ class Controller():
 
         return Q_res, result
 
+
+    # Track with the head
+    def control_track_person_eyes_only(self, dt):
+        human_eye_pos = np.array([1, 0, self.kinematics.l1])
+        if (len(self.people_manager.list_of_people) > 0):
+            human_eye_pos = self.people_manager.identify_closest_person_from_gaze_focus()            
+
+
+        tracking_condition = self.track_person_condition(human_eye_pos)
+
+        if not(tracking_condition):
+            human_eye_pos = np.array([1,0,self.kinematics.l1])
+
+        Q_res = self.kinematics.Jlist
+        result = False
+ 
+        if not( ( np.linalg.norm(human_eye_pos - self.gaze_focus_states.focus_point_init[self.RE]) < 0.05 ) and \
+                 ( np.linalg.norm(human_eye_pos - self.gaze_focus_states.focus_point_init[self.LE]) < 0.05 ) ):
+
+            # Call initialized
+            start_time = rospy.get_time()
+
+            # print self.gaze_focus_states.focus_point_init[self.H]
+            xyz_eye_gaze_loc =  human_eye_pos
+            xyz_head_gaze_loc = np.array([1,0,self.kinematics.l1])#self.gaze_focus_states.focus_point_init[self.H]
+            movement_duration = 1
+
+            # movement_duration = 0 
+            self.specify_head_eye_gaze_point(start_time, xyz_head_gaze_loc, xyz_eye_gaze_loc, movement_duration)
+            # Decide which control law to use
+
+            # Feed des_velocity to controller
+            Q_des, result = self.velocity_track_head_priority_eye_look_at_point(dt, MAX_EYE_VEL)            
+            Q_res = Q_des
+
+
+        return Q_res, result
+
     def track_person_condition(self, human_pos):
         (x,y,z) = human_pos[0], human_pos[1], human_pos[2] 
-        if ( ((z < -0.2) or (z > 0.5)) and ((x < 0.2) or (x > 3)) ):
+        if ( ((z < -0.2) or (z > 0.5)) and ((x < 0.225) or (x > 3.0)) ):
             return False
 
         x_hat = np.array([1,0,0])
@@ -652,13 +773,31 @@ class Controller():
 
         phi = np.arccos(x_hat.dot(human_pos) / xyz_person_norm / x_hat_norm)
 
-        if ((dp > 0) and (phi < 1.0472)): #(np.pi/4.0))):
+        if ((dp > 0) and (np.pi/4.0)):
             return True
         else:
             return False
 
+    def specify_avoid_person_params(self, start_time, movement_duration):
+        human_eye_pos = np.array([1, 0, self.kinematics.l1])
+        if (len(self.people_manager.list_of_people) > 0):
+            human_eye_pos = self.people_manager.identify_closest_person_from_gaze_focus()            
+        # Left
+        look_left  = np.array([1,0.5, self.kinematics.l1])
+        look_right =  np.array([1,-0.5, self.kinematics.l1])        
 
-    def sat(x):
+        look_direction = look_left       
+
+        if (human_eye_pos[1] > 0):
+            look_direction = look_right 
+
+        xyz_head_gaze_loc = look_direction 
+        xyz_eye_gaze_loc = look_direction
+
+        self.specify_head_eye_gaze_point(start_time, xyz_head_gaze_loc, xyz_eye_gaze_loc, movement_duration)
+
+
+    def sat(self, x):
         if np.abs(x) <= 1:
             return x
         else:
@@ -699,12 +838,25 @@ class Controller():
         e_hat_re, L_re = self.xi_to_xf_vec(t, x_i_right_eye, xyz_eye_gaze_loc)
         e_hat_le, L_le = self.xi_to_xf_vec(t, x_i_left_eye, xyz_eye_gaze_loc)        
 
-        v_des_re = e_hat_re * DES_VEL 
-        v_des_le = e_hat_le * DES_VEL        
+        # v_des_re = e_hat_re * DES_VEL 
+        # v_des_le = e_hat_le * DES_VEL        
 
-        v_re_command = v_des_re #v_cur_re - v_des_re 
-        v_le_command = v_des_le #v_cur_le - v_des_le       
+        # v_re_command = v_des_re #v_cur_re - v_des_re 
+        # v_le_command = v_des_le #v_cur_le - v_des_le       
 
+        # -------------------
+        re_pos_error = (xyz_eye_gaze_loc - x_i_right_eye)
+        kv = 0.5
+        v_re_des = kv*re_pos_error
+        v_re_sat = self.sat(MAX_EYE_VEL/np.linalg.norm(v_re_des))
+
+        le_pos_error = (xyz_eye_gaze_loc - x_i_left_eye)
+        v_le_des = kv*le_pos_error
+        v_le_sat = self.sat(MAX_EYE_VEL/np.linalg.norm(v_le_des))
+
+        v_re_command = v_re_sat*v_re_des
+        v_le_command = v_le_sat*v_le_des        
+        #------------------------
 
         # Current desired gaze point
         p_des_cur_re = x_i_right_eye +  v_re_command*dt #e_hat_le*0.01 #np.array([0.1,0.1,0])  #v_des_re*dt #np.array([0,0,0.1]) #v_re_command*dt#  e_hat_re*dt # np.array([5,0,0])#+ v_re_command*dt #e_hat_re*L_re*(self.min_jerk_time_scaling(t, DT))
@@ -760,7 +912,12 @@ class Controller():
         e_hat_head, L_head = self.xi_to_xf_vec(t, x_i_head, xyz_head_gaze_loc)
 
 
-        v_des_h = e_hat_head * DES_VEL 
+        h_pos_error = (xyz_head_gaze_loc - x_i_head)
+        kv = 2.0
+        v_h_des = kv*h_pos_error
+        v_h_sat = self.sat(MAX_EYE_VEL/np.linalg.norm(v_h_des))
+
+        v_des_h = v_h_sat*v_h_des
 
         # Current desired gaze point
         p_head_des_cur = x_i_head + v_des_h*dt 
@@ -836,13 +993,20 @@ class Controller():
 
         #print '         Focus Point', x_i
 
-        # Find vector from initial focus point to final focus point
-        e_hat_head, L_head = self.xi_to_xf_vec(t, x_i_head, xyz_head_gaze_loc)
 
-        v_des_h = e_hat_head * DES_VEL 
+        h_pos_error = (xyz_head_gaze_loc - x_i_head)
+        kv = 2.0
+        v_h_des = kv*h_pos_error
+        v_h_sat = self.sat(MAX_EYE_VEL/np.linalg.norm(v_h_des))
+
+        v_des_h = v_h_sat*v_h_des
+
 
         # Current desired gaze point
         p_head_des_cur = x_i_head + v_des_h*dt 
+
+
+
 
         # Calculate current orientation error
         d_theta_error, angular_vel_hat = orientation_error(p_head_des_cur, Q_cur, 'head')
