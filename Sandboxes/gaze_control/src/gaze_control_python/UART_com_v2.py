@@ -339,6 +339,7 @@ if __name__ == '__main__':
     next_cmd            = None
     last_go_time        = None
     first_attempt_time  = None
+    timeout_ack         = False
 
     
     print "Press the Reset Button to continue."
@@ -371,8 +372,9 @@ if __name__ == '__main__':
 
         ############################
         if state == RESET:
-            last_go_time       = None
-            first_attempt_time = None
+            last_go_time        = None
+            first_attempt_time  = None
+            timeout_ack         = False
 
             fifo_size = len(ctrl_deq)
             if fifo_size:
@@ -458,9 +460,10 @@ if __name__ == '__main__':
         ############################
         if state == ACK_E_STOP:
             if current_program == REMOTE_CONTROL_PROGRAM:
-                last_go_time       = None
-                first_attempt_time = None
-                next_cmd           = None
+                last_go_time        = None
+                first_attempt_time  = None
+                next_cmd            = None
+                timeout_ack         = False
 
                 fifo_size = len(ctrl_deq)
                 if fifo_size:
@@ -516,6 +519,7 @@ if __name__ == '__main__':
                 last_go_time = go_time
 
                 next_state = WAIT_FOR_CMDS
+                timeout_ack = False
 
 
             elif msg_recieved == 'Welcome':
@@ -527,10 +531,14 @@ if __name__ == '__main__':
                 msg_deq.append("System was E-Stopped...")
                 next_state = ACK_E_STOP
             elif msg_recieved == '' and next_cmd == None:   # Dont change state in this case
-                msg_deq.append("Timeout while waiting for 'GO' signal.")
-                # next_state = WAIT_FOR_EMB_SIG         
+                if not timeout_ack:     # only print once in a row
+                    msg_deq.append("Timeout while waiting for 'GO' signal.")
+                    timeout_ack = True
+                # next_state = WAIT_FOR_EMB_SIG   
+                # else: msg_deq.append("Would have printed 'Timeout while waiting for 'GO' signal.'")      
             elif msg_recieved == '' and next_cmd != None:
                 msg_deq.append("Timeout while waiting for 'GO' signal. Skipping to next command...")
+
                 next_state = WAIT_FOR_CMDS
             else:
                 msg_deq.append("You shouldnt be here. Are you?")

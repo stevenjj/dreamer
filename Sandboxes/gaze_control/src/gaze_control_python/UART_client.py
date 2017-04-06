@@ -51,14 +51,14 @@ if __name__ == "__main__":
 
 
 
-	print 'Change program to REMOTE CONTROL'
+	# print 'Change program to REMOTE CONTROL'
 
 
-	rgp = RunProgramRequest()
-	rgp.new_program_num.data = REMOTE_CONTROL_PROGRAM
-	resp = run_gaze_program(rgp)
+	# rgp = RunProgramRequest()
+	# rgp.new_program_num.data = REMOTE_CONTROL_PROGRAM
+	# resp = run_gaze_program(rgp)
 
-	print resp.success.data
+	# print resp.success.data
 
 
 
@@ -107,21 +107,22 @@ if __name__ == "__main__":
 	# rospy.sleep(1)
 	# print ''
 
-	# print 'Try sending 10 commands in a row...'
-	# for cmd_num in range(10):
-	# 	print 'Cmd {}: 1 second duration, 8 joint command.'.format(cmd_num)
+	print 'Try sending 10 commands in a row...'
+	for cmd_num in range(10):
+		print 'Cmd {}: 1 second duration, 8 joint command.'.format(cmd_num)
 
-	# 	hjc = HeadJointCmdRequest()
-	# 	hjc.numCtrlSteps.data = 550
+
+		hjc = HeadJointCmdRequest()
+		hjc.numCtrlSteps.data = 550
 	   
-	# 	joints = [0, 1, 2, 3, 4, 5, 6, 7]
-	# 	rads = [cmd_num*2.*np.pi/180. for j in joints]
+		joints = [0, 1, 2, 3, 4, 5, 6, 7]
+		rads = [cmd_num*2.*np.pi/180. for j in joints]
 
-	# 	hjc.joint_mapping.data = joints
-	# 	hjc.q_cmd_radians.data = rads
+		hjc.joint_mapping.data = joints
+		hjc.q_cmd_radians.data = rads
 
-	# 	resp = ctrl_deq_append(hjc)
-	# 	print resp
+		resp = ctrl_deq_append(hjc)
+		print resp
 
 	# print ''
 	# print 'Sleep 2 s...'
