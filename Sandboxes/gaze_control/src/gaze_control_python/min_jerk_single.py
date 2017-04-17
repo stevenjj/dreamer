@@ -2,26 +2,6 @@
 import rospy
 import numpy as np
 
-'''
-TODO:
-	- spherical coordinates
-	- add rotation parameter
-	- drop points on a sphere
-	- google scholar and psych people
-		~ human gaze
-		~ biomimetic robot head-eye
-			oculomotor control
-			smooth pursuit
-		~ simultaneous gaze control
-		
-
-
-'''
-
-'''
-Questions:
-'''
-
 ### Class Waypoint
 #		A Waypoint is defined by position, velocity, acceleration
 #			and time to get to this point from the previous point
@@ -82,7 +62,7 @@ class MinimumJerk():
 
 		return coeffs
 
-	# Function: Updates coeffs Class variable will minimum jerk trajectories for all points
+	# Function: Updates coeffs Class variable with minimum jerk trajectories for all points
 	# Input: None
 	# Return: None
 	def get_all_min_jerk_coeffs(self, DT_des=1):
@@ -99,30 +79,35 @@ class MinimumJerk():
 		if(time < 0):
 			return None
 		elif(time > self.waypoint_list[length-1].Dt):
-			return np.array([self.waypoint_list[length-1].s[0], self.waypoint_list[length-1].s[1], self.waypoint_list[length-1].s[2]])
-		else:
-			for i in range(1, length):
-				if (self.waypoint_list[i-1].Dt <= time <= self.waypoint_list[i].Dt):
-					# This is ugly but is essentially our 5th order equation and its derivatives
-					return np.array([ 
-							(self.coeffs[i-1][0] +
-						    self.coeffs[i-1][1] * time +
-						    self.coeffs[i-1][2] * (time**2) +
-						    self.coeffs[i-1][3] * (time**3) +
-						    self.coeffs[i-1][4] * (time**4) +
-						    self.coeffs[i-1][5] * (time**5)	)
-							,
-							(self.coeffs[i-1][1] +
-						    self.coeffs[i-1][2] * 2 * (time) +
-						    self.coeffs[i-1][3] * 3 * (time**2) +
-						    self.coeffs[i-1][4] * 4 * (time**3) +
-						    self.coeffs[i-1][5] * 5 * (time**4)	)
-						    ,
-						    (self.coeffs[i-1][2] * 2 +
-						    self.coeffs[i-1][3] * 6 * (time) +
-						    self.coeffs[i-1][4] * 12 * (time**2) +
-						    self.coeffs[i-1][5] * 20 * (time**3))
-						    ])
+			time = self.waypoint_list[length-1].Dt
+
+		for i in range(1, length):
+			if (self.waypoint_list[i-1].Dt <= time <= self.waypoint_list[i].Dt):
+				# This is ugly but is essentially our 5th order equation and its derivatives
+				return np.array([ # position
+						(self.coeffs[i-1][0] +
+					    self.coeffs[i-1][1] * time +
+					    self.coeffs[i-1][2] * (time**2) +
+					    self.coeffs[i-1][3] * (time**3) +
+					    self.coeffs[i-1][4] * (time**4) +
+					    self.coeffs[i-1][5] * (time**5)	)
+						,
+						(self.coeffs[i-1][1] + # velocity
+					    self.coeffs[i-1][2] * 2 * (time) +
+					    self.coeffs[i-1][3] * 3 * (time**2) +
+					    self.coeffs[i-1][4] * 4 * (time**3) +
+					    self.coeffs[i-1][5] * 5 * (time**4)	)
+					    ,
+					    (self.coeffs[i-1][2] * 2 + # acceleration
+					    self.coeffs[i-1][3] * 6 * (time) +
+					    self.coeffs[i-1][4] * 12 * (time**2) +
+					    self.coeffs[i-1][5] * 20 * (time**3))
+					    ,
+						( self.coeffs[i-1][3] * 6 + # jerk
+					    self.coeffs[i-1][4] * 24 * (time) +
+					    self.coeffs[i-1][5] * 60 * (time**2))
+					    ])
+
 
 	# Helper functions in case you only want one value
 	def get_position(self, time):
@@ -133,6 +118,10 @@ class MinimumJerk():
 
 	def get_acceleration(self, time):
 		return (self.get_all_s(time))[2]
+
+	def get_jerk(self, time):
+		return (self.get_all_s(time))[3]
+
 
 
 '''
@@ -161,18 +150,14 @@ print test_move.get_all_s(1.8)
 
 print test_move.total_run_time()
 '''
-
 '''
 # Testing Script
 f = open('output.txt', 'w')
 # First define the points as an array of Waypoint classes
 x_coord = []
-x_coord.append(Waypoint(65, 65, 4, 0))
-x_coord.append(Waypoint(12, 12, 65, 1.2))
-x_coord.append(Waypoint(54, 73, -51, 4))
-x_coord.append(Waypoint(78, -87, 7, .93))
-x_coord.append(Waypoint(43, 12, -16, 6))
-x_coord.append(Waypoint(61, 93, -5, 1.5))
+x_coord.append(Waypoint(0, 0, 0, 0))
+x_coord.append(Waypoint(10, 0, 0, 1))
+
 
 
 
@@ -180,12 +165,8 @@ x_coord.append(Waypoint(61, 93, -5, 1.5))
 test_move = MinimumJerk(x_coord)
 
 # Coefficients are automatically calculated, so we can simply input a time
-val = np.arange(0, 13.63, 0.01)
-for i in range(0, 1363):
-	f.write( str((test_move.get_all_s(val[i]))[0]) )
-	f.write("\t")
-	f.write( str((test_move.get_all_s(val[i]))[1]) )
-	f.write("\t")
-	f.write( str((test_move.get_all_s(val[i]))[2]) )
+val = np.arange(0, 2, 0.01)
+for i in range(0, 200):
+	f.write( str(test_move.get_position(val[i])) )
 	f.write("\n")
 '''
