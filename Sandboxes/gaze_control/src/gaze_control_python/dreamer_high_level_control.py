@@ -638,30 +638,44 @@ class Dreamer_Head():
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
 
-            duration = 2
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, -.95, 0.05] ), np.array( [1.0, -.95, 0.05] ), duration) )
             
+            change_time = 1
             x = []
-            x.append(single.Waypoint(1, 0, 0, 0))
-            x.append(single.Waypoint(1, 0, 0, 3))
-            x.append(single.Waypoint(1, 0, 0, 3))
-            x.append(single.Waypoint(1, 0, 0, 3))
-            x.append(single.Waypoint(1, 0, 0, 3))
+            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, 0))
+            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, change_time))
+            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, change_time))
+            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, change_time))
+            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, change_time))
+            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, change_time))
+            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, change_time))
+            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, change_time))
+            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, change_time))
 
             y = []
-            y.append(single.Waypoint(-.95, 0, 0, 0))
-            y.append(single.Waypoint(.95, .05, -.05, 3))
-            y.append(single.Waypoint(.95, .05, .05, 3))
-            y.append(single.Waypoint(-.95, .05, -.05, 3))
-            y.append(single.Waypoint(-.95, 0, 0, 3))
+            y.append(single.Waypoint(-.15, 0, 0, 0))
+            y.append(single.Waypoint(-.106, .075, 0, change_time))
+            y.append(single.Waypoint(0, .075, 0, change_time))
+            y.append(single.Waypoint(.106, .075, 0, change_time))
+            y.append(single.Waypoint(.15, 0, 0, change_time))
+            y.append(single.Waypoint(.106, -.075, 0, change_time))
+            y.append(single.Waypoint(0, -.075, 0, change_time))
+            y.append(single.Waypoint(-.106, -.075, 0, change_time))
+            y.append(single.Waypoint(-.15, 0, 0, change_time))
 
             z = []
-            z.append(single.Waypoint(.05, 0, 0, 0))
-            z.append(single.Waypoint(.05, .05, .05, 3))
-            z.append(single.Waypoint(.95, .05, -.05, 3))
-            z.append(single.Waypoint(.95, .05, -.05, 3))
-            z.append(single.Waypoint(.05, 0, 0, 3))
+            z.append(single.Waypoint(0+self.kinematics.l1, 0, 0, 0))
+            z.append(single.Waypoint(.106+self.kinematics.l1, 0.075, 0, change_time))
+            z.append(single.Waypoint(.15+self.kinematics.l1, 0, 0, change_time))
+            z.append(single.Waypoint(.106+self.kinematics.l1, -.075, 0, change_time))
+            z.append(single.Waypoint(0+self.kinematics.l1, -.075, 0, change_time))
+            z.append(single.Waypoint(-.106+self.kinematics.l1, -.075, 0, change_time))
+            z.append(single.Waypoint(-.15+self.kinematics.l1, 0, 0, change_time))
+            z.append(single.Waypoint(-.106+self.kinematics.l1, .075, 0, change_time))
+            z.append(single.Waypoint(0+self.kinematics.l1, 0, 0, change_time))
 
+            duration = 2
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [x[0].s[0], y[0].s[0], z[0].s[0]] ), np.array( [x[0].s[0], y[0].s[0], z[0].s[0]] ), duration) )
+            
             x_coord = single.MinimumJerk(x)
             y_coord = single.MinimumJerk(y)
             z_coord = single.MinimumJerk(z)
