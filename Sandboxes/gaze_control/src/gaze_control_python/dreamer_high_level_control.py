@@ -357,11 +357,9 @@ class Dreamer_Head():
                     self.task_commanded = False
 
             elif (self.current_task == TASK_FOLLOW_WAYPOINTS):
-                 #time = rospy.get_time() - self.BRANDON_TIME
                  print 'HELLO BRANDON!'
-                 #Q_des, command_result = self.controller_manager.control_track_person_eye_priority(self.interval)
-                 #self.process_task_result(Q_des, command_result)                 
-
+                 Q_des, command_result = self.controller_manager.head_priority_eye_trajectory_follow()
+                 self.process_task_result(Q_des, command_result)                 
 
             return
 
@@ -521,7 +519,7 @@ class Dreamer_Head():
             # print self.task_params
 
             #self.gaze_focus_states.print_debug()
-            #self.gaze_focus_states.print_debug()
+            #self.gaze_focus_states.print_debugxy()
             #self.controller_manager.print_debug()
             self.people_manager.print_debug()
 
@@ -641,32 +639,33 @@ class Dreamer_Head():
             task_params = []
 
             duration = 2
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, 0.0] ), np.array( [1.0, 0.0, 0.0] ), duration) )
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, -.95, 0.05] ), np.array( [1.0, -.95, 0.05] ), duration) )
             
             x = []
-            x.append(single.Waypoint(1, .05, 0, 0))
-            x.append(single.Waypoint(0, .05, 0, 1))
-            x.append(single.Waypoint(0, .05, 0, 1))
-            x.append(single.Waypoint(1, .05, 0, 1))
-            x.append(single.Waypoint(1, .05, 0, 1))
+            x.append(single.Waypoint(1, 0, 0, 0))
+            x.append(single.Waypoint(1, 0, 0, 3))
+            x.append(single.Waypoint(1, 0, 0, 3))
+            x.append(single.Waypoint(1, 0, 0, 3))
+            x.append(single.Waypoint(1, 0, 0, 3))
 
             y = []
-            y.append(single.Waypoint(0, .05, 0, 0))
-            y.append(single.Waypoint(1, .05, 0, 1))
-            y.append(single.Waypoint(1, .05, 0, 1))
-            y.append(single.Waypoint(0, .05, 0, 1))
-            y.append(single.Waypoint(0, .05, 0, 1))
+            y.append(single.Waypoint(-.95, 0, 0, 0))
+            y.append(single.Waypoint(.95, .05, -.05, 3))
+            y.append(single.Waypoint(.95, .05, .05, 3))
+            y.append(single.Waypoint(-.95, .05, -.05, 3))
+            y.append(single.Waypoint(-.95, 0, 0, 3))
 
             z = []
-            z.append(single.Waypoint(0, .05, 0, 0))
-            z.append(single.Waypoint(0, .05, 0, 1))
-            z.append(single.Waypoint(1, .05, 0, 1))
-            z.append(single.Waypoint(1, .05, 0, 1))
-            z.append(single.Waypoint(0, .05, 0, 1))
+            z.append(single.Waypoint(.05, 0, 0, 0))
+            z.append(single.Waypoint(.05, .05, .05, 3))
+            z.append(single.Waypoint(.95, .05, -.05, 3))
+            z.append(single.Waypoint(.95, .05, -.05, 3))
+            z.append(single.Waypoint(.05, 0, 0, 3))
 
             x_coord = single.MinimumJerk(x)
             y_coord = single.MinimumJerk(y)
             z_coord = single.MinimumJerk(z)
+
 
             piecewise_func = Coordinates_3D(x_coord, y_coord, z_coord)
             total_run_time = x_coord.total_run_time() # Should be the same for y and z
@@ -729,13 +728,11 @@ class Dreamer_Head():
             self.current_state = STATE_GO_TO_POINT
 
             start_time = rospy.Time.now().to_sec()  #self.ROS_current_time
-            #self.BRANDON_TIME = start_time
             piecewise_func = self.task_params[self.current_task_index][0]
             total_run_time = self.task_params[self.current_task_index][1] 
 
-            #self.controller_manager.specify_follow_traj_params(total_run_time, piecewise_func)
+            self.controller_manager.specify_follow_traj_params(start_time, total_run_time, piecewise_func)
             self.task_commanded = True
-
 
 
         return

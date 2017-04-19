@@ -245,6 +245,27 @@ class Controller():
         self.xyz_head_gaze_loc = np.array([0,0,0])
         self.xyz_eye_gaze_loc = np.array([0,0,0])
 
+        self.piecewise_func = None
+        self.piecewise_func_total_run_time = 0        
+
+    def specify_follow_traj_params(self, start_time, total_run_time, piecewise_func):
+        self.Q_o_at_start = self.kinematics.Jlist
+
+        # Initialize Time parameters
+        self.start_time = start_time
+        self.current_traj_time = start_time
+        self.prev_traj_time = 0    
+        self.piecewise_func_total_run_time = total_run_time
+
+        # Initialize Piecewise Func
+        self.piecewise_func = piecewise_func
+
+        xyz_head_gaze_loc = piecewise_func.get_position(start_time)
+        xyz_eye_gaze_loc = piecewise_func.get_position(start_time)
+        self.initialize_head_eye_focus_point(xyz_head_gaze_loc, xyz_eye_gaze_loc)
+                
+        return
+
 
     def specify_head_eye_gaze_point(self, start_time, xyz_head_gaze_loc, xyz_eye_gaze_loc, movement_duration):
         # Initialize kinematic positions
@@ -258,7 +279,6 @@ class Controller():
         self.start_time = start_time
         self.current_traj_time = start_time
         self.prev_traj_time = 0     
-
 
         self.initialize_head_eye_focus_point(xyz_head_gaze_loc, xyz_eye_gaze_loc)
 
@@ -329,6 +349,116 @@ class Controller():
 
 
 
+    # Head is Prioritized over the Eyes Task Only
+    def head_priority_eye_trajectory_follow(self):
+        # Calculate Time
+        t, t_prev = self.calculate_t_t_prev()
+        dt = t - t_prev
+        DT = self.piecewise_func_total_run_time
+        
+        # Specify current (x,y,z) gaze location, joint config and jacobian
+        xyz_eye_gaze_loc = self.piecewise_func.get_position(t)
+        xyz_head_gaze_loc = self.piecewise_func.get_position(t)
+
+        # Specify current (x,y,z) gaze location, joint config and jacobian
+        Q_cur = self.kinematics.Jlist
+        J_head = self.kinematics.get_6D_Head_Jacobian(Q_cur)
+        
+        # Magic begins
+        J1_bar = np.linalg.pinv(J_head)        
+        pJ1_J1 = J1_bar.dot(J_head)
+
+        I_1 = np.eye(np.shape(pJ1_J1)[0])
+        N1 = I_1 - pJ1_J1
+
+        # Calculate FeedForward ---------------------------------
+        # Calculate new Q_des (desired configuration)
+
+        self.initialize_head_eye_focus_point(xyz_head_gaze_loc, xyz_eye_gaze_loc)   
+
+        p_head_des_cur = xyz_head_gaze_loc
+
+        # Calculate current orientation error
+        #d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT))
+        d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT)) 
+        dx1 = d_theta_error * angular_vel_hat
+        dx1 = np.concatenate( (dx1, np.array([0,0,0])),  axis=1)
+        dq1 = calculate_dQ(J_head, dx1)
+        Q_des = Q_cur + dq1 
+
+        # Now Calculate dq for eyes
+        Q_cur = self.kinematics.Jlist
+        J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
+        J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
+
+        #J_1 = J_1[0:3,:] #Grab the first 3 rows      
+        #J_2 = J_2[0:3,:] #Grab the first 3 rows            
+
+        J2 = np.concatenate((J_1,J_2) ,axis=0) 
+
+        # Do you believe in magic?
+        pinv_J2_N1 = np.linalg.pinv(J2.dot(N1))
+        J2_pinv_J1 = J2.dot(J1_bar)
+        J2_pinv_J1_x1dot = (J2.dot(J1_bar)).dot(dx1)
+
+
+        # Current desired gaze point
+        p_des_cur_re = xyz_eye_gaze_loc
+        p_des_cur_le = xyz_eye_gaze_loc        
+
+        # Calculate current orientation error for each eye
+        d_theta_error_re, angular_vel_hat_re = smooth_orientation_error(p_des_cur_re, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'right_eye') 
+        d_theta_error_le, angular_vel_hat_le = smooth_orientation_error(p_des_cur_le, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'left_eye')         
+        dx_re = d_theta_error_re * angular_vel_hat_re
+        dx_le = d_theta_error_le * angular_vel_hat_le
+
+        dx_re = np.concatenate( (dx_re, np.array([0,0,0])),  axis=1)
+        dx_le = np.concatenate( (dx_le, np.array([0,0,0])),  axis=1)
+
+ 
+        dx = np.concatenate( (dx_re, dx_le),  axis=1)
+ 
+        dq = N1.dot(pinv_J2_N1.dot(dx -J2_pinv_J1_x1dot)) # Projection with least squares opt. I think this breaks
+        dq = np.dot(N1, dq) # Normal projection.
+
+        # ignore these two lines. This tests how task 2 acts
+        #dq = calculate_dQ(J2, dx) 
+        #Q_des = Q_cur + dq 
+
+        Q_des = Q_des + dq
+
+
+
+
+        self.prev_traj_time = t
+        # Loop Done
+
+        theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'right_eye')
+        theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'left_eye')
+
+        #print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
+        #print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
+
+
+        R_cur_head, p_cur_head = self.kinematics.get_6D_Head_Position(Q_cur)
+        R_cur, p_cur_right_eye = self.kinematics.get_6D_Right_Eye_Position(Q_cur)
+        R_cur, p_cur_left_eye = self.kinematics.get_6D_Left_Eye_Position(Q_cur)
+
+
+        self.gaze_focus_states.current_focus_length[self.H] =   np.linalg.norm(p_cur_head - p_head_des_cur)  
+        self.gaze_focus_states.current_focus_length[self.RE] =  np.linalg.norm(p_cur_right_eye - p_des_cur_re)         
+        self.gaze_focus_states.current_focus_length[self.LE] =  np.linalg.norm(p_cur_left_eye -p_des_cur_le)
+
+
+        # Prepare result of command
+        result = False
+        if (t > DT):
+            result = True
+
+        return Q_des, result
+
+
+
     # Fixed Head, Move Eyes Task Only
     def head_priority_eye_trajectory_look_at_point(self):
         # Calculate Time
@@ -339,7 +469,6 @@ class Controller():
         # Specify current (x,y,z) gaze location, joint config and jacobian
         xyz_eye_gaze_loc = self.xyz_eye_gaze_loc
         xyz_head_gaze_loc = self.xyz_head_gaze_loc
-
 
         # Specify current (x,y,z) gaze location, joint config and jacobian
         Q_cur = self.kinematics.Jlist
