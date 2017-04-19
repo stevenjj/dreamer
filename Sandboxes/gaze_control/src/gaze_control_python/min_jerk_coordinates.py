@@ -1,6 +1,5 @@
 import min_jerk_single as single
 import numpy as np
-import math
 
 ### Class Coordinates_3D
 # Coordinates_3D are defined by 3 MinimumJerk classes
@@ -20,11 +19,11 @@ class Coordinates_3D():
 	def get_position(self, time):
 		if (self.sys == 'p'):
 			# x = r * sin(phi) * cos(theta)
-			x = self.x.get_position(time)*math.sin(self.z.get_position(time))*math.cos(self.y.get_position(time))
+			x = self.x.get_position(time)*np.sin(self.z.get_position(time))*np.cos(self.y.get_position(time))
 			# y = r * sin(phi) * sin(theta)
-			y = self.x.get_position(time)*math.sin(self.z.get_position(time))*math.sin(self.y.get_position(time))
+			y = self.x.get_position(time)*np.sin(self.z.get_position(time))*np.sin(self.y.get_position(time))
 			# z = r * sin(phi)
-			z = self.x.get_position(time)*math.sin(self.z.get_position(time))
+			z = self.x.get_position(time)*np.sin(self.z.get_position(time))
 			return np.array([x,y,z])
 		else:
 			return np.array([self.x.get_position(time), self.y.get_position(time), self.z.get_position(time)])
@@ -36,31 +35,32 @@ f = open('output.txt', 'w')
 
 
 x = []
-x.append(single.Waypoint(1, .05, 0, 0))
-x.append(single.Waypoint(0, .05, 0, 1))
-x.append(single.Waypoint(0, .05, 0, 1))
-x.append(single.Waypoint(1, .05, 0, 1))
-x.append(single.Waypoint(1, .05, 0, 1))
+x.append(single.Waypoint(1, 0, 0, 0))
+x.append(single.Waypoint(1, 0, 0, 1))
+x.append(single.Waypoint(1, 0, 0, 1))
+x.append(single.Waypoint(1, 0, 0, 1))
+x.append(single.Waypoint(1, 0, 0, 1))
 
 y = []
-y.append(single.Waypoint(0, .05, 0, 0))
-y.append(single.Waypoint(1, .05, 0, 1))
-y.append(single.Waypoint(1, .05, 0, 1))
-y.append(single.Waypoint(0, .05, 0, 1))
-y.append(single.Waypoint(0, .05, 0, 1))
+y.append(single.Waypoint(-.95, 0, 0, 0))
+y.append(single.Waypoint(.95, .05, -.05, 1))
+y.append(single.Waypoint(.95, .05, .05, 1))
+y.append(single.Waypoint(-.95, .05, -.05, 1))
+y.append(single.Waypoint(-.95, 0, 0, 1))
 
 z = []
-z.append(single.Waypoint(0, .05, 0, 0))
-z.append(single.Waypoint(0, .05, 0, 1))
-z.append(single.Waypoint(1, .05, 0, 1))
-z.append(single.Waypoint(1, .05, 0, 1))
-z.append(single.Waypoint(0, .05, 0, 1))
+z.append(single.Waypoint(.05, 0, 0, 0))
+z.append(single.Waypoint(.05, .05, .05, 1))
+z.append(single.Waypoint(.95, .05, -.05, 1))
+z.append(single.Waypoint(.95, .05, -.05, 1))
+z.append(single.Waypoint(.05, 0, 0, 1))
 
 x_coord = single.MinimumJerk(x)
 y_coord = single.MinimumJerk(y)
 z_coord = single.MinimumJerk(z)
 
 coordinate1 = Coordinates_3D(x_coord, y_coord, z_coord)
+
 
 val = np.arange(0, 4, 0.01)
 ran = 400
@@ -82,7 +82,7 @@ for i in range(0, ran):
 	f.write(", ")
 f.write("]")
 
-'''
-	f.write('\t')
-	f.write('\t')
-'''
+# '''
+# 	f.write('\t')
+# 	f.write('\t')
+# '''
