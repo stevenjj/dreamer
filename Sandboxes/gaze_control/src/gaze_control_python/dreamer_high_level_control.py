@@ -11,6 +11,9 @@ from detected_people_manager import *
 from gaze_focus_states import *
 from dreamer_controller import *
 
+import min_jerk_single as single
+from min_jerk_coordinates import *
+
 # ROS 
 import dreamer_joint_publisher
 from gaze_control.srv import HeadJointCmd, HeadJointCmdRequest
@@ -56,7 +59,7 @@ TASK_TRACK_PERSON_EYES       = 104
 TASK_TRACK_PERSON_BEST       = 105
 TASK_AVOID_NEAR_PERSON = 106
 TASK_GO_TO_WAYPOINTS_EYE_PRIORITY = 107
-
+TASK_FOLLOW_WAYPOINTS = 108
 
 TASK_ID_TO_STRING = {TASK_NO_TASK: "TASK_NO_TASK",
                      TASK_GO_TO_POINT_HEAD_PRIORITY: "TASK_GO_TO_POINT_HEAD_PRIORITY",
@@ -65,7 +68,8 @@ TASK_ID_TO_STRING = {TASK_NO_TASK: "TASK_NO_TASK",
                      TASK_TRACK_PERSON_EYES: "TASK_TRACK_PERSON_EYES",         
                      TASK_AVOID_NEAR_PERSON: "TASK_AVOID_NEAR_PERSON",
                      TASK_TRACK_PERSON_BEST: "TASK_TRACK_PERSON_BEST",            
-                     TASK_GO_TO_WAYPOINTS_EYE_PRIORITY: "TASK_GO_TO_WAYPOINTS_EYE_PRIORITY"}
+                     TASK_GO_TO_WAYPOINTS_EYE_PRIORITY: "TASK_GO_TO_WAYPOINTS_EYE_PRIORITY",
+                     TASK_FOLLOW_WAYPOINTS: "TASK_FOLLOW_WAYPOINTS" }
 
 # Behavior List
 BEHAVIOR_NO_BEHAVIOR = 200
@@ -75,13 +79,15 @@ BEHAVIOR_TRACK_NEAR_PERSON = 203
 BEHAVIOR_TRACK_NEAR_PERSON_EYES = 204
 BEHAVIOR_TRACK_NEAR_PERSON_BEST = 205
 BEHAVIOR_AVOID_NEAR_PERSON = 206
+BEHAVIOR_FOLLOW_WAYPOINTS = 207
 BEHAVIOR_ID_TO_STRING = {BEHAVIOR_NO_BEHAVIOR: "BEHAVIOR_NO_BEHAVIOR",
                          BEHAVIOR_DO_SQUARE_FIXED_EYES: "BEHAVIOR_DO_SQUARE_FIXED_EYES",
                          BEHAVIOR_DO_SQUARE_FIXED_HEAD: "BEHAVIOR_DO_SQUARE_FIXED_HEAD",
                          BEHAVIOR_TRACK_NEAR_PERSON: "BEHAVIOR_TRACK_NEAR_PERSON",
                          BEHAVIOR_TRACK_NEAR_PERSON_EYES: "BEHAVIOR_TRACK_NEAR_PERSON_EYES",
                          BEHAVIOR_TRACK_NEAR_PERSON_BEST: "BEHAVIOR_TRACK_NEAR_PERSON_BEST",                         
-                         BEHAVIOR_AVOID_NEAR_PERSON: "BEHAVIOR_AVOID_NEAR_PERSON"                         
+                         BEHAVIOR_AVOID_NEAR_PERSON: "BEHAVIOR_AVOID_NEAR_PERSON"  ,
+                         BEHAVIOR_FOLLOW_WAYPOINTS: "BEHAVIOR_FOLLOW_WAYPOINTS"                       
                     }
 
 #-----------------------------------------------
@@ -111,6 +117,7 @@ def setup_run_program():
 
 class Dreamer_Head():
     def __init__(self):
+        self.BRANDON_TIME = 0
         # Setup Robot Kinematics
         self.kinematics = hk.Head_Kinematics() 
 
@@ -336,11 +343,9 @@ class Dreamer_Head():
                  Q_des, command_result = self.controller_manager.control_track_person_eyes_only(self.interval)
                  self.process_task_result(Q_des, command_result)                 
 
-
             elif (self.current_task == TASK_TRACK_PERSON_BEST):
                  Q_des, command_result = self.controller_manager.control_track_person_eye_priority(self.interval)
                  self.process_task_result(Q_des, command_result)                 
-
 
             elif (self.current_task == TASK_AVOID_NEAR_PERSON):
                  Q_des, command_result = self.controller_manager.head_priority_eye_trajectory_look_at_point()
@@ -350,6 +355,13 @@ class Dreamer_Head():
                  if (command_result == True):
                     self.behavior_commanded = False
                     self.task_commanded = False
+
+            elif (self.current_task == TASK_FOLLOW_WAYPOINTS):
+                 #time = rospy.get_time() - self.BRANDON_TIME
+                 print 'HELLO BRANDON!'
+                 #Q_des, command_result = self.controller_manager.control_track_person_eye_priority(self.interval)
+                 #self.process_task_result(Q_des, command_result)                 
+
 
             return
 
@@ -464,7 +476,8 @@ class Dreamer_Head():
         elif gui_command == DO_WAYPOINT_TRAJ:      
             self.gui_command = gui_command
             self.gui_command_string = DO_WAYPOINT_TRAJ_STRING
-        
+            self.reset_state_tasks_behaviors()            
+            self.current_behavior = BEHAVIOR_FOLLOW_WAYPOINTS            
         else:
             print gui_command, "Invalid Command"
 
@@ -492,6 +505,16 @@ class Dreamer_Head():
 
             print '     Joint List:'
             print '       ', self.kinematics.Jlist
+
+
+            # if (self.current_task == TASK_FOLLOW_WAYPOINTS):
+            #     print '     MinJerk:'
+            #     time = rospy.get_time() - self.BRANDON_TIME
+            #     coordinate1 = self.task_params[self.current_task_index]
+            #     x = coordinate1.get_position(time)[0]
+            #     y = coordinate1.get_position(time)[1]
+            #     z = coordinate1.get_position(time)[2]                        
+            #     print '       (t, x, y, z):', (time, x, y, z)
 
             # print self.current_task_index
             # print len(self.task_list)
@@ -613,7 +636,44 @@ class Dreamer_Head():
 
             self.execute_behavior(task_list, task_params)
 
+        elif ((self.current_behavior == BEHAVIOR_FOLLOW_WAYPOINTS) and self.behavior_commanded == False):
+            task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
+            task_params = []
 
+            duration = 2
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, 0.0] ), np.array( [1.0, 0.0, 0.0] ), duration) )
+            
+            x = []
+            x.append(single.Waypoint(1, .05, 0, 0))
+            x.append(single.Waypoint(0, .05, 0, 1))
+            x.append(single.Waypoint(0, .05, 0, 1))
+            x.append(single.Waypoint(1, .05, 0, 1))
+            x.append(single.Waypoint(1, .05, 0, 1))
+
+            y = []
+            y.append(single.Waypoint(0, .05, 0, 0))
+            y.append(single.Waypoint(1, .05, 0, 1))
+            y.append(single.Waypoint(1, .05, 0, 1))
+            y.append(single.Waypoint(0, .05, 0, 1))
+            y.append(single.Waypoint(0, .05, 0, 1))
+
+            z = []
+            z.append(single.Waypoint(0, .05, 0, 0))
+            z.append(single.Waypoint(0, .05, 0, 1))
+            z.append(single.Waypoint(1, .05, 0, 1))
+            z.append(single.Waypoint(1, .05, 0, 1))
+            z.append(single.Waypoint(0, .05, 0, 1))
+
+            x_coord = single.MinimumJerk(x)
+            y_coord = single.MinimumJerk(y)
+            z_coord = single.MinimumJerk(z)
+
+            piecewise_func = Coordinates_3D(x_coord, y_coord, z_coord)
+            total_run_time = x_coord.total_run_time() # Should be the same for y and z
+
+            task_params.append( (piecewise_func, total_run_time) )
+
+            self.execute_behavior(task_list, task_params)
         return
 
     def task_logic(self):
@@ -664,6 +724,18 @@ class Dreamer_Head():
             movement_duration = self.task_params[self.current_task_index][0]            
             self.controller_manager.specify_avoid_person_params(start_time, movement_duration)
             self.task_commanded = True
+
+        elif ((self.current_task == TASK_FOLLOW_WAYPOINTS) and (self.task_commanded == False)):
+            self.current_state = STATE_GO_TO_POINT
+
+            start_time = rospy.Time.now().to_sec()  #self.ROS_current_time
+            #self.BRANDON_TIME = start_time
+            piecewise_func = self.task_params[self.current_task_index][0]
+            total_run_time = self.task_params[self.current_task_index][1] 
+
+            #self.controller_manager.specify_follow_traj_params(total_run_time, piecewise_func)
+            self.task_commanded = True
+
 
 
         return
