@@ -31,56 +31,56 @@ class Coordinates_3D():
 	def get_velocity(self, time):
 			return np.array([self.x.get_velocity(time), self.y.get_velocity(time), self.z.get_velocity(time)])
 
-f = open('output.txt', 'w')
+# f = open('output.txt', 'w')
 
 
-x = []
-x.append(single.Waypoint(1, 0, 0, 0))
-x.append(single.Waypoint(1, 0, 0, 1))
-x.append(single.Waypoint(1, 0, 0, 1))
-x.append(single.Waypoint(1, 0, 0, 1))
-x.append(single.Waypoint(1, 0, 0, 1))
+# x = []
+# x.append(single.Waypoint(1, 0, 0, 0))
+# x.append(single.Waypoint(1, 0, 0, 1))
+# x.append(single.Waypoint(1, 0, 0, 1))
+# x.append(single.Waypoint(1, 0, 0, 1))
+# x.append(single.Waypoint(1, 0, 0, 1))
 
-y = []
-y.append(single.Waypoint(-.95, 0, 0, 0))
-y.append(single.Waypoint(.95, .05, -.05, 1))
-y.append(single.Waypoint(.95, .05, .05, 1))
-y.append(single.Waypoint(-.95, .05, -.05, 1))
-y.append(single.Waypoint(-.95, 0, 0, 1))
+# y = []
+# y.append(single.Waypoint(-.95, 0, 0, 0))
+# y.append(single.Waypoint(.95, .05, -.05, 1))
+# y.append(single.Waypoint(.95, .05, .05, 1))
+# y.append(single.Waypoint(-.95, .05, -.05, 1))
+# y.append(single.Waypoint(-.95, 0, 0, 1))
 
-z = []
-z.append(single.Waypoint(.05, 0, 0, 0))
-z.append(single.Waypoint(.05, .05, .05, 1))
-z.append(single.Waypoint(.95, .05, -.05, 1))
-z.append(single.Waypoint(.95, .05, -.05, 1))
-z.append(single.Waypoint(.05, 0, 0, 1))
+# z = []
+# z.append(single.Waypoint(.05, 0, 0, 0))
+# z.append(single.Waypoint(.05, .05, .05, 1))
+# z.append(single.Waypoint(.95, .05, -.05, 1))
+# z.append(single.Waypoint(.95, .05, -.05, 1))
+# z.append(single.Waypoint(.05, 0, 0, 1))
 
-x_coord = single.MinimumJerk(x)
-y_coord = single.MinimumJerk(y)
-z_coord = single.MinimumJerk(z)
+# x_coord = single.MinimumJerk(x)
+# y_coord = single.MinimumJerk(y)
+# z_coord = single.MinimumJerk(z)
 
-coordinate1 = Coordinates_3D(x_coord, y_coord, z_coord)
+# coordinate1 = Coordinates_3D(x_coord, y_coord, z_coord)
 
 
-val = np.arange(0, 4, 0.01)
-ran = 400
-f.write("x = [")
-for i in range(0, ran):
-	f.write( str((coordinate1.get_position(val[i]))[0]) )
-	f.write(", ")
-f.write("]\n")
+# val = np.arange(0, 4, 0.01)
+# ran = 400
+# f.write("x = [")
+# for i in range(0, ran):
+# 	f.write( str((coordinate1.get_position(val[i]))[0]) )
+# 	f.write(", ")
+# f.write("]\n")
 
-f.write("y = [")
-for i in range(0, ran):
-	f.write( str((coordinate1.get_position(val[i]))[1]) )
-	f.write(", ")
-f.write("]\n")
+# f.write("y = [")
+# for i in range(0, ran):
+# 	f.write( str((coordinate1.get_position(val[i]))[1]) )
+# 	f.write(", ")
+# f.write("]\n")
 
-f.write("z = [")
-for i in range(0, ran):
-	f.write( str((coordinate1.get_position(val[i]))[2]) )
-	f.write(", ")
-f.write("]")
+# f.write("z = [")
+# for i in range(0, ran):
+# 	f.write( str((coordinate1.get_position(val[i]))[2]) )
+# 	f.write(", ")
+# f.write("]")
 
 # '''
 # 	f.write('\t')
