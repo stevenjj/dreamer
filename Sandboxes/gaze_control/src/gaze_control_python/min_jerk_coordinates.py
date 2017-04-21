@@ -1,5 +1,6 @@
 import min_jerk_single as single
 import numpy as np
+import head_kinematics as hk
 
 ### Class Coordinates_3D
 # Coordinates_3D are defined by 3 MinimumJerk classes
@@ -30,6 +31,37 @@ class Coordinates_3D():
 
 	def get_velocity(self, time):
 			return np.array([self.x.get_velocity(time), self.y.get_velocity(time), self.z.get_velocity(time)])
+
+	#In theory all runtimes are the same
+	def total_run_time(self):
+		return self.x.total_run_time()
+
+
+
+def circle(radius, time, distance = 1):
+	x = []
+	x.append(single.Waypoint(distance+hk.Head_Kinematics().l2, 0, 0, 0))
+	for i in range(0, 16):
+	    x.append(single.Waypoint(distance+hk.Head_Kinematics().l2, 0, 0, time/16.0))
+
+	y = []
+	y.append(single.Waypoint(-1 * radius, 0, 0, 0))
+	for i in range(1, 16):
+		y.append(single.Waypoint(-1 * radius * np.cos(np.pi*i/8.0), radius * np.sin(np.pi*i/8.0), radius * np.cos(np.pi*i/8.0), time/16.0 ))
+	y.append(single.Waypoint(-1 * radius * np.cos(2*np.pi), 0, 0, time/8.0 ))
+	
+	z = []
+	z.append(single.Waypoint(0+hk.Head_Kinematics().l1, 0, 0, 0))
+	for i in range(1,16):
+		z.append(single.Waypoint(radius*np.sin(np.pi*i/8.0)+hk.Head_Kinematics().l1, radius*np.cos(np.pi*i/8.0), -1*radius*np.sin(np.pi*i/8.0), time/16.0))
+	z.append(single.Waypoint(0+hk.Head_Kinematics().l1, 0, 0, time/16))
+	
+	x_coord = single.MinimumJerk(x)
+	y_coord = single.MinimumJerk(y)
+	z_coord = single.MinimumJerk(z)
+
+	circle_min = Coordinates_3D(x_coord, y_coord, z_coord)
+	return circle_min
 
 # f = open('output.txt', 'w')
 

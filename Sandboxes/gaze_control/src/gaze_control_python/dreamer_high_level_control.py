@@ -357,7 +357,7 @@ class Dreamer_Head():
                     self.task_commanded = False
 
             elif (self.current_task == TASK_FOLLOW_WAYPOINTS):
-                 print 'HELLO BRANDON!'
+                 #print 'HELLO BRANDON!'
                  Q_des, command_result = self.controller_manager.head_priority_eye_trajectory_follow()
                  self.process_task_result(Q_des, command_result)                 
 
@@ -637,56 +637,26 @@ class Dreamer_Head():
         elif ((self.current_behavior == BEHAVIOR_FOLLOW_WAYPOINTS) and self.behavior_commanded == False):
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
+            # Draw a circle behavior
+            piecewise_func = circle(.17, 4.0, 2.0)
 
-            
-            change_time = 1
-            x = []
-            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, 0))
-            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, change_time))
-            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, change_time))
-            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, change_time))
-            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, change_time))
-            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, change_time))
-            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, change_time))
-            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, change_time))
-            x.append(single.Waypoint(1+self.kinematics.l2, 0, 0, change_time))
+            # Extract initial coordinates
+            coord = piecewise_func.get_position(0)
+            x = coord[0]
+            y = coord[1]
+            z = coord[2]
 
-            y = []
-            y.append(single.Waypoint(-.15, 0, 0, 0))
-            y.append(single.Waypoint(-.106, .075, 0, change_time))
-            y.append(single.Waypoint(0, .075, 0, change_time))
-            y.append(single.Waypoint(.106, .075, 0, change_time))
-            y.append(single.Waypoint(.15, 0, 0, change_time))
-            y.append(single.Waypoint(.106, -.075, 0, change_time))
-            y.append(single.Waypoint(0, -.075, 0, change_time))
-            y.append(single.Waypoint(-.106, -.075, 0, change_time))
-            y.append(single.Waypoint(-.15, 0, 0, change_time))
-
-            z = []
-            z.append(single.Waypoint(0+self.kinematics.l1, 0, 0, 0))
-            z.append(single.Waypoint(.106+self.kinematics.l1, 0.075, 0, change_time))
-            z.append(single.Waypoint(.15+self.kinematics.l1, 0, 0, change_time))
-            z.append(single.Waypoint(.106+self.kinematics.l1, -.075, 0, change_time))
-            z.append(single.Waypoint(0+self.kinematics.l1, -.075, 0, change_time))
-            z.append(single.Waypoint(-.106+self.kinematics.l1, -.075, 0, change_time))
-            z.append(single.Waypoint(-.15+self.kinematics.l1, 0, 0, change_time))
-            z.append(single.Waypoint(-.106+self.kinematics.l1, .075, 0, change_time))
-            z.append(single.Waypoint(0+self.kinematics.l1, 0, 0, change_time))
-
+            # Tell Dreamer to go to the initial coordinates before executing minimum jerk
             duration = 2
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [x[0].s[0], y[0].s[0], z[0].s[0]] ), np.array( [x[0].s[0], y[0].s[0], z[0].s[0]] ), duration) )
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [x, y, z] ), np.array( [x, y, z] ), duration) )
             
-            x_coord = single.MinimumJerk(x)
-            y_coord = single.MinimumJerk(y)
-            z_coord = single.MinimumJerk(z)
 
-
-            piecewise_func = Coordinates_3D(x_coord, y_coord, z_coord)
-            total_run_time = x_coord.total_run_time() # Should be the same for y and z
+            total_run_time = piecewise_func.total_run_time()
 
             task_params.append( (piecewise_func, total_run_time) )
 
             self.execute_behavior(task_list, task_params)
+            
         return
 
     def task_logic(self):
