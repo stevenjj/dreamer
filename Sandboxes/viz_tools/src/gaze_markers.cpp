@@ -67,7 +67,7 @@ int main(int argc, char** argv){
     try{
       tf_left_eye =  tfBuffer.lookupTransform("world", "left_eye_yaw_link",    ros::Time(0));
       tf_right_eye = tfBuffer.lookupTransform("world", "right_eye_yaw_link",   ros::Time(0));
-      tf_head =      tfBuffer.lookupTransform("world", "upper_neck_roll_link", ros::Time(0));
+      tf_head =      tfBuffer.lookupTransform("world", "upper_neck_pitch_link", ros::Time(0));
     }
     catch (tf2::TransformException &ex) {
       ROS_WARN("%s",ex.what());
