@@ -89,6 +89,7 @@ def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, o
 
 
 # Calculate error between current configuration and desired configuration
+# TODO maybe can change the output of this to only a single variable when porting to C++
 def smooth_orientation_error(x_gaze_loc, Q, Q_init, scaling, orientation_type='head'):
     global head_kin
     J = None
@@ -248,6 +249,8 @@ class Controller():
         self.piecewise_func = None
         self.piecewise_func_total_run_time = 0        
 
+    # Function: Used for Minimum Jerk trajectories
+    #
     def specify_follow_traj_params(self, start_time, total_run_time, piecewise_func):
         self.Q_o_at_start = self.kinematics.Jlist
 
@@ -266,7 +269,8 @@ class Controller():
                 
         return
 
-
+    # Function: Changes points of focus for the head and eyes
+    # 
     def specify_head_eye_gaze_point(self, start_time, xyz_head_gaze_loc, xyz_eye_gaze_loc, movement_duration):
         # Initialize kinematic positions
         self.Q_o_at_start = self.kinematics.Jlist
@@ -288,13 +292,16 @@ class Controller():
         self.trajectory_length[self.RE] = np.linalg.norm(xyz_eye_gaze_loc - self.gaze_focus_states.focus_point_init[self.RE] )        
         self.trajectory_length[self.LE] = np.linalg.norm(xyz_eye_gaze_loc - self.gaze_focus_states.focus_point_init[self.LE] )        
 
+
         # Set total DT to move
         self.movement_duration = movement_duration
 
         #raise 'debug'
         return
 
-
+    # Function: Initialize variables to desired positions
+    # Checks if eyes are focused on a point
+    #   if so, use that point. Otherwise, focus the points
     def initialize_head_eye_focus_point(self, xyz_head_gaze_loc, xyz_eye_gaze_loc):
         R_head_init, p_head_init = self.kinematics.get_6D_Head_Position(self.kinematics.Jlist)
         R_right_eye_init, p_right_eye_init = self.kinematics.get_6D_Right_Eye_Position(self.kinematics.Jlist)
@@ -349,54 +356,59 @@ class Controller():
 
 
 
-    # Head is Prioritized over the Eyes Task Only
+    # Function: Head and eyes move to the same point, used for Minimum Jerk trajectories
+    # Head is prioritized over the two eyes
+    # There are 3 J_bar's, the head and both eye
     def head_priority_eye_trajectory_follow(self):
         # Calculate Time
         t, t_prev = self.calculate_t_t_prev()
         dt = t - t_prev
         DT = self.piecewise_func_total_run_time
         
-        # Specify current (x,y,z) gaze location, joint config and jacobian
+        # Specify current (x,y,z) gaze location through the piecewise min_jerk
         xyz_eye_gaze_loc = self.piecewise_func.get_position(t)
         xyz_head_gaze_loc = self.piecewise_func.get_position(t)
 
-        # Specify current (x,y,z) gaze location, joint config and jacobian
+        # Specify joint configuration and jacobian
         Q_cur = self.kinematics.Jlist
         J_head = self.kinematics.get_6D_Head_Jacobian(Q_cur)
         
-        # Magic begins
-        J1_bar = np.linalg.pinv(J_head)        
-        pJ1_J1 = J1_bar.dot(J_head)
+        # ---------------------- Head Calculations ----------------------
 
-        I_1 = np.eye(np.shape(pJ1_J1)[0])
-        N1 = I_1 - pJ1_J1
-
-        # Calculate FeedForward ---------------------------------
-        # Calculate new Q_des (desired configuration)
-
+        # Update head-eye variables with desired locations
         self.initialize_head_eye_focus_point(xyz_head_gaze_loc, xyz_eye_gaze_loc)   
 
         p_head_des_cur = xyz_head_gaze_loc
 
+        # Calculate FeedForward 
+        # Calculate new Q_des (desired configuration)
         # Calculate current orientation error
-        #d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT))
         d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT)) 
         dx1 = d_theta_error * angular_vel_hat
         dx1 = np.concatenate( (dx1, np.array([0,0,0])),  axis=1)
         dq1 = calculate_dQ(J_head, dx1)
         Q_des = Q_cur + dq1 
 
-        # Now Calculate dq for eyes
+
+        # ---------------------- Eye Calculations ----------------------
+        # Get Jacobian for eyes, redundant Q_cur
         Q_cur = self.kinematics.Jlist
         J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
         J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
 
-        #J_1 = J_1[0:3,:] #Grab the first 3 rows      
-        #J_2 = J_2[0:3,:] #Grab the first 3 rows            
-
+        # The two eye tasks are same priority so you can concatenate them
         J2 = np.concatenate((J_1,J_2) ,axis=0) 
 
-        # Do you believe in magic?
+        # Magic begins: Calculate the secondary tasks
+        # Equation: null space = identity matrix - pseudoinverse of Head_Jacobian 
+        J1_bar = np.linalg.pinv(J_head)       
+        pJ1_J1 = J1_bar.dot(J_head)
+        I_1 = np.eye(np.shape(pJ1_J1)[0])
+        N1 = I_1 - pJ1_J1
+
+        # Magic Continues
+        # This is based on a research paper HCRL published on secondary tasks
+        # This removes some leakage effects, just roll with it
         pinv_J2_N1 = np.linalg.pinv(J2.dot(N1))
         J2_pinv_J1 = J2.dot(J1_bar)
         J2_pinv_J1_x1dot = (J2.dot(J1_bar)).dot(dx1)
@@ -406,40 +418,29 @@ class Controller():
         p_des_cur_re = xyz_eye_gaze_loc
         p_des_cur_le = xyz_eye_gaze_loc        
 
-        # Calculate current orientation error for each eye
+        # Calculate current orientation error for each eye and find desired change based on that
         d_theta_error_re, angular_vel_hat_re = smooth_orientation_error(p_des_cur_re, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'right_eye') 
         d_theta_error_le, angular_vel_hat_le = smooth_orientation_error(p_des_cur_le, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'left_eye')         
         dx_re = d_theta_error_re * angular_vel_hat_re
         dx_le = d_theta_error_le * angular_vel_hat_le
 
+        # Remember previously that we concatenated the two Jacobian matrices because both eyes are the same priority
         dx_re = np.concatenate( (dx_re, np.array([0,0,0])),  axis=1)
         dx_le = np.concatenate( (dx_le, np.array([0,0,0])),  axis=1)
-
- 
         dx = np.concatenate( (dx_re, dx_le),  axis=1)
- 
+        
+        # Part of the HCRL research mentioned previously for calculating secondary tasks
         dq = N1.dot(pinv_J2_N1.dot(dx -J2_pinv_J1_x1dot)) # Projection with least squares opt. I think this breaks
-        dq = np.dot(N1, dq) # Normal projection.
-
-        # ignore these two lines. This tests how task 2 acts
-        #dq = calculate_dQ(J2, dx) 
-        #Q_des = Q_cur + dq 
-
+        
         Q_des = Q_des + dq
 
 
-
-
         self.prev_traj_time = t
-        # Loop Done
-
+       
         theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'right_eye')
         theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'left_eye')
 
-        #print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
-        #print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
-
-
+        
         R_cur_head, p_cur_head = self.kinematics.get_6D_Head_Position(Q_cur)
         R_cur, p_cur_right_eye = self.kinematics.get_6D_Right_Eye_Position(Q_cur)
         R_cur, p_cur_left_eye = self.kinematics.get_6D_Left_Eye_Position(Q_cur)
@@ -494,6 +495,11 @@ class Controller():
         e_hat_head, L_head = self.xi_to_xf_vec(t, x_i_head, xyz_head_gaze_loc)
         # Current desired gaze point
         p_head_des_cur = x_i_head + e_hat_head*L_head*(self.min_jerk_time_scaling(t, DT))
+
+
+        print '  Trajectory Length:       ', self.trajectory_length[self.H]
+        print '  Initial Focus Location:  ', x_i_head        
+        print '  Final Focus Location:    ', p_head_des_cur        
 
         # Calculate current orientation error
         #d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT))
@@ -550,8 +556,8 @@ class Controller():
  
         dq = N1.dot(pinv_J2_N1.dot(dx -J2_pinv_J1_x1dot))
 
-        dq = np.dot(N1, dq)
         #dq = calculate_dQ(J2, dx)
+        #dq = np.dot(N1, dq)
 
         #Q_des = Q_cur + dq 
 

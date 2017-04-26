@@ -27,7 +27,7 @@ from GUI_params import *
 JOINT_LIM_BOUND = 0.9 #between 0 to 1.0
 
 # Rate Constants
-NODE_RATE = 10 # Update rate of this node in Hz
+NODE_RATE = 100#10 # Update rate of this node in Hz
 
 LOW_LEVEL_FREQ = 550
 
@@ -90,6 +90,8 @@ BEHAVIOR_ID_TO_STRING = {BEHAVIOR_NO_BEHAVIOR: "BEHAVIOR_NO_BEHAVIOR",
                          BEHAVIOR_FOLLOW_WAYPOINTS: "BEHAVIOR_FOLLOW_WAYPOINTS"                       
                     }
 
+
+
 #-----------------------------------------------
 # ROS Client for Low Level control 
 def setup_ctrl_deq_append():
@@ -115,9 +117,10 @@ def setup_run_program():
 #-----------------------------------------------
 
 
+
+
 class Dreamer_Head():
     def __init__(self):
-        self.BRANDON_TIME = 0
         # Setup Robot Kinematics
         self.kinematics = hk.Head_Kinematics() 
 
@@ -195,10 +198,14 @@ class Dreamer_Head():
 
     #-------------------------------------------------------------
     # Joint and Gaze Focus Update
+    
+    # Function: Sets the variables for the joints
     def update_head_joints(self, head_joint_list):
         self.kinematics.Jlist = head_joint_list
         self.gaze_focus_states.update_gaze_focus_states(self.interval)
 
+        # Function: Bounds the joint movement
+        # Note that this function is hidden from all other functions, only needed within this function
         def joint_cmd_bound(val, joint_name, jmax, jmin):
             if val >= JOINT_LIM_BOUND*jmax:
                 print '    MAX Software Joint HIT! for joint', joint_name
@@ -216,7 +223,11 @@ class Dreamer_Head():
             joint_min_val = self.joint_publisher.free_joints[joint_name]['min']
             self.joint_publisher.free_joints[joint_name]['position'] = joint_cmd_bound(command, joint_name, joint_max_val, joint_min_val)
 
-    # Time Update
+
+    # Function: Update time of the head class
+    # Updates: dt - time since last update
+    #          current 'system' time
+    #          relative time since ROS initialization
     def update_time(self):
         current_time = rospy.get_time()
         self.dt = current_time - self.ROS_current_time
@@ -293,7 +304,7 @@ class Dreamer_Head():
 
 
     # -----------------------------------------------------------------
-    # Send Joint Commands to RVIZ
+    # Function: Send Joint Commands to RVIZ
     #   and to low Level if possible @ the control loop frequency
     def send_command(self):      
         cmd_interval = self.ROS_current_time - self.time_since_last_cmd_sent
@@ -327,6 +338,7 @@ class Dreamer_Head():
 
         #--------------
         # STATE GO TO POINT
+        # Calls task from the controller_manager which returns a Q change and a result of success or failure of the command
         elif (self.current_state == STATE_GO_TO_POINT):
             if (self.current_task == TASK_GO_TO_POINT_EYE_PRIORITY):
                  Q_des, command_result = self.controller_manager.eye_priority_head_trajectory_look_at_point()
@@ -357,7 +369,6 @@ class Dreamer_Head():
                     self.task_commanded = False
 
             elif (self.current_task == TASK_FOLLOW_WAYPOINTS):
-                 #print 'HELLO BRANDON!'
                  Q_des, command_result = self.controller_manager.head_priority_eye_trajectory_follow()
                  self.process_task_result(Q_des, command_result)                 
 
@@ -525,7 +536,17 @@ class Dreamer_Head():
 
 
     # --------------------------------------------------------
-    # Main Program Loop
+    # Main Program Loop Logic
+    # 1. Update time variables
+    # --Loop--
+    # 2. Set up behavior and update behavior variables (Needs to run once per button click)
+    # 3. Update variables that will command a single task sequentially from behavior list (Needs to run until the behavior is completed)
+    # 4. Actually compute the joint positions needed from the task variables updated previously
+    # 5. Send the joint positions to the controller (Rviz/dreamer head)
+    # 6. Publish focus length?
+    # 7. Do people related things?
+    # 8. Print debugging information
+    # 9. Update loop time
     def loop(self):
 
         while not rospy.is_shutdown():
@@ -547,21 +568,26 @@ class Dreamer_Head():
                 # Find People
                 self.people_manager.loop()
 
-                # Print out
+                # Print state information
                 self.print_debug()
                 # Sleep
                 self.time_since_last_loop = self.ROS_current_time
 
 
-    # Behavior and Task Logic
-
+    # ---------------- Behavior and Task Logic ----------------
 
     #----------------------------------------------------------
     # Behavior Helper Functions
+
+    # Function: Formats the data that is appended to task_params
     def set_prioritized_go_to_point_params(self, head_gaze_location, eye_gaze_location, move_duration):
         params = (head_gaze_location, eye_gaze_location, move_duration)
         return params       
 
+
+    # Function: Update behavior variables
+    #           Set up for the behavior to be executed
+    #           behavior_commanded is now true
     def execute_behavior(self, task_list, task_params):
         # Update Task Variables
         self.task_list   = task_list
@@ -575,6 +601,15 @@ class Dreamer_Head():
         self.behavior_commanded = True
 
 
+    # Function: Define behaviors and tasks within each behavior
+    #           Behaviors are a wrapper for a set of tasks
+    #   Logic:
+    #   1. if-else statements will find which behavior was clicked:
+    #       if a behavior was clicked, the gui_handler will reset the behavior_commanded semaphore 
+    #       if there is a behavior in progress, exit function without doing anything
+    #   2. task_list contains the name of the task for the behavior
+    #   3. task_params contain the actual commands such as moving to a point
+    #   4. Calls execute_behavior with task_list and task_params
     def behavior_logic(self):
         if self.current_behavior == BEHAVIOR_NO_BEHAVIOR:
             self.task_list = [TASK_NO_TASK]
@@ -582,6 +617,7 @@ class Dreamer_Head():
             return
 
         # This behavior makes a square with the head while the eyes are pointing straight ahead
+        # Redundant checking of behavior_commanded
         elif ((self.current_behavior == BEHAVIOR_DO_SQUARE_FIXED_EYES) and self.behavior_commanded == False):
             task_list = [TASK_GO_TO_POINT_EYE_PRIORITY for i in range(6)]
             task_params = []
@@ -596,6 +632,7 @@ class Dreamer_Head():
             task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.15, self.kinematics.l1-0.3]),   np.array([6, 0.0, self.kinematics.l1]),     duration) )
             self.execute_behavior(task_list, task_params)
 
+        # This behavior makes a square with the eyes while the head points straight ahead
         elif ((self.current_behavior == BEHAVIOR_DO_SQUARE_FIXED_HEAD) and self.behavior_commanded == False):
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY for i in range(6)]            
             task_params = []
@@ -609,7 +646,7 @@ class Dreamer_Head():
             task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.6, 0.15, self.kinematics.l1-0.2]),      1) )                   
             self.execute_behavior(task_list, task_params)
 
-
+        # There are no defined task_params for tracking people because it is calculated at run-time
         elif ((self.current_behavior == BEHAVIOR_TRACK_NEAR_PERSON) and self.behavior_commanded == False):
             task_list = [TASK_TRACK_PERSON_HEAD]            
             task_params = []
@@ -638,7 +675,7 @@ class Dreamer_Head():
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
             # Draw a circle behavior
-            piecewise_func = circle(.17, 4.0, 2.0)
+            piecewise_func = circle(.17, 8.0)
 
             # Extract initial coordinates
             coord = piecewise_func.get_position(0)
@@ -646,25 +683,25 @@ class Dreamer_Head():
             y = coord[1]
             z = coord[2]
 
-            # Tell Dreamer to go to the initial coordinates before executing minimum jerk
+            # Go to the initial coordinates before executing minimum jerk
             duration = 2
             task_params.append( self.set_prioritized_go_to_point_params(np.array( [x, y, z] ), np.array( [x, y, z] ), duration) )
             
-
             total_run_time = piecewise_func.total_run_time()
-
             task_params.append( (piecewise_func, total_run_time) )
-
             self.execute_behavior(task_list, task_params)
             
         return
 
+
+    # Function: Executes a single task based on the current index of the task_params
+    # This function executes many times over the course of a behavior
+    # 
     def task_logic(self):
         if self.current_task == TASK_NO_TASK:
             return
 
-
-        # Go to point task with the eyes having a higher priority
+        # The following two tasks take points from the params and move eyes/head to those locations based on a minimum jerk
         elif ((self.current_task == TASK_GO_TO_POINT_EYE_PRIORITY) and (self.task_commanded == False)):
             self.current_state = STATE_GO_TO_POINT
             start_time = rospy.Time.now().to_sec()  #self.ROS_current_time
@@ -685,6 +722,8 @@ class Dreamer_Head():
             self.controller_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration)  
             self.task_commanded = True
 
+        # The following three tasks don't have specifically defined movement 
+        #    because they are based on tracking people
         elif ((self.current_task == TASK_TRACK_PERSON_HEAD) and (self.task_commanded == False)):
             self.current_state = STATE_GO_TO_POINT
             self.task_commanded = True
@@ -708,6 +747,7 @@ class Dreamer_Head():
             self.controller_manager.specify_avoid_person_params(start_time, movement_duration)
             self.task_commanded = True
 
+
         elif ((self.current_task == TASK_FOLLOW_WAYPOINTS) and (self.task_commanded == False)):
             self.current_state = STATE_GO_TO_POINT
 
@@ -722,10 +762,14 @@ class Dreamer_Head():
         return
 
 
+    # Function: Helper function that shifts the current task to the next one in the list if index not out of bounds
     def next_task(self):
         if (self.current_task_index < len(self.task_list)):
             self.current_task = self.task_list[self.current_task_index]
 
+
+    # Function: Updates variables for head joints, moves on to next task if task is completed
+    # If behavior is complete, reset the command to nothing
     def process_task_result(self, Q_des, command_result):
         self.update_head_joints(Q_des)
         if (command_result == True):
@@ -736,6 +780,7 @@ class Dreamer_Head():
             if self.current_task_index == len(self.task_list):
                 self.reset_state_tasks_behaviors()
 
+    # Function: Resets all command variables in Dreamer to nothing commanded
     def reset_state_tasks_behaviors(self):
         self.current_state = STATE_IDLE
         self.current_task = TASK_NO_TASK 
