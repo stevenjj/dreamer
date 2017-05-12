@@ -27,7 +27,7 @@ from GUI_params import *
 JOINT_LIM_BOUND = 0.9 #between 0 to 1.0
 
 # Rate Constants
-NODE_RATE = 100#10 # Update rate of this node in Hz
+NODE_RATE = 50#10 # Update rate of this node in Hz
 
 LOW_LEVEL_FREQ = 550
 
@@ -221,8 +221,9 @@ class Dreamer_Head():
             joint_name = self.kinematics.Jindex_to_names[i]
             joint_max_val = self.joint_publisher.free_joints[joint_name]['max']
             joint_min_val = self.joint_publisher.free_joints[joint_name]['min']
-            self.joint_publisher.free_joints[joint_name]['position'] = joint_cmd_bound(command, joint_name, joint_max_val, joint_min_val)
-
+            joint_val = joint_cmd_bound(command, joint_name, joint_max_val, joint_min_val)
+            self.joint_publisher.free_joints[joint_name]['position'] = joint_val
+            self.kinematics.Jlist[i] = joint_val
 
     # Function: Update time of the head class
     # Updates: dt - time since last update
@@ -620,30 +621,33 @@ class Dreamer_Head():
         # Redundant checking of behavior_commanded
         elif ((self.current_behavior == BEHAVIOR_DO_SQUARE_FIXED_EYES) and self.behavior_commanded == False):
             task_list = [TASK_GO_TO_POINT_EYE_PRIORITY for i in range(6)]
+#            task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY for i in range(6)]            
             task_params = []
 
             init_to_go_point = 3 # Take a longer time to go to the initial point
             duration = 1
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.15, self.kinematics.l1+0.3]),  np.array([6, 0.0, self.kinematics.l1]),      init_to_go_point) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.15, self.kinematics.l1-0.3]),   np.array([6, 0.0, self.kinematics.l1]),     duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -0.15, self.kinematics.l1-0.3]),  np.array([6, 0.0, self.kinematics.l1]),     duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -0.15, self.kinematics.l1+0.3]), np.array([6, 0.0, self.kinematics.l1]),      duration) )                       
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.15, self.kinematics.l1+0.3]),  np.array([6, 0.0, self.kinematics.l1]),      duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.15, self.kinematics.l1-0.3]),   np.array([6, 0.0, self.kinematics.l1]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.15, self.kinematics.l1+0.1]),  np.array([0.75, 0.0, self.kinematics.l1]),      init_to_go_point) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.15, self.kinematics.l1-0.1]),   np.array([0.75, 0.0, self.kinematics.l1]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -0.15, self.kinematics.l1-0.1]),  np.array([0.75, 0.0, self.kinematics.l1]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -0.15, self.kinematics.l1+0.1]), np.array([0.75, 0.0, self.kinematics.l1]),      duration) )                       
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.15, self.kinematics.l1+0.1]),  np.array([0.75, 0.0, self.kinematics.l1]),      duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.15, self.kinematics.l1-0.1]),   np.array([0.75, 0.0, self.kinematics.l1]),     duration) )
             self.execute_behavior(task_list, task_params)
 
         # This behavior makes a square with the eyes while the head points straight ahead
         elif ((self.current_behavior == BEHAVIOR_DO_SQUARE_FIXED_HEAD) and self.behavior_commanded == False):
+#            task_list = [TASK_GO_TO_POINT_EYE_PRIORITY for i in range(6)]
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY for i in range(6)]            
             task_params = []
 
             init_to_go_point = 3 # Take a longer time to go to the initial point
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.6, 0.15, self.kinematics.l1+0.2]),      init_to_go_point) )
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.6, 0.15, self.kinematics.l1-0.2]),      1) )
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.6, -0.15, self.kinematics.l1-0.2]),     1) )
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.6, -0.15, self.kinematics.l1+0.2]),     1) )                       
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.6, 0.15, self.kinematics.l1+0.2]),      1) )
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.6, 0.15, self.kinematics.l1-0.2]),      1) )                   
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, 0.15, self.kinematics.l1+0.2]),      init_to_go_point) )
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, 0.15, self.kinematics.l1-0.2]),      1) )
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, -0.15, self.kinematics.l1-0.2]),     1) )
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, -0.15, self.kinematics.l1+0.2]),     1) )                       
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, 0.15, self.kinematics.l1+0.2]),      1) )
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, 0.15, self.kinematics.l1-0.2]),      1) )                   
+            #task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [-0.7, 0.55, self.kinematics.l1-0.2]),      1) )                               
             self.execute_behavior(task_list, task_params)
 
         # There are no defined task_params for tracking people because it is calculated at run-time
@@ -675,8 +679,8 @@ class Dreamer_Head():
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
             # Draw a circle behavior
-            piecewise_func = circle(.17, 8.0)
-
+            #piecewise_func = circle(.17, 8.0)
+            piecewise_func = circle(1.0, 8.0)
             # Extract initial coordinates
             coord = piecewise_func.get_position(0)
             x = coord[0]
