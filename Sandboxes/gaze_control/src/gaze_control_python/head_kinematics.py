@@ -34,13 +34,15 @@ class Head_Kinematics():
 	# Dreamer Head from J0
 	# Dreamer Screw Axes @ 0 Position
 	# S = [omega_hat, v]
+
+	# OLD
 	S0 = [0, -1, 0, 0, 0, 0]
 	S1 = [0, 0, 1, 0, 0, 0]
-	S2 = [-1, 0, 0, 0, l1, 0]
+	S2 = [-1, 0, 0, 0, -l1, 0]
 	S3 = [0, -1, 0, l1, 0, 0]
-	S4 = [0, -1, 0, l1, 0, l2]
+	S4 = [0, -1, 0, l1, 0, -l2]
 	S5 = [0,  0, 1, -l3, -l2, 0]
-	S6 = [0,  0, 1, l3, -l2, 0]					
+	S6 = [0,  0, 1, l3, -l2, 0]
 
 	R_head_home = np.eye(3)
 	p_head_home = [0, 0, l1]
@@ -120,7 +122,6 @@ class Head_Kinematics():
 		return J_spatial_6D_left_eye # returns 6x7 Spatial Jacobian
 
 
-
 	def get_6D_Right_Eye_Jacobian_yaw_pitch(self, JList):		
 		screw_axis_end = 5 # This is J5
 		num_joints = screw_axis_end + 1 # should be 6
@@ -160,7 +161,7 @@ class Head_Kinematics():
 		# Add J5 zero column vector
 		J_spatial_6D_left_eye = np.concatenate( (zero_vec_begin, J4_Jacobian), axis=1)
 		J_spatial_6D_left_eye = np.concatenate((J_spatial_6D_left_eye, zero_vec), axis=1) 
-		J_spatial_6D_left_eye = np.concatenate((J_spatial_6D_left_eye, J6_Jacobian), axis=1) 		
+		J_spatial_6D_left_eye = np.concatenate((J_spatial_6D_left_eye, J6_Jacobian), axis=1) 
 
 		return J_spatial_6D_left_eye # returns 6x7 Spatial Jacobian		
 
