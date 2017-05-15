@@ -35,7 +35,6 @@ class Head_Kinematics():
 	# Dreamer Screw Axes @ 0 Position
 	# S = [omega_hat, v]
 
-	# OLD
 	S0 = [0, -1, 0, 0, 0, 0]
 	S1 = [0, 0, 1, 0, 0, 0]
 	S2 = [-1, 0, 0, 0, -l1, 0]

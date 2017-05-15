@@ -10,6 +10,9 @@ head_kin = hk.Head_Kinematics()
 
 MAX_EYE_VEL = 0.8#0.5 # Maximum Eye Velocity
 
+POS = 1
+NEG = -1
+NONE = 0
 
 def calculate_dQ(J, dx):
     dQ = np.linalg.pinv(J).dot(dx)
@@ -228,10 +231,21 @@ class Controller():
     RE = "right_eye"
     LE = "left_eye"
 
-    def __init__(self, head_kinematics, gaze_focus_states, people_manager):
+    def __init__(self, head_kinematics, gaze_focus_states, people_manager, joint_publisher):
         self.kinematics = head_kinematics 
         self.gaze_focus_states = gaze_focus_states
         self.people_manager = people_manager        
+        self.joint_publisher = joint_publisher
+
+        self.joint_jacobian_constraint = np.zeros((self.kinematics.J_num, self.kinematics.J_num))        
+        self.joint_attractor_dq_command = np.zeros(self.kinematics.J_num)
+        self.joint_attractor_type = np.zeros(self.kinematics.J_num)
+        self.joint_attractor_location = np.zeros(self.kinematics.J_num)
+        self.joint_attractor_active_positive_location =  np.zeros(self.kinematics.J_num)
+        self.joint_attractor_active_negative_location =  np.zeros(self.kinematics.J_num)        
+
+        self.joint_constraint_attractor_gain = 0.25
+        self.joint_range = 0.75 # 0 < range < 1.0
 
         self.start_time = 0
         self.current_traj_time = 0
@@ -253,6 +267,66 @@ class Controller():
 
         self.piecewise_func = None
         self.piecewise_func_total_run_time = 0        
+
+
+
+    def update_constraint_command(self, Q_proposed=None):
+        Q_cur = self.kinematics.Jlist
+        for i in range(self.kinematics.J_num):
+            joint_cur_val = Q_cur[i]
+            joint_name = self.kinematics.Jindex_to_names[i]
+            joint_max_val = self.joint_publisher.free_joints[joint_name]['max']
+            joint_min_val = self.joint_publisher.free_joints[joint_name]['min']
+            Q_range = np.abs(joint_max_val - joint_min_val)
+            Q_mid = (joint_max_val + joint_min_val)/2.0
+            Q_active_pos = Q_mid + (Q_range*self.joint_range/2.0)
+            Q_active_neg = Q_mid - (Q_range*self.joint_range/2.0)            
+            
+            self.joint_attractor_active_positive_location[i] = Q_active_pos
+            self.joint_attractor_active_negative_location[i] = Q_active_neg            
+
+            Q_active_pos_attractor = (joint_max_val + Q_active_pos)/2.0
+            Q_active_neg_attractor = (joint_min_val + Q_active_neg)/2.0            
+
+            if joint_cur_val >= Q_active_pos:
+                self.joint_jacobian_constraint[i][i] = 1
+                self.joint_attractor_location[i] = Q_active_pos_attractor
+                self.joint_attractor_dq_command[i] = self.joint_constraint_attractor_gain*(Q_active_pos_attractor - joint_cur_val)
+
+                self.joint_attractor_type[i] = POS
+            elif joint_cur_val <= Q_active_neg:
+                self.joint_jacobian_constraint[i][i] = 1
+                self.joint_attractor_location[i] = Q_active_neg_attractor                
+                self.joint_attractor_dq_command[i] = self.joint_constraint_attractor_gain*(Q_active_neg_attractor - joint_cur_val)
+                self.joint_attractor_type[i] = NEG                
+            else:
+                self.joint_jacobian_constraint[i][i] = 0   
+                self.joint_attractor_dq_command[i] = 0
+                self.joint_attractor_type[i] = NONE                
+
+        if (Q_proposed != None):
+            for i in range(self.kinematics.J_num):
+                if (self.joint_jacobian_constraint[i][i] > 0): 
+                        if (self.joint_attractor_type[i] == POS):                                   
+                            if np.abs(Q_proposed[i] - self.joint_attractor_active_positive_location[i]) <  np.abs(Q_cur[i] - self.joint_attractor_active_positive_location[i]):
+                                self.joint_jacobian_constraint[i][i] = 0
+                                self.joint_attractor_dq_command[i] = 0
+                                self.joint_attractor_type[i] = NONE                            
+                        elif  (self.joint_attractor_type[i] == NEG):                                 
+                            if np.abs(Q_proposed[i] - self.joint_attractor_active_negative_location[i]) <  np.abs(Q_cur[i] - self.joint_attractor_active_negative_location[i]):
+                                self.joint_jacobian_constraint[i][i] = 0
+                                self.joint_attractor_dq_command[i] = 0
+                                self.joint_attractor_type[i] = NONE                            
+
+        print 'Jacobian Constraint'
+        print '    ', self.joint_jacobian_constraint
+        #print 'Attractor dq Command',
+        #print '    ', self.joint_attractor_dq_command     
+        #print 'Attractor Type'
+        #print '    ', self.joint_attractor_type   
+        #print 'Attractor Location'
+        #print '    ', self.joint_attractor_location    
+
 
     # Function: Used for Minimum Jerk trajectories
     #
@@ -797,6 +871,9 @@ class Controller():
         #dx_eyes = dx_le
 
 
+
+        self.update_constraint_command()
+
         HEAD = 1
         EYES = 2
         PRIORITY = EYES #
@@ -815,9 +892,6 @@ class Controller():
             dx2 = dx_head
             J2 = J_head
 
-        dq1 = calculate_dQ(J1, dx1)
-        #print np.shape(dx2)
-        #print np.shape(J2.dot(dq1))
 
         J1_bar = np.linalg.pinv(J1)        
         pJ1_J1 = J1_bar.dot(J1)
@@ -829,12 +903,32 @@ class Controller():
         J2_pinv_J1 = J2.dot(J1_bar)
         J2_pinv_J1_x1dot = (J2.dot(J1_bar)).dot(dx1)
 
+
+        dq1_proposed = calculate_dQ(J1, dx1)
+        dq2_proposed = N1.dot(calculate_dQ(J2, dx2))
+        Q_proposed = Q_cur + dq1_proposed + dq2_proposed
+        self.update_constraint_command(Q_proposed)
+        print 'Dq1: ', dq1_proposed
+
+        dq0 = self.joint_attractor_dq_command
+        I_0 = np.eye( np.shape(self.joint_jacobian_constraint)[0] )
+        N0 = I_0 - np.linalg.pinv(self.joint_jacobian_constraint).dot(self.joint_jacobian_constraint)
+
+        #dq1 = N0.dot(calculate_dQ(J1, dx1))
+        dq1 = N0.dot(dq1_proposed)
+        #print np.shape(dx2)
+        #print np.shape(J2.dot(dq1))
+
+
         #dq2 = N1.dot(pinv_J2_N1.dot(dx2 -J2_pinv_J1_x1dot))
         #dq2 = pinv_J2_N1.dot(dx2 -J2.dot(dq1))
-        dq2 = N1.dot(calculate_dQ(J2, dx2))
-        dq_tot = dq2 + dq1
+        #dq2 = N0.dot(N1.dot(calculate_dQ(J2, dx2)))       
+        dq2 = N0.dot(dq2_proposed)
+        dq_tot = dq0 + dq1 + dq2 
 
-        print dq1   
+
+
+   
         #Q_des = Q_cur + dq1
         #Q_des = Q_des + dq2
 
@@ -874,8 +968,8 @@ class Controller():
         # p_des_cur_re = xyz_eye_gaze_loc
         # p_des_cur_le = xyz_eye_gaze_loc        
 
-        print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
-        print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
+        #print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
+        #print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
 
 
         R_cur_head, p_cur_head = self.kinematics.get_6D_Head_Position(Q_cur)

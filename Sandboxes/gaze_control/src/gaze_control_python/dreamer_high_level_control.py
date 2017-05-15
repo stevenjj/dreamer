@@ -24,7 +24,7 @@ import tf
 from GUI_params import *
 
 # Program Constants
-JOINT_LIM_BOUND = 0.9 #between 0 to 1.0
+JOINT_LIM_BOUND = 0.95 #between 0 to 1.0
 
 # Rate Constants
 NODE_RATE = 50#10 # Update rate of this node in Hz
@@ -149,9 +149,10 @@ class Dreamer_Head():
 
 
         # Class Objects
+        
         self.people_manager = Detected_People_Manager()
         self.gaze_focus_states = Gaze_Focus_States(self.kinematics)
-        self.controller_manager = Controller(self.kinematics, self.gaze_focus_states, self.people_manager)       
+        self.controller_manager = Controller(self.kinematics, self.gaze_focus_states, self.people_manager, self.joint_publisher)       
 
         # Behaviors, States and Tasks
         self.states = [STATE_IDLE, STATE_GO_TO_POINT, STATE_GO_HOME]
@@ -629,13 +630,13 @@ class Dreamer_Head():
             task_params = []
 
             init_to_go_point = 3 # Take a longer time to go to the initial point
-            duration = 2
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.45, self.kinematics.l1+0.1]),  np.array([0.75, 0., self.kinematics.l1-0.]),      init_to_go_point) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.45, self.kinematics.l1-0.1]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -0.45, self.kinematics.l1-0.1]),  np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -0.45, self.kinematics.l1+0.1]), np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )                       
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.45, self.kinematics.l1+0.1]),  np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.45, self.kinematics.l1-0.1]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+            duration = 10
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.45, self.kinematics.l1+0.75]),  np.array([0.75, 0., self.kinematics.l1-0.]),      init_to_go_point) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.45, self.kinematics.l1-0.5]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -0.45, self.kinematics.l1-0.5]),  np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -0.45, self.kinematics.l1+0.75]), np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )                       
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.45, self.kinematics.l1+0.75]),  np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.45, self.kinematics.l1-0.5]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
             self.execute_behavior(task_list, task_params)
 
         # This behavior makes a square with the eyes while the head points straight ahead
