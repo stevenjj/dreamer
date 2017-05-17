@@ -568,7 +568,7 @@ class Dreamer_Head():
             task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 1.25, self.kinematics.l1-0.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
             task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -2.25, self.kinematics.l1-0.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
             task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -0.25, self.kinematics.l1+0.3]), np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )                       
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1+0.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1+1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )
             task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1-0.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
             self.execute_behavior(task_list, task_params)
 

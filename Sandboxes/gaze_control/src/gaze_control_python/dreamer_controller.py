@@ -307,8 +307,8 @@ class Controller():
             joint_max_val = self.joint_publisher.free_joints[joint_name]['max']
             joint_min_val = self.joint_publisher.free_joints[joint_name]['min']
 
-            self.joint_limit_max[i] = joint_max_val*0.75 #JOINT_LIM_BOUND
-            self.joint_limit_min[i] = joint_min_val*0.75 #JOINT_LIM_BOUND            
+            self.joint_limit_max[i] = joint_max_val*JOINT_LIM_BOUND
+            self.joint_limit_min[i] = joint_min_val*JOINT_LIM_BOUND            
 
             Q_range = np.abs(self.joint_limit_max[i] - self.joint_limit_min[i])            
             self.beta[i] = Q_range*self.buffer_region_percent
@@ -351,26 +351,12 @@ class Controller():
         for i in range(self.kinematics.J_num):
             self.intermediate_H_matrix[i][i] = self.h_i(i)
 
-    def J_h_i(self, joint_index):
-        i = joint_index
-        q_i = self.kinematics.Jlist[i]        
-        tilde_q_i = self.J0_limit_activation_pos[i]
-        utilde_q_i = self.J0_limit_activation_neg[i]
-        bar_q_i = self.J0_limit_max[i]
-        ubar_q_i = self.J0_limit_min[i]        
-
-        beta_i = self.beta2[i]
-
-        if (q_i >= bar_q_i):
-            return 1.0
-        elif ((tilde_q_i < q_i) and (q_i < bar_q_i)):
-            return 0.5 + 0.5*np.sin( (np.pi/beta_i)*(q_i - tilde_q_i) -  np.pi/2.0 )
-        elif ((utilde_q_i <= q_i) and (q_i <= tilde_q_i)):
-            return 0
-        elif ((ubar_q_i < q_i) and (q_i < utilde_q_i)):
-            return 0.5 + 0.5*np.sin( (np.pi/beta_i)*(q_i - ubar_q_i) + np.pi/2.0 )            
-        elif (q_i <= ubar_q_i):
-            return 1.0     
+    def update_intermediate_constraint_matrix(self):
+        for i in range(self.kinematics.J_num):
+            if self.buffer_region_type[i] == NONE:
+                self.intermediate_jacobian_constraint[i][i] = 0
+            else:
+                self.intermediate_jacobian_constraint[i][i] = 1                
 
 
 
@@ -925,7 +911,7 @@ class Controller():
         d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT)) 
         dx_head = d_theta_error * angular_vel_hat 
         dx_head = dx_head[0:3]        
-        dx_head = np.array([dth_error_bound(dx_head[i]) for i in range(len(dx_head))])
+        #dx_head = np.array([dth_error_bound(dx_head[i]) for i in range(len(dx_head))])
         #dx_head = np.concatenate( (dx_head, np.array([0.0,0.,0.])),  axis=0)
 
         Q_cur = self.kinematics.Jlist
@@ -968,8 +954,8 @@ class Controller():
         dx_re = np.array([dx_re[1]*1, dx_re[2]*1])
         dx_le = np.array([dx_le[1]*1, dx_le[2]*1])
 
-        dx_re = np.array([dth_error_bound(dx_re[i]) for i in range(len(dx_re))])
-        dx_le = np.array([dth_error_bound(dx_le[i]) for i in range(len(dx_le))])        
+        # dx_re = np.array([dth_error_bound(dx_re[i]) for i in range(len(dx_re))])
+        # dx_le = np.array([dth_error_bound(dx_le[i]) for i in range(len(dx_le))])        
 
 
         #dx_re = np.concatenate( (dx_re*0, np.array([0,0,0])),  axis=0)
@@ -1010,22 +996,22 @@ class Controller():
 
         dq1_proposed = calculate_dQ(J1, dx1)
         dq2_proposed = (pinv_J2_N1.dot(dx2 -J2.dot(dq1_proposed)))
-#        dq2_proposed = N1.dot(calculate_dQ(J2, dx2))
-        Q_proposed = Q_cur + dq1_proposed + dq2_proposed
+# #        dq2_proposed = N1.dot(calculate_dQ(J2, dx2))
+#         Q_proposed = Q_cur + dq1_proposed + dq2_proposed
 
-        dq0 = self.joint_attractor_dq_command
+#         dq0 = self.joint_attractor_dq_command
+
+#         dq1 = N0.dot(dq1_proposed)        
+#         dq2 = N0.dot(dq2_proposed)
+
+
         I_0 = np.eye( np.shape(self.joint_jacobian_constraint)[0] )
         N0 = I_0 - np.linalg.pinv(self.joint_jacobian_constraint).dot(self.joint_jacobian_constraint)
 
 
-        dq1 = N0.dot(dq1_proposed)
-        
-        dq2 = N0.dot(dq2_proposed)
-
-
-
         # Define Intermediate Task
         self.update_intermediate_H_matrix()
+
         print 'intermediate_H_matrix'
         print self.intermediate_H_matrix        
         x0_d = np.zeros(self.kinematics.J_num)
@@ -1040,8 +1026,12 @@ class Controller():
 
             if self.buffer_region_type[i] == POS:
                 x0_d[i] = k_i*(tilde_q_i - q_i)
+            elif self.buffer_region_type[i] == NEG:
+                x0_d[i] = k_i*(utilde_q_i - q_i)   
             else:
-                x0_d[i] = k_i*(utilde_q_i - q_i)                
+                x0_d[i] = 0
+
+        #self.update_intermediate_constraint_matrix()
 
         J0_constraint = self.intermediate_jacobian_constraint
         H = self.intermediate_H_matrix
@@ -1049,33 +1039,54 @@ class Controller():
         dx0_i = H.dot(x0_d) + (I_H - H).dot(J0_constraint.dot(dq1_proposed + dq2_proposed)) 
 
 
-# Define dq1_wj which is the solution set without joint j limit  task
-# Define N0_wj Task 0 Nullspace without joint j limit task 
-# Define J0_wj is the jacobian of the first task without the joint limit task
+        # ATTEMPT AT INTERMEDIATE TASK -----------------------------------------------
+        # Define Intermediate Task 0, dx0_i
 
-# # Intermediate task 0 for joint j
-# dx0i = np.zeros( NUM_JOINTS )
+        # Define dq1_wj which is the solution set without joint j limit  task
+        # Define N0_wj Task 0 Nullspace without joint j limit task 
+        # Define J0_wj is the jacobian of the first task without the joint limit task
 
-# for j in range(NUM_JOINTS):
-#     J0_j = J0_constraint[j, :] # Joint j constraint task
-#     J0_wj = np.delete(J0_constraint, (j), axis=0) # Task 0 Task without Joint j
-#     N0_wj = np.delete(N0, (j), axis=0)
+        # # Intermediate task 0 for joint j
+        # dx0_i = np.zeros( self.kinematics.J_num ) # Initialize intermediate task
 
-#     dx0_d_wj = np.delete(dx0_d, j) # Desired dx0_d without tjoint j
+        # for j in range(self.kinematics.J_num ):
+        #     J0_j = J0_constraint[j, :] # Joint j constraint task (7x1)
+        #     J0_wj = np.delete(J0_constraint, (j), axis=0) # Task 0 Task without Joint j # 6x7
+            
+        #     pinvJ0_wj_J0_wj = np.linalg.pinv(J0_wj).dot(J0_wj)
+        #     I0_wj = np.eye( np.shape(pinvJ0_wj_J0_wj)[0] )
+        #     N0_wj = I0_wj - pinvJ0_wj_J0_wj
 
-#     N1_0 = (I - pinv(J0_wj N0)(J0_wj N0) )
+        #     #print 'Joint', j
+        #     #print 'NullSpace', N0_wj
 
-#     dq0_wj = pinv(J0_wj).dot(dx_d_wj)
-#     dq1_wj = pinv(J1 N0).dot(dx1 - J1.dot(dq0_wj))
-#     dq2_wj = pinv(J2 N1_0).dot(dx2 - J2.dot(dq1_wj))    
+        #     # Define N1_0_wj Task 0 Nullspace without joint j limit task
+        #     pinv_J1_N0_wj = np.linalg.pinv( J1.dot(N0_wj) )            
+        #     I1_0_wj = np.eye(np.shape(pinv_J1_N0_wj)[0])
+        #     N1_0_wj = I1_0_wj - pinv_J1_N0_wj.dot(J1.dot(N0_wj))
+            
+        #     # Define x0_d_wj The desired Joint Limit Tasks without joint j
+        #     x0_d_wj = np.delete(x0_d, j) # Desired dx0_d without tjoint j
+        #     dx_0_d_wj = x0_d_wj
 
-#     dq_wj = dq0_wj + dq1_wj + dq2_wj
+        #     # Find dq_wj, the task solution without joint limit task j
+        #     dq0_wj = np.linalg.pinv( J0_wj).dot(dx_0_d_wj)
+        #     dq1_wj = np.linalg.pinv(   np.around(J1.dot(N0_wj), decimals = 6)    ).dot(dx1 - J1.dot(dq0_wj))#np.linalg.pinv(   np.around(J1.dot(N0_wj), decimals = 6)    ).dot(dx1 - J1.dot(dq0_wj))
+        #     dq2_wj = np.linalg.pinv( J2.dot(N0_wj.dot(N1_0_wj)) ).dot(dx2 - J2.dot(dq1_wj + dq0_wj))    
 
-#     h_j = self.intermediate_H_matrix[j][j]
-#     dx0_i_j = h_j.dot(dx0_d[j]) + (1 - h_j).dot( J0_j constraint ).dot( dq_wj)
-    
-#     dx0i[j] = dx0_i_j
+        #     dq_wj = dq0_wj + dq1_wj #+ dq2_wj
 
+        #     print 'np.linalg.pinv(J1.dot(N0_wj))', np.linalg.pinv(J1.dot(N0_wj))
+        #     print 'rank of J1', np.rank(J1), 'rank of J1 and N0_wj', np.rank(J1.dot(N0_wj))
+        #     print 'rank of J2', np.rank(J2), 'rank of J2 and N0_wj N1_0_wj ', np.rank( J2.dot(N0_wj.dot(N1_0_wj)) )            
+        #     #print 'J1 dot N0_wj', J1.dot(N0_wj)
+
+        #     # Define the intermediate task
+        #     h_j = 0 #self.intermediate_H_matrix[j][j]
+        #     dx0_i_j = h_j*(x0_d[j]) + (1 - h_j)*(J0_j).dot(dq_wj)
+        
+        #     dx0_i[j] = dx0_i_j
+        # ATTEMPT AT INTERMEDIATE TASK -----------------------------------------------
 
 
 
@@ -1106,6 +1117,7 @@ class Controller():
 
 
         #This seems to work, but it needs a smoother task transition
+
         I_0 = np.eye( np.shape(J0_constraint)[0] )
         N0 = I_0 - np.linalg.pinv(J0_constraint).dot(J0_constraint)
         dq0 = J0_constraint.dot(dx0_i)
@@ -1122,8 +1134,8 @@ class Controller():
         dq2 = N0.dot(N1_0).dot(pinv_J2_N0_N1_0).dot(dx2 - J2.dot(dq0 + dq1))
       
 
-        dq_tot = dq0 + dq1 + dq2 
 
+        dq_tot = dq0 + dq1 + dq2 
 
    
         #Q_des = Q_cur + dq1
