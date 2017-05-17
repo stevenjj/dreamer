@@ -12,7 +12,7 @@ MAX_EYE_VEL = 0.8#0.5 # Maximum Eye Velocity
 
 POS = 1
 NEG = -1
-NONE = 0
+NA = 0
 
 from program_constants import *
 
@@ -325,25 +325,25 @@ class Controller():
 
         beta_i = self.beta[i]
 
-        print 'joint ', i
+        #print 'joint ', i
         if (q_i >= bar_q_i):
-            print '       COND 1'
+            #print '       COND 1'
             self.buffer_region_type[i] = POS
             return 1.0
         elif ((tilde_q_i < q_i) and (q_i < bar_q_i)):
-            print '       COND 2'
+            #print '       COND 2'
             self.buffer_region_type[i] = POS
             return 0.5 + 0.5*np.sin( (np.pi/beta_i)*(q_i - tilde_q_i) -  np.pi/2.0 )
         elif ((utilde_q_i <= q_i) and (q_i <= tilde_q_i)):
-            print '       COND 3'
-            self.buffer_region_type[i] = NONE
+            #print '       COND 3'
+            self.buffer_region_type[i] = NA
             return 0
         elif ((ubar_q_i < q_i) and (q_i < utilde_q_i)):
-            print '       COND 4    '
+            #print '       COND 4    '
             self.buffer_region_type[i] = NEG            
             return 0.5 + 0.5*np.sin( (np.pi/beta_i)*(q_i - ubar_q_i) + np.pi/2.0 )            
         elif (q_i <= ubar_q_i):
-            print '       COND 5'
+            #print '       COND 5'
             self.buffer_region_type[i] = NEG            
             return 1.0            
 
@@ -353,7 +353,7 @@ class Controller():
 
     def update_intermediate_constraint_matrix(self):
         for i in range(self.kinematics.J_num):
-            if self.buffer_region_type[i] == NONE:
+            if self.buffer_region_type[i] == NA:
                 self.intermediate_jacobian_constraint[i][i] = 0
             else:
                 self.intermediate_jacobian_constraint[i][i] = 1                
@@ -1031,9 +1031,10 @@ class Controller():
             else:
                 x0_d[i] = 0
 
-        #self.update_intermediate_constraint_matrix()
+        self.update_intermediate_constraint_matrix()
 
         J0_constraint = self.intermediate_jacobian_constraint
+
         H = self.intermediate_H_matrix
         I_H = np.eye(np.shape(self.intermediate_H_matrix)[0])   
         dx0_i = H.dot(x0_d) + (I_H - H).dot(J0_constraint.dot(dq1_proposed + dq2_proposed)) 
@@ -1083,14 +1084,19 @@ class Controller():
             dq2_wj = np.linalg.pinv( np.around( J2.dot(N0_wj.dot(N1_0_wj)), decimals = 6 ) ).dot(dx2 - J2.dot(dq1_wj + dq0_wj)) 
             dq_wj = dq1_wj+ dq2_wj + dq0_wj
 
-            #print 'J', j, 
+            #print 'J', j
             #print "dq0_wj", dq0_wj
             #print "dq1_wj", dq1_wj            
             #print 'np.linalg.pinv(J1.dot(N0_wj))', np.linalg.pinv(J1.dot(N0_wj))
-            #print 'rank of J1', np.rank(J1), 'rank of J1 and N0_wj', np.rank(J1.dot(N0_wj))
-            #print 'rank of J2', np.rank(J2), 'rank of J2 and N0_wj N1_0_wj ', np.rank( J2.dot(N0_wj.dot(N1_0_wj)) )            
+            # print 'rank of J1', np.rank(J1), 'rank of J1 and N0_wj', np.rank(J1.dot(N0_wj))
+            # print 'rank of J2', np.rank(J2), 'rank of J2 and N0_wj N1_0_wj ', np.rank( J2.dot(N0_wj.dot(N1_0_wj)) )            
             #print 'np.linalg.pinv( J2.dot(N0_wj.dot(N1_0_wj)) )'
-            #print np.around( J2.dot(N0_wj.dot(N1_0_wj)), decimals = 6 )
+            
+            #print 'np.around( J2.dot(N0_wj.dot(N1_0_wj)), decimals = 6 )'
+            #print  np.around( J2.dot(N0_wj.dot(N1_0_wj)), decimals = 6 )
+
+            #print 'np.linalg.pinv( np.around( J2.dot(N0_wj.dot(N1_0_wj)), decimals = 6 ) )'
+            #print np.linalg.pinv( np.around( J2.dot(N0_wj.dot(N1_0_wj)), decimals = 6 ) )             
 
             # Define the intermediate task
             h_j = self.intermediate_H_matrix[j][j]
@@ -1134,19 +1140,20 @@ class Controller():
         dq0 = np.linalg.pinv(J0_constraint).dot(dx0_i)
 
 
-        pinv_J1_N0 = np.linalg.pinv(J1.dot(N0))
+        pinv_J1_N0 = np.linalg.pinv( J1.dot(N0) )
         J1_N0 = J1.dot(N0)
-
         pinv_J1_N0_J1_N0 = pinv_J1_N0.dot(J1_N0)
         N1_0 = np.eye(np.shape(pinv_J1_N0_J1_N0)[0]) - pinv_J1_N0_J1_N0
 
-        dq1 = N0.dot(pinv_J1_N0).dot(dx1 - J1.dot(dq0))
-        pinv_J2_N0_N1_0 = np.linalg.pinv(J2.dot(N0.dot(N1_0)))
-        dq2 = N0.dot(N1_0).dot(pinv_J2_N0_N1_0).dot(dx2 - J2.dot(dq0 + dq1))
+        dq1 = (pinv_J1_N0).dot(dx1 - J1.dot(dq0))
+        pinv_J2_N0_N1_0 = np.linalg.pinv( np.around(J2.dot(N0.dot(N1_0)), decimals=6 ) )
+        dq2 = pinv_J2_N0_N1_0.dot(dx2 - J2.dot(dq0 + dq1))
       
 
+        print 'pinv_J2_N0_N1_0'
+        print pinv_J2_N0_N1_0
 
-        dq_tot = dq0 #+ dq1 + dq2 
+        dq_tot = dq0 + dq2 + dq1 #+ dq2 
 
    
         #Q_des = Q_cur + dq1
