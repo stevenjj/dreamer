@@ -250,7 +250,7 @@ class Controller():
         self.joint_range = 0.75 # 0 < range < 1.0
 
         # Intermediate task variables
-        self.buffer_region_percent = 0.20  # make each ffer region to be 10% of the full joint range  
+        self.buffer_region_percent = 0.25  # make each ffer region to be 10% of the full joint range  
         self.joint_limit_max = np.zeros(self.kinematics.J_num)
         self.joint_limit_min = np.zeros(self.kinematics.J_num)
         self.joint_limit_activation_pos = np.zeros(self.kinematics.J_num)
@@ -262,7 +262,7 @@ class Controller():
         self.intermediate_jacobian_constraint = np.eye(self.kinematics.J_num)
         self.intermediate_H_matrix = np.zeros((self.kinematics.J_num, self.kinematics.J_num))        
         #self.joint_limit_buffer_gain = 0.01*np.ones(self.kinematics.J_num)
-        self.joint_limit_buffer_gain = 0.01*np.ones(self.kinematics.J_num)        
+        self.joint_limit_buffer_gain = 0.0*np.ones(self.kinematics.J_num)        
 
 
         self.init_intermediate_task_matrices()                            
@@ -307,8 +307,8 @@ class Controller():
             joint_max_val = self.joint_publisher.free_joints[joint_name]['max']
             joint_min_val = self.joint_publisher.free_joints[joint_name]['min']
 
-            self.joint_limit_max[i] = joint_max_val*JOINT_LIM_BOUND
-            self.joint_limit_min[i] = joint_min_val*JOINT_LIM_BOUND            
+            self.joint_limit_max[i] = joint_max_val*0.8#JOINT_LIM_BOUND
+            self.joint_limit_min[i] = joint_min_val*0.8#JOINT_LIM_BOUND            
 
             Q_range = np.abs(self.joint_limit_max[i] - self.joint_limit_min[i])            
             self.beta[i] = Q_range*self.buffer_region_percent
@@ -966,7 +966,7 @@ class Controller():
 
         HEAD = 1
         EYES = 2
-        PRIORITY = EYES #
+        PRIORITY = EYES
 
 
         if (PRIORITY == HEAD): 
@@ -1046,46 +1046,57 @@ class Controller():
         # Define N0_wj Task 0 Nullspace without joint j limit task 
         # Define J0_wj is the jacobian of the first task without the joint limit task
 
-        # # Intermediate task 0 for joint j
-        # dx0_i = np.zeros( self.kinematics.J_num ) # Initialize intermediate task
+        # Intermediate task 0 for joint j
+        dx0_i = np.zeros( self.kinematics.J_num ) # Initialize intermediate task
 
-        # for j in range(self.kinematics.J_num ):
-        #     J0_j = J0_constraint[j, :] # Joint j constraint task (7x1)
-        #     J0_wj = np.delete(J0_constraint, (j), axis=0) # Task 0 Task without Joint j # 6x7
+        for j in range(self.kinematics.J_num ):
+            J0_j = J0_constraint[j, :] # Joint j constraint task (7x1)
+            J0_wj = np.delete(J0_constraint, (j), axis=0) # Task 0 Task without Joint j # 6x7
             
-        #     pinvJ0_wj_J0_wj = np.linalg.pinv(J0_wj).dot(J0_wj)
-        #     I0_wj = np.eye( np.shape(pinvJ0_wj_J0_wj)[0] )
-        #     N0_wj = I0_wj - pinvJ0_wj_J0_wj
+            pinvJ0_wj_J0_wj = np.linalg.pinv(J0_wj).dot(J0_wj)
+            I0_wj = np.eye( np.shape(pinvJ0_wj_J0_wj)[0] )
+            N0_wj = I0_wj - pinvJ0_wj_J0_wj
 
-        #     #print 'Joint', j
-        #     #print 'NullSpace', N0_wj
+            #print 'Joint', j
+            #print 'NullSpace', N0_wj
 
-        #     # Define N1_0_wj Task 0 Nullspace without joint j limit task
-        #     pinv_J1_N0_wj = np.linalg.pinv( J1.dot(N0_wj) )            
-        #     I1_0_wj = np.eye(np.shape(pinv_J1_N0_wj)[0])
-        #     N1_0_wj = I1_0_wj - pinv_J1_N0_wj.dot(J1.dot(N0_wj))
+            # Define N1_0_wj Task 0 Nullspace without joint j limit task
+            pinv_J1_N0_wj = np.linalg.pinv( J1.dot(N0_wj) )            
+            I1_0_wj = np.eye(np.shape(pinv_J1_N0_wj)[0])
+            N1_0_wj = I1_0_wj - pinv_J1_N0_wj.dot(J1.dot(N0_wj))
+
             
-        #     # Define x0_d_wj The desired Joint Limit Tasks without joint j
-        #     x0_d_wj = np.delete(x0_d, j) # Desired dx0_d without tjoint j
-        #     dx_0_d_wj = x0_d_wj
+            # Define x0_d_wj The desired Joint Limit Tasks without joint j
+            x0_d_wj = np.delete(x0_d, j) # Desired dx0_d without tjoint j
+            dx_0_d_wj = x0_d_wj
 
-        #     # Find dq_wj, the task solution without joint limit task j
-        #     dq0_wj = np.linalg.pinv( J0_wj).dot(dx_0_d_wj)
-        #     dq1_wj = np.linalg.pinv(   np.around(J1.dot(N0_wj), decimals = 6)    ).dot(dx1 - J1.dot(dq0_wj))#np.linalg.pinv(   np.around(J1.dot(N0_wj), decimals = 6)    ).dot(dx1 - J1.dot(dq0_wj))
-        #     dq2_wj = np.linalg.pinv( J2.dot(N0_wj.dot(N1_0_wj)) ).dot(dx2 - J2.dot(dq1_wj + dq0_wj))    
+            # Find dq_wj, the task solution without joint limit task j
+            dq0_wj = np.linalg.pinv( J0_wj).dot(dx_0_d_wj)
+            
+            dq1_wj = np.linalg.pinv( (J1.dot(N0_wj)) ).dot(dx1 - J1.dot(dq0_wj))#np.linalg.pinv(   np.around(J1.dot(N0_wj), decimals = 6)    ).dot(dx1 - J1.dot(dq0_wj))
+            #dq1_wj = np.linalg.pinv(np.around(J1.dot(N0_wj), decimals = 6)).dot(dx1 - J1.dot(dq0_wj))#np.linalg.pinv(   np.around(J1.dot(N0_wj), decimals = 6)    ).dot(dx1 - J1.dot(dq0_wj))            
+            #dq2_wj = np.linalg.pinv( J2.dot(N0_wj.dot(N1_0_wj)) ).dot(dx2 - J2.dot(dq1_wj + dq0_wj))    
 
-        #     dq_wj = dq0_wj + dq1_wj #+ dq2_wj
+  
+#            dq1_wj = np.linalg.pinv(J1).dot(dx1)
+            dq1_wj = np.linalg.pinv( (J1.dot(N0_wj)) ).dot(dx1 - J1.dot(dq0_wj))#np.linalg.pinv(   np.around(J1.dot(N0_wj), decimals = 6)    ).dot(dx1 - J1.dot(dq0_wj))
+            dq2_wj = np.linalg.pinv( np.around( J2.dot(N0_wj.dot(N1_0_wj)), decimals = 6 ) ).dot(dx2 - J2.dot(dq1_wj + dq0_wj)) 
+            dq_wj = dq1_wj+ dq2_wj + dq0_wj
 
-        #     print 'np.linalg.pinv(J1.dot(N0_wj))', np.linalg.pinv(J1.dot(N0_wj))
-        #     print 'rank of J1', np.rank(J1), 'rank of J1 and N0_wj', np.rank(J1.dot(N0_wj))
-        #     print 'rank of J2', np.rank(J2), 'rank of J2 and N0_wj N1_0_wj ', np.rank( J2.dot(N0_wj.dot(N1_0_wj)) )            
-        #     #print 'J1 dot N0_wj', J1.dot(N0_wj)
+            #print 'J', j, 
+            #print "dq0_wj", dq0_wj
+            #print "dq1_wj", dq1_wj            
+            #print 'np.linalg.pinv(J1.dot(N0_wj))', np.linalg.pinv(J1.dot(N0_wj))
+            #print 'rank of J1', np.rank(J1), 'rank of J1 and N0_wj', np.rank(J1.dot(N0_wj))
+            #print 'rank of J2', np.rank(J2), 'rank of J2 and N0_wj N1_0_wj ', np.rank( J2.dot(N0_wj.dot(N1_0_wj)) )            
+            #print 'np.linalg.pinv( J2.dot(N0_wj.dot(N1_0_wj)) )'
+            #print np.around( J2.dot(N0_wj.dot(N1_0_wj)), decimals = 6 )
 
-        #     # Define the intermediate task
-        #     h_j = 0 #self.intermediate_H_matrix[j][j]
-        #     dx0_i_j = h_j*(x0_d[j]) + (1 - h_j)*(J0_j).dot(dq_wj)
+            # Define the intermediate task
+            h_j = self.intermediate_H_matrix[j][j]
+            dx0_i_j = h_j*(x0_d[j]) + (1 - h_j)*(J0_j).dot(dq_wj)
         
-        #     dx0_i[j] = dx0_i_j
+            dx0_i[j] = dx0_i_j
         # ATTEMPT AT INTERMEDIATE TASK -----------------------------------------------
 
 
@@ -1120,7 +1131,7 @@ class Controller():
 
         I_0 = np.eye( np.shape(J0_constraint)[0] )
         N0 = I_0 - np.linalg.pinv(J0_constraint).dot(J0_constraint)
-        dq0 = J0_constraint.dot(dx0_i)
+        dq0 = np.linalg.pinv(J0_constraint).dot(dx0_i)
 
 
         pinv_J1_N0 = np.linalg.pinv(J1.dot(N0))
@@ -1135,7 +1146,7 @@ class Controller():
       
 
 
-        dq_tot = dq0 + dq1 + dq2 
+        dq_tot = dq0 #+ dq1 + dq2 
 
    
         #Q_des = Q_cur + dq1
