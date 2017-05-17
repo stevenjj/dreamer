@@ -23,74 +23,7 @@ import tf
 
 from GUI_params import *
 
-# Program Constants
-JOINT_LIM_BOUND = 0.95 #between 0 to 1.0
-
-# Rate Constants
-NODE_RATE = 50#10 # Update rate of this node in Hz
-
-LOW_LEVEL_FREQ = 550
-
-
-
-CMD_RATE = 20 # Update rate for publishing joint positions to client
-
-SEND_RATE = 20 # Trusted Rate of sending
-PRINT_RATE = 10 # Print rate for Debugging
-
-# Time Constants
-WAIT_TIME_GO_HOME = 3 # in seconds
-
-# State List
-STATE_IDLE = 0
-STATE_GO_TO_POINT = 1
-STATE_GO_HOME = 2
-
-STATE_ID_TO_STRING = {STATE_IDLE: "STATE_IDLE",
-                      STATE_GO_TO_POINT: "STATE_GO_TO_POINT",
-                      STATE_GO_HOME: "STATE_GO_HOME"}
-
-# Task List
-TASK_NO_TASK = 100
-TASK_GO_TO_POINT_HEAD_PRIORITY    = 101
-TASK_GO_TO_POINT_EYE_PRIORITY     = 102
-TASK_TRACK_PERSON_HEAD       = 103
-TASK_TRACK_PERSON_EYES       = 104
-TASK_TRACK_PERSON_BEST       = 105
-TASK_AVOID_NEAR_PERSON = 106
-TASK_GO_TO_WAYPOINTS_EYE_PRIORITY = 107
-TASK_FOLLOW_WAYPOINTS = 108
-
-TASK_ID_TO_STRING = {TASK_NO_TASK: "TASK_NO_TASK",
-                     TASK_GO_TO_POINT_HEAD_PRIORITY: "TASK_GO_TO_POINT_HEAD_PRIORITY",
-                     TASK_GO_TO_POINT_EYE_PRIORITY: "TASK_GO_TO_POINT_EYE_PRIORITY",
-                     TASK_TRACK_PERSON_HEAD: "TASK_TRACK_PERSON_HEAD",
-                     TASK_TRACK_PERSON_EYES: "TASK_TRACK_PERSON_EYES",         
-                     TASK_AVOID_NEAR_PERSON: "TASK_AVOID_NEAR_PERSON",
-                     TASK_TRACK_PERSON_BEST: "TASK_TRACK_PERSON_BEST",            
-                     TASK_GO_TO_WAYPOINTS_EYE_PRIORITY: "TASK_GO_TO_WAYPOINTS_EYE_PRIORITY",
-                     TASK_FOLLOW_WAYPOINTS: "TASK_FOLLOW_WAYPOINTS" }
-
-# Behavior List
-BEHAVIOR_NO_BEHAVIOR = 200
-BEHAVIOR_DO_SQUARE_FIXED_EYES = 201
-BEHAVIOR_DO_SQUARE_FIXED_HEAD = 202
-BEHAVIOR_TRACK_NEAR_PERSON = 203
-BEHAVIOR_TRACK_NEAR_PERSON_EYES = 204
-BEHAVIOR_TRACK_NEAR_PERSON_BEST = 205
-BEHAVIOR_AVOID_NEAR_PERSON = 206
-BEHAVIOR_FOLLOW_WAYPOINTS = 207
-BEHAVIOR_ID_TO_STRING = {BEHAVIOR_NO_BEHAVIOR: "BEHAVIOR_NO_BEHAVIOR",
-                         BEHAVIOR_DO_SQUARE_FIXED_EYES: "BEHAVIOR_DO_SQUARE_FIXED_EYES",
-                         BEHAVIOR_DO_SQUARE_FIXED_HEAD: "BEHAVIOR_DO_SQUARE_FIXED_HEAD",
-                         BEHAVIOR_TRACK_NEAR_PERSON: "BEHAVIOR_TRACK_NEAR_PERSON",
-                         BEHAVIOR_TRACK_NEAR_PERSON_EYES: "BEHAVIOR_TRACK_NEAR_PERSON_EYES",
-                         BEHAVIOR_TRACK_NEAR_PERSON_BEST: "BEHAVIOR_TRACK_NEAR_PERSON_BEST",                         
-                         BEHAVIOR_AVOID_NEAR_PERSON: "BEHAVIOR_AVOID_NEAR_PERSON"  ,
-                         BEHAVIOR_FOLLOW_WAYPOINTS: "BEHAVIOR_FOLLOW_WAYPOINTS"                       
-                    }
-
-
+from program_constants import *
 
 #-----------------------------------------------
 # ROS Client for Low Level control 
@@ -631,12 +564,12 @@ class Dreamer_Head():
 
             init_to_go_point = 3 # Take a longer time to go to the initial point
             duration = 10
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.45, self.kinematics.l1+0.75]),  np.array([0.75, 0., self.kinematics.l1-0.]),      init_to_go_point) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.45, self.kinematics.l1-0.5]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -0.45, self.kinematics.l1-0.5]),  np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -0.45, self.kinematics.l1+0.75]), np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )                       
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.45, self.kinematics.l1+0.75]),  np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.45, self.kinematics.l1-0.5]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1+0.0]),  np.array([0.75, 0., self.kinematics.l1-0.]),      init_to_go_point) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 1.25, self.kinematics.l1-0.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -2.25, self.kinematics.l1-0.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -0.25, self.kinematics.l1+0.3]), np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )                       
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1+0.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1-0.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
             self.execute_behavior(task_list, task_params)
 
         # This behavior makes a square with the eyes while the head points straight ahead
