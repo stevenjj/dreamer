@@ -261,7 +261,7 @@ class Controller():
 
         self.intermediate_jacobian_constraint = np.eye(self.kinematics.J_num)
         self.intermediate_H_matrix = np.zeros((self.kinematics.J_num, self.kinematics.J_num))        
-        self.joint_limit_buffer_gain = 0.02*np.ones(self.kinematics.J_num)
+        self.joint_limit_buffer_gain = 0.01*np.ones(self.kinematics.J_num)
         #self.joint_limit_buffer_gain = 0.0*np.ones(self.kinematics.J_num)        
 
 
@@ -894,7 +894,7 @@ class Controller():
 
 
         def dth_error_bound(dth):
-            MAX_DTH = 0.05
+            MAX_DTH = 0.5
             if dth >= MAX_DTH:
                 return MAX_DTH
             elif (dth <= -MAX_DTH):
@@ -945,10 +945,10 @@ class Controller():
 
 
         # Calculate current orientation error for each eye
-        #d_theta_error_re, angular_vel_hat_re = orientation_error(xyz_eye_gaze_loc, Q_cur, 'right_eye')
-        #d_theta_error_le, angular_vel_hat_le = orientation_error(xyz_eye_gaze_loc, Q_cur, 'left_eye')
-        d_theta_error_re, angular_vel_hat_re = smooth_orientation_error(p_des_cur_re, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'right_eye') 
-        d_theta_error_le, angular_vel_hat_le = smooth_orientation_error(p_des_cur_le, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'left_eye')         
+        d_theta_error_re, angular_vel_hat_re = orientation_error(xyz_eye_gaze_loc, Q_cur, 'right_eye')
+        d_theta_error_le, angular_vel_hat_le = orientation_error(xyz_eye_gaze_loc, Q_cur, 'left_eye')
+        #d_theta_error_re, angular_vel_hat_re = smooth_orientation_error(p_des_cur_re, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'right_eye') 
+        #d_theta_error_le, angular_vel_hat_le = smooth_orientation_error(p_des_cur_le, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'left_eye')         
         dx_re = d_theta_error_re * angular_vel_hat_re
         dx_le = d_theta_error_le * angular_vel_hat_le
 
