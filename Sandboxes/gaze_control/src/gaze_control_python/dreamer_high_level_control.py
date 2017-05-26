@@ -80,6 +80,7 @@ BEHAVIOR_TRACK_NEAR_PERSON_EYES = 204
 BEHAVIOR_TRACK_NEAR_PERSON_BEST = 205
 BEHAVIOR_AVOID_NEAR_PERSON = 206
 BEHAVIOR_FOLLOW_WAYPOINTS = 207
+BEHAVIOR_FOLLOW_CIRCLE = 208
 BEHAVIOR_ID_TO_STRING = {BEHAVIOR_NO_BEHAVIOR: "BEHAVIOR_NO_BEHAVIOR",
                          BEHAVIOR_DO_SQUARE_FIXED_EYES: "BEHAVIOR_DO_SQUARE_FIXED_EYES",
                          BEHAVIOR_DO_SQUARE_FIXED_HEAD: "BEHAVIOR_DO_SQUARE_FIXED_HEAD",
@@ -87,7 +88,8 @@ BEHAVIOR_ID_TO_STRING = {BEHAVIOR_NO_BEHAVIOR: "BEHAVIOR_NO_BEHAVIOR",
                          BEHAVIOR_TRACK_NEAR_PERSON_EYES: "BEHAVIOR_TRACK_NEAR_PERSON_EYES",
                          BEHAVIOR_TRACK_NEAR_PERSON_BEST: "BEHAVIOR_TRACK_NEAR_PERSON_BEST",                         
                          BEHAVIOR_AVOID_NEAR_PERSON: "BEHAVIOR_AVOID_NEAR_PERSON"  ,
-                         BEHAVIOR_FOLLOW_WAYPOINTS: "BEHAVIOR_FOLLOW_WAYPOINTS"                       
+                         BEHAVIOR_FOLLOW_WAYPOINTS: "BEHAVIOR_FOLLOW_WAYPOINTS"    ,                   
+                         BEHAVIOR_FOLLOW_CIRCLE: "BEHAVIOR_FOLLOW_CIRCLE"                       
                     }
 
 
@@ -486,7 +488,14 @@ class Dreamer_Head():
             self.gui_command = gui_command
             self.gui_command_string = DO_WAYPOINT_TRAJ_STRING
             self.reset_state_tasks_behaviors()            
-            self.current_behavior = BEHAVIOR_FOLLOW_WAYPOINTS            
+            self.current_behavior = BEHAVIOR_FOLLOW_WAYPOINTS
+
+        elif gui_command == CIRCLE_TRAJ:      
+            self.gui_command = gui_command
+            self.gui_command_string = CIRCLE_TRAJ_STRING
+            self.reset_state_tasks_behaviors()            
+            self.current_behavior = BEHAVIOR_FOLLOW_CIRCLE            
+        
         else:
             print gui_command, "Invalid Command"
 
@@ -672,6 +681,26 @@ class Dreamer_Head():
             self.execute_behavior(task_list, task_params)
 
         elif ((self.current_behavior == BEHAVIOR_FOLLOW_WAYPOINTS) and self.behavior_commanded == False):
+            task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
+            task_params = []
+            # Draw a clover behavior
+            piecewise_func = clover(.17, 16.0)
+
+            # Extract initial coordinates
+            coord = piecewise_func.get_position(0)
+            x = coord[0]
+            y = coord[1]
+            z = coord[2]
+
+            # Go to the initial coordinates before executing minimum jerk
+            duration = 2
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [x, y, z] ), np.array( [x, y, z] ), duration) )
+            
+            total_run_time = piecewise_func.total_run_time()
+            task_params.append( (piecewise_func, total_run_time) )
+            self.execute_behavior(task_list, task_params)
+
+        elif ((self.current_behavior == BEHAVIOR_FOLLOW_CIRCLE) and self.behavior_commanded == False):
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
             # Draw a circle behavior

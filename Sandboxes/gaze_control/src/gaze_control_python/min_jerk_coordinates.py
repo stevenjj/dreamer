@@ -46,16 +46,17 @@ def circle(radius, time, distance = 2):
 	    x.append(single.Waypoint(distance+hk.Head_Kinematics().l2, 0, 0, time/accuracy))
 
 	y = []
-	y.append(single.Waypoint(-1 * radius, 0, 0, 0))
-	for i in range(1, int(accuracy)):
-		y.append(single.Waypoint(-1 * radius * np.cos(np.pi*i/(accuracy/2)), radius * np.sin(np.pi*i/(accuracy/2)), radius * np.cos(np.pi*i/(accuracy/2)), time/accuracy ))
-	y.append(single.Waypoint(-1 * radius * np.cos(2*np.pi), 0, 0, time/8.0 ))
-	
 	z = []
+
+	y.append(single.Waypoint(-1 * radius, 0, 0, 0))
 	z.append(single.Waypoint(0+hk.Head_Kinematics().l1, 0, 0, 0))
 	for i in range(1, int(accuracy)):
-		z.append(single.Waypoint(radius*np.sin(np.pi*i/(accuracy/2))+hk.Head_Kinematics().l1, radius*np.cos(np.pi*i/(accuracy/2)), -1*radius*np.sin(np.pi*i/(accuracy/2)), time/accuracy))
+		theta = np.pi*i/(accuracy/2.0)
+		y.append(single.Waypoint(-1 * radius * np.cos(theta), radius * np.sin(theta), radius * np.cos(theta), time/accuracy ))
+		z.append(single.Waypoint(radius*np.sin(theta)+hk.Head_Kinematics().l1, radius*np.cos(theta), -1*radius*np.sin(theta), time/accuracy))
+	y.append(single.Waypoint(-1 * radius * np.cos(2*np.pi), 0, 0, time/accuracy))
 	z.append(single.Waypoint(0+hk.Head_Kinematics().l1, 0, 0, time/accuracy))
+	
 	
 	x_coord = single.MinimumJerk(x)
 	y_coord = single.MinimumJerk(y)
@@ -65,34 +66,71 @@ def circle(radius, time, distance = 2):
 	return circle_min
 
 def clover(radius, time, distance = 2):
+	accuracy = 32.0
 	x = []
 	x.append(single.Waypoint(distance+hk.Head_Kinematics().l2, 0, 0, 0))
-	for i in range(0, 16):
+	for i in range(0, int(accuracy)):
 	    x.append(single.Waypoint(distance+hk.Head_Kinematics().l2, 0, 0, time/16.0))
 
 	y = []
-	y.append(single.Waypoint(0, 0, 0, 0))
-	for i in range(1, 16):
-		y.append(single.Waypoint(radius*np.sin(2*np.pi*i/8.0)*np.cos(np.pi*i/8.0), radius*.5*(np.cos(np.pi*i/8.0) + 3*np.cos(np.pi*i/8.0)),  radius*-.5*(1*np.sin(np.pi*i/8.0)-9*np.sin(3*np.pi*i/8.0)), time/16.0))
-	y.append(single.Waypoint(0, 0, 0, time/16.0))
-
 	z = []
+	y.append(single.Waypoint(0, 0, 0, 0))
 	z.append(single.Waypoint(0, 0, 0, 0))
-	for i in range(1, 16):
-		z.append(single.Waypoint(radius*np.sin(2*np.pi*i/8.0)*np.sin(np.pi*i/8.0), radius*.5*(3*np.sin(3*np.pi*i/8.0)-np.sin(np.pi*i/8.0)), radius*.5*(9*np.cos(3*np.pi*i/8.0)-np.cos(np.pi*i/8.0)), time/16.0))
-	z.append(single.Waypoint(0, 0, 0, time/16.0))
+
+	for i in range(1, int(accuracy)):
+		theta = np.pi*i/(accuracy/2.0)
+		y.append(single.Waypoint(radius*np.sin(2*theta)*np.cos(theta), radius*.5*(np.cos(theta) + 3*np.cos(3*theta)),  radius*(-.5*np.sin(theta)-4.5*np.sin(3*theta)), time/accuracy))
+		z.append(single.Waypoint(radius*np.sin(2*theta)*np.sin(theta), radius*.5*(3*np.sin(3*theta)-np.sin(theta)), radius*.5*(9*np.cos(3*theta)-np.cos(theta)), time/accuracy))
+	y.append(single.Waypoint(0, 0, 0, time/accuracy))
+	z.append(single.Waypoint(0, 0, 0, time/accuracy))
+
 
 	x_coord = single.MinimumJerk(x)
 	y_coord = single.MinimumJerk(y)
 	z_coord = single.MinimumJerk(z)
+
 	clover_min = Coordinates_3D(x_coord, y_coord, z_coord)
 	return clover_min
 
-#clover(.15, 4)
+f = open('output.txt', 'w')
 
-# f = open('output.txt', 'w')
+coordinate1 = clover(.15, 8)
 
 
+
+
+val = np.arange(0, 8, 0.01)
+ran = 800
+for i in range(0, ran):
+	f.write(str(coordinate1.get_velocity(val[i])[0]))
+	f.write('\t')
+	f.write(str(coordinate1.get_velocity(val[i])[1]))
+	f.write('\t')
+	f.write(str(coordinate1.get_velocity(val[i])[2]))
+	f.write('\n')
+
+# f.write("x = [")
+# for i in range(0, ran):
+# 	f.write( str((coordinate1.get_velocity(val[i]))[0]) )
+# 	f.write(", ")
+# f.write("]\n")
+
+# f.write("y = [")
+# for i in range(0, ran):
+# 	f.write( str((coordinate1.get_velocity(val[i]))[1]) )
+# 	f.write(", ")
+# f.write("]\n")
+
+# f.write("z = [")
+# for i in range(0, ran):
+# 	f.write( str((coordinate1.get_velocity(val[i]))[2]) )
+# 	f.write(", ")
+# f.write("]")
+
+'''
+	f.write('\t')
+	f.write('\t')
+'''
 # x = []
 # x.append(single.Waypoint(1, 0, 0, 0))
 # x.append(single.Waypoint(1, 0, 0, 1))
@@ -119,29 +157,3 @@ def clover(radius, time, distance = 2):
 # z_coord = single.MinimumJerk(z)
 
 # coordinate1 = Coordinates_3D(x_coord, y_coord, z_coord)
-
-
-# val = np.arange(0, 4, 0.01)
-# ran = 400
-# f.write("x = [")
-# for i in range(0, ran):
-# 	f.write( str((coordinate1.get_position(val[i]))[0]) )
-# 	f.write(", ")
-# f.write("]\n")
-
-# f.write("y = [")
-# for i in range(0, ran):
-# 	f.write( str((coordinate1.get_position(val[i]))[1]) )
-# 	f.write(", ")
-# f.write("]\n")
-
-# f.write("z = [")
-# for i in range(0, ran):
-# 	f.write( str((coordinate1.get_position(val[i]))[2]) )
-# 	f.write(", ")
-# f.write("]")
-
-# '''
-# 	f.write('\t')
-# 	f.write('\t')
-# '''
