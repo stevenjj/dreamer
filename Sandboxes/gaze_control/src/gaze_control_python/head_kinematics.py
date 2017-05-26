@@ -34,13 +34,14 @@ class Head_Kinematics():
 	# Dreamer Head from J0
 	# Dreamer Screw Axes @ 0 Position
 	# S = [omega_hat, v]
+
 	S0 = [0, -1, 0, 0, 0, 0]
 	S1 = [0, 0, 1, 0, 0, 0]
-	S2 = [-1, 0, 0, 0, l1, 0]
+	S2 = [-1, 0, 0, 0, -l1, 0]
 	S3 = [0, -1, 0, l1, 0, 0]
-	S4 = [0, -1, 0, l1, 0, l2]
+	S4 = [0, -1, 0, l1, 0, -l2]
 	S5 = [0,  0, 1, -l3, -l2, 0]
-	S6 = [0,  0, 1, l3, -l2, 0]					
+	S6 = [0,  0, 1, l3, -l2, 0]
 
 	R_head_home = np.eye(3)
 	p_head_home = [0, 0, l1]
@@ -118,6 +119,50 @@ class Head_Kinematics():
 		J_spatial_6D_left_eye = np.concatenate((J0_to_J5_Jacobian, J6_Jacobian), axis=1) 
 
 		return J_spatial_6D_left_eye # returns 6x7 Spatial Jacobian
+
+
+	def get_6D_Right_Eye_Jacobian_yaw_pitch(self, JList):		
+		screw_axis_end = 5 # This is J5
+		num_joints = screw_axis_end + 1 # should be 6
+		Slist = self.screw_axes_tables[4:num_joints].T # Only J4 and J5 affect right eye pitch and yaw
+		thetalist = JList[4:num_joints] # Only J4 and J5 affect right eye pitch and yaw		
+		J_spatial =  mr.JacobianSpace(Slist, thetalist) # returns 6x2 Spatial Jacobian
+
+		# Concatenate zeros
+		zero_vec_begin = np.zeros((6, 4)) # this should be 6x4		
+		zero_vec = np.zeros((6, 1)) # this should be 6x1
+
+		J_spatial_6D_right_eye = np.concatenate((zero_vec_begin, J_spatial), axis=1)  # 6x6
+		J_spatial_6D_right_eye = np.concatenate((J_spatial_6D_right_eye, zero_vec), axis=1) #6x7
+
+		return J_spatial_6D_right_eye # returns 6x7 Spatial Jacobian
+
+	def get_6D_Left_Eye_Jacobian_yaw_pitch(self, JList):	
+		# Only two joint affect left eye yaw pitch
+		# J4, J6
+		Slist = np.concatenate( (self.screw_axes_tables[4].reshape(1,6), self.screw_axes_tables[6].reshape(1,6)), axis = 0).T
+		thetalist = np.array([ JList[4], JList[6] ]) 		
+		# Spatial Jacobian is [J4, J6]. we have to add back in a J5 zero vector later
+		J_spatial =  mr.JacobianSpace(Slist, thetalist) # returns 6x2 Spatial Jacobian
+
+		# Now we have to construct the following Jacobian:
+		# J = [0, 0, 0, 0, J4, 0, J6]
+
+		# Jacobian due to joint 5 zero vector
+		zero_vec_begin = np.zeros((6, 4)) # this should be 6x4				
+		zero_vec = np.zeros((6, 1)) # this should be 6x1
+
+		# Construct last column and first 5 columns
+		J4_Jacobian = J_spatial[:,0].reshape(6,1) # Pitch Joint J4's Jacobian
+		J6_Jacobian = J_spatial[:,1].reshape(6,1) # Left Eye Yaw Joint. J6's jacobian
+
+
+		# Add J5 zero column vector
+		J_spatial_6D_left_eye = np.concatenate( (zero_vec_begin, J4_Jacobian), axis=1)
+		J_spatial_6D_left_eye = np.concatenate((J_spatial_6D_left_eye, zero_vec), axis=1) 
+		J_spatial_6D_left_eye = np.concatenate((J_spatial_6D_left_eye, J6_Jacobian), axis=1) 
+
+		return J_spatial_6D_left_eye # returns 6x7 Spatial Jacobian		
 
 
 	# Returns the head's orientation R, and spatial position p from T \in SE(3)

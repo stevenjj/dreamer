@@ -94,6 +94,8 @@ BEHAVIOR_ID_TO_STRING = {BEHAVIOR_NO_BEHAVIOR: "BEHAVIOR_NO_BEHAVIOR",
 
 
 
+from program_constants import *
+
 #-----------------------------------------------
 # ROS Client for Low Level control 
 def setup_ctrl_deq_append():
@@ -151,9 +153,10 @@ class Dreamer_Head():
 
 
         # Class Objects
+        
         self.people_manager = Detected_People_Manager()
         self.gaze_focus_states = Gaze_Focus_States(self.kinematics)
-        self.controller_manager = Controller(self.kinematics, self.gaze_focus_states, self.people_manager)       
+        self.controller_manager = Controller(self.kinematics, self.gaze_focus_states, self.people_manager, self.joint_publisher)       
 
         # Behaviors, States and Tasks
         self.states = [STATE_IDLE, STATE_GO_TO_POINT, STATE_GO_HOME]
@@ -223,8 +226,9 @@ class Dreamer_Head():
             joint_name = self.kinematics.Jindex_to_names[i]
             joint_max_val = self.joint_publisher.free_joints[joint_name]['max']
             joint_min_val = self.joint_publisher.free_joints[joint_name]['min']
-            self.joint_publisher.free_joints[joint_name]['position'] = joint_cmd_bound(command, joint_name, joint_max_val, joint_min_val)
-
+            joint_val = joint_cmd_bound(command, joint_name, joint_max_val, joint_min_val)
+            self.joint_publisher.free_joints[joint_name]['position'] = joint_val
+            self.kinematics.Jlist[i] = joint_val
 
     # Function: Update time of the head class
     # Updates: dt - time since last update
@@ -525,6 +529,10 @@ class Dreamer_Head():
             print '       ', self.kinematics.Jlist
 
 
+            J0, J1, J2, J3, J4, J5, J6 = self.kinematics.Jlist
+            print '    head pitch       ', J0+J3            
+            print '    left eye pitch   ', J6
+            print '    right eye pitch  ', J6
             # if (self.current_task == TASK_FOLLOW_WAYPOINTS):
             #     print '     MinJerk:'
             #     time = rospy.get_time() - self.BRANDON_TIME
@@ -578,7 +586,7 @@ class Dreamer_Head():
                 self.people_manager.loop()
 
                 # Print state information
-                self.print_debug()
+                #self.print_debug()
                 # Sleep
                 self.time_since_last_loop = self.ROS_current_time
 
@@ -629,30 +637,33 @@ class Dreamer_Head():
         # Redundant checking of behavior_commanded
         elif ((self.current_behavior == BEHAVIOR_DO_SQUARE_FIXED_EYES) and self.behavior_commanded == False):
             task_list = [TASK_GO_TO_POINT_EYE_PRIORITY for i in range(6)]
+#            task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY for i in range(6)]            
             task_params = []
 
             init_to_go_point = 3 # Take a longer time to go to the initial point
-            duration = 1
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.15, self.kinematics.l1+0.3]),  np.array([6, 0.0, self.kinematics.l1]),      init_to_go_point) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.15, self.kinematics.l1-0.3]),   np.array([6, 0.0, self.kinematics.l1]),     duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -0.15, self.kinematics.l1-0.3]),  np.array([6, 0.0, self.kinematics.l1]),     duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -0.15, self.kinematics.l1+0.3]), np.array([6, 0.0, self.kinematics.l1]),      duration) )                       
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.15, self.kinematics.l1+0.3]),  np.array([6, 0.0, self.kinematics.l1]),      duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.15, self.kinematics.l1-0.3]),   np.array([6, 0.0, self.kinematics.l1]),     duration) )
+            duration = 3
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1+1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),      init_to_go_point) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 1.25, self.kinematics.l1-1.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -1.25, self.kinematics.l1-1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -1.25, self.kinematics.l1+1.3]), np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )                       
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 1.25, self.kinematics.l1+1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1-1.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
             self.execute_behavior(task_list, task_params)
 
         # This behavior makes a square with the eyes while the head points straight ahead
         elif ((self.current_behavior == BEHAVIOR_DO_SQUARE_FIXED_HEAD) and self.behavior_commanded == False):
+#            task_list = [TASK_GO_TO_POINT_EYE_PRIORITY for i in range(6)]
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY for i in range(6)]            
             task_params = []
 
             init_to_go_point = 3 # Take a longer time to go to the initial point
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.6, 0.15, self.kinematics.l1+0.2]),      init_to_go_point) )
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.6, 0.15, self.kinematics.l1-0.2]),      1) )
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.6, -0.15, self.kinematics.l1-0.2]),     1) )
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.6, -0.15, self.kinematics.l1+0.2]),     1) )                       
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.6, 0.15, self.kinematics.l1+0.2]),      1) )
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.6, 0.15, self.kinematics.l1-0.2]),      1) )                   
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, 0.15, self.kinematics.l1+0.2]),      init_to_go_point) )
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, 0.15, self.kinematics.l1-0.2]),      2) )
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, -0.15, self.kinematics.l1-0.2]),     2) )
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, -0.15, self.kinematics.l1+0.2]),     2) )                       
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, 0.15, self.kinematics.l1+0.2]),      2) )
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, 0.15, self.kinematics.l1-0.2]),      2) )                   
+            #task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [-0.7, 0.55, self.kinematics.l1-0.2]),      1) )                               
             self.execute_behavior(task_list, task_params)
 
         # There are no defined task_params for tracking people because it is calculated at run-time
@@ -704,13 +715,13 @@ class Dreamer_Head():
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
             # Draw a circle behavior
-            piecewise_func = circle(.17, 8.0)
-
+            #piecewise_func = circle(.17, 8.0)
+            piecewise_func = circle(1.0, 8.0)
             # Extract initial coordinates
             coord = piecewise_func.get_position(0)
             x = coord[0]
             y = coord[1]
-            z = coord[2]
+            z = coord[2]            
 
             # Go to the initial coordinates before executing minimum jerk
             duration = 2
