@@ -35,7 +35,6 @@ def circular_trajectory(t):
 
 # Calculate desired orientation
 # Accepts a 3x1 gaze location vector and an origin vector to create the desired orientation
-
 def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, orientation_type='head'):
     # Calculate Desired Orientation
     p_bar = x_gaze_loc - p_cur
@@ -95,6 +94,7 @@ def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, o
 
 
 # Calculate error between current configuration and desired configuration
+# Inputs: desired gaze location, desired joint configuration, current joint configuration, min_jerk time scaling
 # TODO maybe can change the output of this to only a single variable when porting to C++
 def smooth_orientation_error(x_gaze_loc, Q, Q_init, scaling, orientation_type='head'):
     global head_kin
@@ -295,7 +295,8 @@ class Controller():
         self.xyz_head_gaze_loc = np.array([0,0,0])
         self.xyz_eye_gaze_loc = np.array([0,0,0])
 
-        self.piecewise_func = None
+        self.piecewise_func_head = None
+        self.piecewise_func_eyes = None
         self.piecewise_func_total_run_time = 0        
 
 
@@ -314,6 +315,7 @@ class Controller():
             self.beta[i] = Q_range*self.buffer_region_percent
             self.joint_limit_activation_pos[i] = self.joint_limit_max[i] - self.beta[i]
             self.joint_limit_activation_neg[i] = self.joint_limit_min[i] + self.beta[i]
+
 
     def h_i(self, joint_index):
         i = joint_index
@@ -348,9 +350,11 @@ class Controller():
             self.buffer_region_type[i] = NEG            
             return 1.0            
 
+
     def update_intermediate_H_matrix(self):
         for i in range(self.kinematics.J_num):
             self.intermediate_H_matrix[i][i] = self.h_i(i)
+
 
     def update_intermediate_constraint_matrix(self):
         for i in range(self.kinematics.J_num):
@@ -420,8 +424,10 @@ class Controller():
 
 
     # Function: Used for Minimum Jerk trajectories
-    #
-    def specify_follow_traj_params(self, start_time, total_run_time, piecewise_func):
+    # - Reset time variables
+    # - Set initial focuses
+    # - 
+    def specify_follow_traj_params(self, start_time, total_run_time, piecewise_func_head, piecewise_func_eyes):
         self.Q_o_at_start = self.kinematics.Jlist
 
         # Initialize Time parameters
@@ -431,13 +437,15 @@ class Controller():
         self.piecewise_func_total_run_time = total_run_time
 
         # Initialize Piecewise Func
-        self.piecewise_func = piecewise_func
+        self.piecewise_func_head = piecewise_func_head
+        self.piecewise_func_eyes = piecewise_func_eyes
 
-        xyz_head_gaze_loc = piecewise_func.get_position(start_time)
-        xyz_eye_gaze_loc = piecewise_func.get_position(start_time)
+        xyz_head_gaze_loc = piecewise_func_head.get_position(start_time)
+        xyz_eye_gaze_loc = piecewise_func_eyes.get_position(start_time)
         self.initialize_head_eye_focus_point(xyz_head_gaze_loc, xyz_eye_gaze_loc)
                 
         return
+
 
     # Function: Changes points of focus for the head and eyes
     # 
@@ -469,9 +477,11 @@ class Controller():
         #raise 'debug'
         return
 
-    # Function: Initialize variables to desired positions
+
+    # Function: Initialize focuses to desired points
     # Checks if eyes are focused on a point
-    #   if so, use that point. Otherwise, focus the points
+    #   IF true: use that point.
+    #   ELSE: focus the eyes, then move to the point
     def initialize_head_eye_focus_point(self, xyz_head_gaze_loc, xyz_eye_gaze_loc):
         R_head_init, p_head_init = self.kinematics.get_6D_Head_Position(self.kinematics.Jlist)
         R_right_eye_init, p_right_eye_init = self.kinematics.get_6D_Right_Eye_Position(self.kinematics.Jlist)
@@ -481,7 +491,6 @@ class Controller():
         x_right_eye_hat = np.array(R_right_eye_init)[:,0]        
         x_left_eye_hat = np.array(R_left_eye_init)[:,0]
 
-        # If focused, use that point as the initial_gaze_point
         if self.gaze_focus_states.are_eyes_focused():
             self.gaze_focus_states.focus_point_init[self.H]  = (p_head_init      + x_head_hat*self.gaze_focus_states.current_focus_length[self.H])
             self.gaze_focus_states.focus_point_init[self.RE] = (p_right_eye_init + x_right_eye_hat*self.gaze_focus_states.current_focus_length[self.RE])        
@@ -495,6 +504,7 @@ class Controller():
             self.gaze_focus_states.focus_point_init[self.RE] = (p_right_eye_init + x_right_eye_hat*self.gaze_focus_states.focus_length[self.RE])        
             self.gaze_focus_states.focus_point_init[self.LE] = (p_left_eye_init  + x_left_eye_hat*self.gaze_focus_states.focus_length[self.LE])
 
+
     def xi_to_xf_vec(self, t, initial_point, final_point):
         x_f, x_i = final_point, initial_point
         e = x_f - x_i
@@ -505,8 +515,10 @@ class Controller():
             return mr.Normalize(x_i), L
         return e_hat, L
 
-
-    def min_jerk_time_scaling(self, t, delta_t): #delta_t is the total movement duration
+    # Function: Provide a minimum jerk time based on an equation for minimum jerk from 0 to 1
+    # By minimum jerk calculations: t = 10*x^3 - 15*x^4 + 6*x^5
+    # Sets upper and lower bounds of 0 and 1 for change in time
+    def min_jerk_time_scaling(self, t, delta_t): # delta_t is the total movement duration
         s_t = 0.0
         x_init, x_final = 0.0, 1.0 # Set to 0 and 1 since we want time scaling from 0 to 1
         if (t < 0):
@@ -528,7 +540,7 @@ class Controller():
 
     # Function: Head and eyes move to the same point, used for Minimum Jerk trajectories
     # Head is prioritized over the two eyes
-    # There are 3 J_bar's, the head and both eye
+    # There are 3 J_bar's, the head and both eyes
     def head_priority_eye_trajectory_follow(self):
         # Calculate Time
         t, t_prev = self.calculate_t_t_prev()
@@ -536,8 +548,8 @@ class Controller():
         DT = self.piecewise_func_total_run_time
         
         # Specify current (x,y,z) gaze location through the piecewise min_jerk
-        xyz_eye_gaze_loc = self.piecewise_func.get_position(t)
-        xyz_head_gaze_loc = self.piecewise_func.get_position(t)
+        xyz_head_gaze_loc = self.piecewise_func_head.get_position(t)
+        xyz_eye_gaze_loc = self.piecewise_func_eyes.get_position(t)
 
         # Specify joint configuration and jacobian
         Q_cur = self.kinematics.Jlist
@@ -862,6 +874,7 @@ class Controller():
 
 
     # Eye has higher priority than head
+    # Head moves while eyes try to stay focused
     def eye_priority_head_trajectory_look_at_point(self):
 
         # Calculate Time
@@ -869,14 +882,14 @@ class Controller():
         dt = t - t_prev
         DT = self.movement_duration
 
-        # Specify current (x,y,z) gaze location, joint config and jacobian
+        # Specify current (x,y,z) gaze location
         xyz_eye_gaze_loc = self.xyz_eye_gaze_loc
         xyz_head_gaze_loc = self.xyz_head_gaze_loc
 
-        # Specify current (x,y,z) gaze location, joint config and jacobian
+        # Specify joint config and jacobian
         Q_cur = self.kinematics.Jlist
         J_head = self.kinematics.get_6D_Head_Jacobian(Q_cur)
-        J_head = J_head[0:3,:] #Grab the first 3 rows          
+        J_head = J_head[0:3,:] # Grab the first 3 rows          
         
         # Calculate FeedForward ---------------------------------
         # Calculate new Q_des (desired configuration)
@@ -908,7 +921,6 @@ class Controller():
 #        print '  Final Focus Location:    ', p_head_des_cur        
 
         # Calculate current orientation error
-        #d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT))
         d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT)) 
         dx_head = d_theta_error * angular_vel_hat 
         dx_head = dx_head[0:3]        

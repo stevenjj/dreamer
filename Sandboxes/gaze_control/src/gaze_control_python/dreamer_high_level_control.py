@@ -333,6 +333,411 @@ class Dreamer_Head():
         return
 
 
+    # Function: Self-explanatory
+    def reset_all_joints_to_home(self):
+        self.kinematics.Jlist = np.zeros(7)            
+        self.update_head_joints(self.kinematics.Jlist)
+        self.gaze_focus_states.reset()  
+
+    
+    # ---------------------------------------------------------
+    # GUI Callback Commands
+    def gui_callback(self, msg):
+        gui_command = msg.data
+        if gui_command == LOW_LEVEL_OFF:
+            self.gui_command = gui_command
+            self.gui_command_string = LOW_LEVEL_OFF_STRING
+            #---------------------------------------------
+            # Disable Low Level
+            self.disable_low_level()
+
+        elif gui_command == LOW_LEVEL_ON:
+            self.gui_command = gui_command
+            self.gui_command_string = LOW_LEVEL_ON_STRING
+            #---------------------------------------------  
+            # Enable Low Level
+            self.enable_low_level()
+
+        elif gui_command == STATE_TO_IDLE:
+            self.gui_command = gui_command
+            self.gui_command_string = STATE_TO_IDLE_STRING
+            #---------------------------------------------             
+            # Change State to Idle
+            self.current_state = STATE_IDLE                     
+            self.reset_state_tasks_behaviors()
+        
+        elif gui_command == GO_HOME:
+            self.gui_command = gui_command
+            self.gui_command_string = GO_HOME_STRING
+            #---------------------------------------------  
+            # Change State to Go Home              
+            self.reset_state_tasks_behaviors()
+            self.current_state = STATE_GO_HOME                   
+            self.gui_command_execute_time = rospy.get_time()
+
+        
+        elif gui_command == DO_SQUARE_FIXED_EYES:  
+            self.gui_command = gui_command
+            self.gui_command_string = DO_SQUARE_FIXED_EYES_STRING
+            #---------------------------------------------  
+            # Change Current Behavior
+            self.reset_state_tasks_behaviors()
+            self.current_behavior = BEHAVIOR_DO_SQUARE_FIXED_EYES
+
+        elif gui_command == DO_SQUARE_FIXED_HEAD:
+            self.gui_command = gui_command
+            self.gui_command_string = DO_SQUARE_FIXED_HEAD_STRING
+            # Change Current Behavior
+            self.reset_state_tasks_behaviors()
+            self.current_behavior = BEHAVIOR_DO_SQUARE_FIXED_HEAD
+        
+        elif gui_command == TRACK_NEAR_PERSON:
+            self.gui_command = gui_command
+            self.gui_command_string = TRACK_NEAR_PERSON_STRING
+            self.reset_state_tasks_behaviors()
+            self.current_behavior = BEHAVIOR_TRACK_NEAR_PERSON
+
+        elif gui_command == TRACK_NEAR_PERSON_EYES:
+            self.gui_command = gui_command
+            self.gui_command_string = TRACK_NEAR_PERSON_EYES_STRING
+            self.reset_state_tasks_behaviors()
+            self.current_behavior = BEHAVIOR_TRACK_NEAR_PERSON_EYES            
+
+        elif gui_command == TRACK_NEAR_PERSON_BEST:
+            self.gui_command = gui_command
+            self.gui_command_string = TRACK_NEAR_PERSON_BEST_STRING
+            self.reset_state_tasks_behaviors()
+            self.current_behavior = BEHAVIOR_TRACK_NEAR_PERSON_BEST            
+
+        elif gui_command == AVOID_NEAR_PERSON:
+            self.gui_command = gui_command
+            self.gui_command_string = AVOID_NEAR_PERSON_STRING
+            self.reset_state_tasks_behaviors()
+            self.current_behavior = BEHAVIOR_AVOID_NEAR_PERSON
+
+        elif gui_command == DO_WAYPOINT_TRAJ:      
+            self.gui_command = gui_command
+            self.gui_command_string = DO_WAYPOINT_TRAJ_STRING
+            self.reset_state_tasks_behaviors()            
+            self.current_behavior = BEHAVIOR_FOLLOW_WAYPOINTS
+
+        elif gui_command == CIRCLE_TRAJ:      
+            self.gui_command = gui_command
+            self.gui_command_string = CIRCLE_TRAJ_STRING
+            self.reset_state_tasks_behaviors()            
+            self.current_behavior = BEHAVIOR_FOLLOW_CIRCLE            
+        
+        else:
+            print gui_command, "Invalid Command"
+
+
+    # Print Statements
+    def print_debug(self):
+        print_interval = self.ROS_current_time - self.time_since_last_print
+        if (print_interval > (1.0/( float(self.print_rate))) ):
+            self.time_since_last_print = rospy.get_time()        
+            print 'ROS time (sec)          :' , self.relative_time
+            print '    State               :' , STATE_ID_TO_STRING[self.current_state]
+            print '    Task                :' , TASK_ID_TO_STRING[self.current_task]
+            print '    Behavior            :' , BEHAVIOR_ID_TO_STRING[self.current_behavior]
+            print '    Low Level           :' , self.low_level_control 
+            print '    GUI Command         :' , self.gui_command_string
+            print '        Command Rate (Hz)   :' , self.cmd_rate_measured  
+            print '        Print Rate (Hz)     :' , 1.0/print_interval
+            print '        Node Rate (Hz)      :' , 1.0/self.interval #self.dt 
+            print '        Node dt(s)          :' , self.interval #self.dt
+            print '        Custom Sleep(Hz)    ;' , 1.0/self.interval
+
+            print '    Semaphores'
+            print "        GUI,   Behavior, Task CMD" 
+            print "       ", self.gui_command_executing, " ", self.behavior_commanded, "   ", self.task_commanded
+
+            print '     Joint List:'
+            print '       ', self.kinematics.Jlist
+
+
+            J0, J1, J2, J3, J4, J5, J6 = self.kinematics.Jlist
+            print '    head pitch       ', J0+J3            
+            print '    left eye pitch   ', J6
+            print '    right eye pitch  ', J6
+            # if (self.current_task == TASK_FOLLOW_WAYPOINTS):
+            #     print '     MinJerk:'
+            #     time = rospy.get_time() - self.BRANDON_TIME
+            #     coordinate1 = self.task_params[self.current_task_index]
+            #     x = coordinate1.get_position(time)[0]
+            #     y = coordinate1.get_position(time)[1]
+            #     z = coordinate1.get_position(time)[2]                        
+            #     print '       (t, x, y, z):', (time, x, y, z)
+
+            # print self.current_task_index
+            # print len(self.task_list)
+            # print self.task_params
+
+            #self.gaze_focus_states.print_debug()
+            #self.gaze_focus_states.print_debugxy()
+            #self.controller_manager.print_debug()
+            self.people_manager.print_debug()
+
+
+    
+
+    # ---------------- Behavior and Task Logic ----------------
+
+    #----------------------------------------------------------
+    # Behavior Helper Functions
+
+    # Function: Formats the data that is appended to task_params
+    def set_prioritized_go_to_point_params(self, head_gaze_location, eye_gaze_location, move_duration):
+        params = (head_gaze_location, eye_gaze_location, move_duration)
+        return params       
+
+
+    # Function: Update behavior variables
+    #           Set up for the behavior to be executed
+    #           behavior_commanded is now true
+    def execute_behavior(self, task_list, task_params):
+        # Update Task Variables
+        self.task_list   = task_list
+        self.task_params = task_params
+
+        self.current_task_index = 0
+        self.current_task = self.task_list[self.current_task_index]
+        
+        # Update Semaphores
+        self.task_commanded     = False
+        self.behavior_commanded = True
+
+
+    # Function: Define behaviors and tasks within each behavior
+    #           Behaviors are a wrapper for a set of tasks
+    #   Logic:
+    #   1. if-else statements will find which behavior was clicked:
+    #       if a behavior was clicked, the gui_handler will reset the behavior_commanded semaphore 
+    #       if there is a behavior in progress, exit function without doing anything
+    #   2. task_list contains the name of the task for the behavior
+    #   3. task_params contain the actual commands such as moving to a point
+    #   4. Updates variables with execute_behavior with task_list and task_params
+    def behavior_logic(self):
+        if self.current_behavior == BEHAVIOR_NO_BEHAVIOR:
+            self.task_list = [TASK_NO_TASK]
+            self.task_params = []
+            return
+
+        # This behavior makes a square with the head while the eyes are pointing straight ahead
+        # Redundant checking of behavior_commanded
+        elif ((self.current_behavior == BEHAVIOR_DO_SQUARE_FIXED_EYES) and self.behavior_commanded == False):
+            task_list = [TASK_GO_TO_POINT_EYE_PRIORITY for i in range(6)]
+#            task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY for i in range(6)]            
+            task_params = []
+
+            init_to_go_point = 3 # Take a longer time to go to the initial point
+            duration = 3
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1+1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),      init_to_go_point) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 1.25, self.kinematics.l1-1.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -1.25, self.kinematics.l1-1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -1.25, self.kinematics.l1+1.3]), np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )                       
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 1.25, self.kinematics.l1+1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1-1.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+            self.execute_behavior(task_list, task_params)
+
+        # This behavior makes a square with the eyes while the head points straight ahead
+        elif ((self.current_behavior == BEHAVIOR_DO_SQUARE_FIXED_HEAD) and self.behavior_commanded == False):
+#            task_list = [TASK_GO_TO_POINT_EYE_PRIORITY for i in range(6)]
+            task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY for i in range(6)]            
+            task_params = []
+
+            init_to_go_point = 3 # Take a longer time to go to the initial point
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, 0.15, self.kinematics.l1+0.2]),      init_to_go_point) )
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, 0.15, self.kinematics.l1-0.2]),      2) )
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, -0.15, self.kinematics.l1-0.2]),     2) )
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, -0.15, self.kinematics.l1+0.2]),     2) )                       
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, 0.15, self.kinematics.l1+0.2]),      2) )
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, 0.15, self.kinematics.l1-0.2]),      2) )                   
+            #task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [-0.7, 0.55, self.kinematics.l1-0.2]),      1) )                               
+            self.execute_behavior(task_list, task_params)
+
+        # There are no defined task_params for tracking people because it is calculated at run-time
+        elif ((self.current_behavior == BEHAVIOR_TRACK_NEAR_PERSON) and self.behavior_commanded == False):
+            task_list = [TASK_TRACK_PERSON_HEAD]            
+            task_params = []
+            self.execute_behavior(task_list, task_params)
+
+        elif ((self.current_behavior == BEHAVIOR_TRACK_NEAR_PERSON_EYES) and self.behavior_commanded == False):
+            task_list = [TASK_TRACK_PERSON_EYES]            
+            task_params = []
+            self.execute_behavior(task_list, task_params)
+
+
+        elif ((self.current_behavior == BEHAVIOR_TRACK_NEAR_PERSON_BEST) and self.behavior_commanded == False):
+            task_list = [TASK_TRACK_PERSON_BEST]            
+            task_params = []
+            self.execute_behavior(task_list, task_params)
+
+
+        elif ((self.current_behavior == BEHAVIOR_AVOID_NEAR_PERSON) and self.behavior_commanded == False):
+            task_list = [TASK_AVOID_NEAR_PERSON]            
+            movement_duration = 1.0 # Take 1. look away
+            task_params = [ [movement_duration] ]
+
+            self.execute_behavior(task_list, task_params)
+
+        elif ((self.current_behavior == BEHAVIOR_FOLLOW_WAYPOINTS) and self.behavior_commanded == False):
+            task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
+            task_params = []
+
+            # Draw a circle behavior
+            #piecewise_func = circle(.17, 8.0)
+            piecewise_func_head = circle(.8, 8.0)
+            # Extract initial coordinates
+            head_coord = piecewise_func_head.get_position(0)
+            x_head = head_coord[0]
+            y_head = head_coord[1]
+            z_head = head_coord[2]   
+
+            # Draw a clover behavior
+            piecewise_func_eyes = clover(.5, 8.0)
+            # Extract initial coordinates
+            eyes_coord = piecewise_func_eyes.get_position(0)
+            x_eyes = eyes_coord[0]
+            y_eyes = eyes_coord[1]
+            z_eyes = eyes_coord[2]            
+
+
+            # Go to the initial coordinates before executing minimum jerk
+            duration = 2
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [x_head, y_head, z_head] ), np.array( [x_eyes, y_eyes, z_eyes] ), duration) )
+            
+            total_run_time = piecewise_func_head.total_run_time()
+            task_params.append( (piecewise_func_head, piecewise_func_eyes, total_run_time) )
+            self.execute_behavior(task_list, task_params)
+
+        elif ((self.current_behavior == BEHAVIOR_FOLLOW_CIRCLE) and self.behavior_commanded == False):
+            task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
+            task_params = []
+            # Draw a circle behavior
+            #piecewise_func = circle(.17, 8.0)
+            piecewise_func = circle(.8, 8.0)
+            # Extract initial coordinates
+            coord = piecewise_func.get_position(0)
+            x = coord[0]
+            y = coord[1]
+            z = coord[2]            
+
+            # Go to the initial coordinates before executing minimum jerk
+            duration = 2
+            task_params.append( self.set_prioritized_go_to_point_params(np.array( [x, y, z] ), np.array( [x, y, z] ), duration) )
+            
+            total_run_time = piecewise_func.total_run_time()
+            task_params.append( (piecewise_func, piecewise_func, total_run_time) )
+            self.execute_behavior(task_list, task_params)
+            
+        return
+
+
+    #----------------------------------------------------------
+    # Task Helper Functions
+
+    # Function: Helper function that shifts the current task to the next one in the list if index not out of bounds
+    def next_task(self):
+        if (self.current_task_index < len(self.task_list)):
+            self.current_task = self.task_list[self.current_task_index]
+
+
+    # Function: Updates variables for head joints, moves on to next task if task is completed
+    # If behavior is complete, reset the command to nothing
+    def process_task_result(self, Q_des, command_result):
+        self.update_head_joints(Q_des)
+        if (command_result == True):
+            self.task_commanded = False
+            self.current_task_index += 1
+            self.next_task()          
+
+            if self.current_task_index == len(self.task_list):
+                self.reset_state_tasks_behaviors()
+
+    # Function: Resets all command variables in Dreamer to nothing commanded
+    def reset_state_tasks_behaviors(self):
+        self.current_state = STATE_IDLE
+        self.current_task = TASK_NO_TASK 
+        self.current_behavior = BEHAVIOR_NO_BEHAVIOR
+        self.gui_command_executing = False
+        self.behavior_commanded = False
+        self.task_commanded = False
+
+
+    # Function: Executes a single task based on the current index of the task_params
+    # This function executes many times over the course of a behavior
+    # Logic:
+    #       1. Find what the current task is and if no task is currently in progress
+    #       2. Save the ROS time
+    #       3. Set up more parameters if applicable
+    #       4. Set current state and task_commanded
+    def task_logic(self):
+        if self.current_task == TASK_NO_TASK:
+            return
+
+        # The following two tasks take points from the params and move eyes/head to those locations based on a minimum jerk
+        elif ((self.current_task == TASK_GO_TO_POINT_EYE_PRIORITY) and (self.task_commanded == False)):
+            self.current_state = STATE_GO_TO_POINT
+            start_time = rospy.Time.now().to_sec()  #self.ROS_current_time
+            head_xyz_gaze_loc = self.task_params[self.current_task_index][0]
+            eye_xyz_gaze_loc = self.task_params[self.current_task_index][1]            
+            movement_duration = self.task_params[self.current_task_index][2]
+
+            self.controller_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration)  
+            self.task_commanded = True
+
+        elif ((self.current_task == TASK_GO_TO_POINT_HEAD_PRIORITY) and (self.task_commanded == False)):
+            self.current_state = STATE_GO_TO_POINT
+            start_time = rospy.Time.now().to_sec()  #self.ROS_current_time
+            head_xyz_gaze_loc = self.task_params[self.current_task_index][0]
+            eye_xyz_gaze_loc = self.task_params[self.current_task_index][1]            
+            movement_duration = self.task_params[self.current_task_index][2]
+
+            self.controller_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration)  
+            self.task_commanded = True
+
+        # The following three tasks don't have specifically defined movement 
+        #    because they are based on tracking people
+        elif ((self.current_task == TASK_TRACK_PERSON_HEAD) and (self.task_commanded == False)):
+            self.current_state = STATE_GO_TO_POINT
+            self.task_commanded = True
+
+
+        elif ((self.current_task == TASK_TRACK_PERSON_EYES) and (self.task_commanded == False)):
+            self.current_state = STATE_GO_TO_POINT
+            self.task_commanded = True
+
+
+        elif ((self.current_task == TASK_TRACK_PERSON_BEST) and (self.task_commanded == False)):
+            self.current_state = STATE_GO_TO_POINT
+            self.task_commanded = True
+
+
+        elif ((self.current_task == TASK_AVOID_NEAR_PERSON) and (self.task_commanded == False)):
+            self.current_state = STATE_GO_TO_POINT
+
+            start_time = rospy.Time.now().to_sec()  #self.ROS_current_time
+            movement_duration = self.task_params[self.current_task_index][0]            
+            self.controller_manager.specify_avoid_person_params(start_time, movement_duration)
+            self.task_commanded = True
+
+
+        elif ((self.current_task == TASK_FOLLOW_WAYPOINTS) and (self.task_commanded == False)):
+            self.current_state = STATE_GO_TO_POINT
+
+            start_time = rospy.Time.now().to_sec()  #self.ROS_current_time
+            piecewise_func_head = self.task_params[self.current_task_index][0]
+            piecewise_func_eyes = self.task_params[self.current_task_index][1]
+            total_run_time = self.task_params[self.current_task_index][2] 
+
+            self.controller_manager.specify_follow_traj_params(start_time, total_run_time, piecewise_func_head, piecewise_func_eyes)
+            self.task_commanded = True
+
+
+        return
+
+
     # ---------------------------------------------------------
     # Main State Machine
     #   State Machine computes current joint positions
@@ -406,159 +811,13 @@ class Dreamer_Head():
             print "ERROR Not a valid state" 
 
 
-
-    def reset_all_joints_to_home(self):
-        self.kinematics.Jlist = np.zeros(7)            
-        self.update_head_joints(self.kinematics.Jlist)
-        self.gaze_focus_states.reset()  
-
-    # ---------------------------------------------------------
-    # GUI Callback Commands
-    def gui_callback(self, msg):
-        gui_command = msg.data
-        if gui_command == LOW_LEVEL_OFF:
-            self.gui_command = gui_command
-            self.gui_command_string = LOW_LEVEL_OFF_STRING
-            #---------------------------------------------
-            # Disable Low Level
-            self.disable_low_level()
-
-        elif gui_command == LOW_LEVEL_ON:
-            self.gui_command = gui_command
-            self.gui_command_string = LOW_LEVEL_ON_STRING
-            #---------------------------------------------  
-            # Enable Low Level
-            self.enable_low_level()
-
-        elif gui_command == STATE_TO_IDLE:
-            self.gui_command = gui_command
-            self.gui_command_string = STATE_TO_IDLE_STRING
-            #---------------------------------------------             
-            # Change State to Idle
-            self.current_state = STATE_IDLE                     
-            self.reset_state_tasks_behaviors()
-        
-        elif gui_command == GO_HOME:
-            self.gui_command = gui_command
-            self.gui_command_string = GO_HOME_STRING
-            #---------------------------------------------  
-            # Change State to Go Home              
-            self.reset_state_tasks_behaviors()
-            self.current_state = STATE_GO_HOME                   
-            self.gui_command_execute_time = rospy.get_time()
-
-        
-        elif gui_command == DO_SQUARE_FIXED_EYES:  
-            self.gui_command = gui_command
-            self.gui_command_string = DO_SQUARE_FIXED_EYES_STRING
-            #---------------------------------------------  
-            # Change Current Behavior
-            self.reset_state_tasks_behaviors()
-            self.current_behavior = BEHAVIOR_DO_SQUARE_FIXED_EYES
-
-        elif gui_command == DO_SQUARE_FIXED_HEAD:
-            self.gui_command = gui_command
-            self.gui_command_string = DO_SQUARE_FIXED_HEAD_STRING
-            # Change Current Behavior
-            self.reset_state_tasks_behaviors()
-            self.current_behavior = BEHAVIOR_DO_SQUARE_FIXED_HEAD
-        
-        elif gui_command == TRACK_NEAR_PERSON:
-            self.gui_command = gui_command
-            self.gui_command_string = TRACK_NEAR_PERSON_STRING
-            self.reset_state_tasks_behaviors()
-            self.current_behavior = BEHAVIOR_TRACK_NEAR_PERSON
-
-        elif gui_command == TRACK_NEAR_PERSON_EYES:
-            self.gui_command = gui_command
-            self.gui_command_string = TRACK_NEAR_PERSON_EYES_STRING
-            self.reset_state_tasks_behaviors()
-            self.current_behavior = BEHAVIOR_TRACK_NEAR_PERSON_EYES            
-
-        elif gui_command == TRACK_NEAR_PERSON_BEST:
-            self.gui_command = gui_command
-            self.gui_command_string = TRACK_NEAR_PERSON_BEST_STRING
-            self.reset_state_tasks_behaviors()
-            self.current_behavior = BEHAVIOR_TRACK_NEAR_PERSON_BEST            
-
-
-        elif gui_command == AVOID_NEAR_PERSON:
-            self.gui_command = gui_command
-            self.gui_command_string = AVOID_NEAR_PERSON_STRING
-            self.reset_state_tasks_behaviors()
-            self.current_behavior = BEHAVIOR_AVOID_NEAR_PERSON
-
-        elif gui_command == DO_WAYPOINT_TRAJ:      
-            self.gui_command = gui_command
-            self.gui_command_string = DO_WAYPOINT_TRAJ_STRING
-            self.reset_state_tasks_behaviors()            
-            self.current_behavior = BEHAVIOR_FOLLOW_WAYPOINTS
-
-        elif gui_command == CIRCLE_TRAJ:      
-            self.gui_command = gui_command
-            self.gui_command_string = CIRCLE_TRAJ_STRING
-            self.reset_state_tasks_behaviors()            
-            self.current_behavior = BEHAVIOR_FOLLOW_CIRCLE            
-        
-        else:
-            print gui_command, "Invalid Command"
-
-
-    # Print Statements
-    def print_debug(self):
-        print_interval = self.ROS_current_time - self.time_since_last_print
-        if (print_interval > (1.0/( float(self.print_rate))) ):
-            self.time_since_last_print = rospy.get_time()        
-            print 'ROS time (sec)          :' , self.relative_time
-            print '    State               :' , STATE_ID_TO_STRING[self.current_state]
-            print '    Task                :' , TASK_ID_TO_STRING[self.current_task]
-            print '    Behavior            :' , BEHAVIOR_ID_TO_STRING[self.current_behavior]
-            print '    Low Level           :' , self.low_level_control 
-            print '    GUI Command         :' , self.gui_command_string
-            print '        Command Rate (Hz)   :' , self.cmd_rate_measured  
-            print '        Print Rate (Hz)     :' , 1.0/print_interval
-            print '        Node Rate (Hz)      :' , 1.0/self.interval #self.dt 
-            print '        Node dt(s)          :' , self.interval #self.dt
-            print '        Custom Sleep(Hz)    ;' , 1.0/self.interval
-
-            print '    Semaphores'
-            print "        GUI,   Behavior, Task CMD" 
-            print "       ", self.gui_command_executing, " ", self.behavior_commanded, "   ", self.task_commanded
-
-            print '     Joint List:'
-            print '       ', self.kinematics.Jlist
-
-
-            J0, J1, J2, J3, J4, J5, J6 = self.kinematics.Jlist
-            print '    head pitch       ', J0+J3            
-            print '    left eye pitch   ', J6
-            print '    right eye pitch  ', J6
-            # if (self.current_task == TASK_FOLLOW_WAYPOINTS):
-            #     print '     MinJerk:'
-            #     time = rospy.get_time() - self.BRANDON_TIME
-            #     coordinate1 = self.task_params[self.current_task_index]
-            #     x = coordinate1.get_position(time)[0]
-            #     y = coordinate1.get_position(time)[1]
-            #     z = coordinate1.get_position(time)[2]                        
-            #     print '       (t, x, y, z):', (time, x, y, z)
-
-            # print self.current_task_index
-            # print len(self.task_list)
-            # print self.task_params
-
-            #self.gaze_focus_states.print_debug()
-            #self.gaze_focus_states.print_debugxy()
-            #self.controller_manager.print_debug()
-            self.people_manager.print_debug()
-
-
     # --------------------------------------------------------
     # Main Program Loop Logic
     # 1. Update time variables
     # --Loop--
     # 2. Set up behavior and update behavior variables (Needs to run once per button click)
     # 3. Update variables that will command a single task sequentially from behavior list (Needs to run until the behavior is completed)
-    # 4. Actually compute the joint positions needed from the task variables updated previously
+    # 4. Compute the joint positions needed for the specified state from the task variables updated previously
     # 5. Send the joint positions to the controller (Rviz/dreamer head)
     # 6. Publish focus length?
     # 7. Do people related things?
@@ -591,243 +850,7 @@ class Dreamer_Head():
                 self.time_since_last_loop = self.ROS_current_time
 
 
-    # ---------------- Behavior and Task Logic ----------------
 
-    #----------------------------------------------------------
-    # Behavior Helper Functions
-
-    # Function: Formats the data that is appended to task_params
-    def set_prioritized_go_to_point_params(self, head_gaze_location, eye_gaze_location, move_duration):
-        params = (head_gaze_location, eye_gaze_location, move_duration)
-        return params       
-
-
-    # Function: Update behavior variables
-    #           Set up for the behavior to be executed
-    #           behavior_commanded is now true
-    def execute_behavior(self, task_list, task_params):
-        # Update Task Variables
-        self.task_list   = task_list
-        self.task_params = task_params
-
-        self.current_task_index = 0
-        self.current_task = self.task_list[self.current_task_index]
-        
-        # Update Semaphores
-        self.task_commanded     = False
-        self.behavior_commanded = True
-
-
-    # Function: Define behaviors and tasks within each behavior
-    #           Behaviors are a wrapper for a set of tasks
-    #   Logic:
-    #   1. if-else statements will find which behavior was clicked:
-    #       if a behavior was clicked, the gui_handler will reset the behavior_commanded semaphore 
-    #       if there is a behavior in progress, exit function without doing anything
-    #   2. task_list contains the name of the task for the behavior
-    #   3. task_params contain the actual commands such as moving to a point
-    #   4. Calls execute_behavior with task_list and task_params
-    def behavior_logic(self):
-        if self.current_behavior == BEHAVIOR_NO_BEHAVIOR:
-            self.task_list = [TASK_NO_TASK]
-            self.task_params = []
-            return
-
-        # This behavior makes a square with the head while the eyes are pointing straight ahead
-        # Redundant checking of behavior_commanded
-        elif ((self.current_behavior == BEHAVIOR_DO_SQUARE_FIXED_EYES) and self.behavior_commanded == False):
-            task_list = [TASK_GO_TO_POINT_EYE_PRIORITY for i in range(6)]
-#            task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY for i in range(6)]            
-            task_params = []
-
-            init_to_go_point = 3 # Take a longer time to go to the initial point
-            duration = 3
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1+1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),      init_to_go_point) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 1.25, self.kinematics.l1-1.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -1.25, self.kinematics.l1-1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -1.25, self.kinematics.l1+1.3]), np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )                       
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 1.25, self.kinematics.l1+1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1-1.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
-            self.execute_behavior(task_list, task_params)
-
-        # This behavior makes a square with the eyes while the head points straight ahead
-        elif ((self.current_behavior == BEHAVIOR_DO_SQUARE_FIXED_HEAD) and self.behavior_commanded == False):
-#            task_list = [TASK_GO_TO_POINT_EYE_PRIORITY for i in range(6)]
-            task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY for i in range(6)]            
-            task_params = []
-
-            init_to_go_point = 3 # Take a longer time to go to the initial point
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, 0.15, self.kinematics.l1+0.2]),      init_to_go_point) )
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, 0.15, self.kinematics.l1-0.2]),      2) )
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, -0.15, self.kinematics.l1-0.2]),     2) )
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, -0.15, self.kinematics.l1+0.2]),     2) )                       
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, 0.15, self.kinematics.l1+0.2]),      2) )
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [0.7, 0.15, self.kinematics.l1-0.2]),      2) )                   
-            #task_params.append( self.set_prioritized_go_to_point_params(np.array( [1.0, 0.0, self.kinematics.l1]), np.array( [-0.7, 0.55, self.kinematics.l1-0.2]),      1) )                               
-            self.execute_behavior(task_list, task_params)
-
-        # There are no defined task_params for tracking people because it is calculated at run-time
-        elif ((self.current_behavior == BEHAVIOR_TRACK_NEAR_PERSON) and self.behavior_commanded == False):
-            task_list = [TASK_TRACK_PERSON_HEAD]            
-            task_params = []
-            self.execute_behavior(task_list, task_params)
-
-        elif ((self.current_behavior == BEHAVIOR_TRACK_NEAR_PERSON_EYES) and self.behavior_commanded == False):
-            task_list = [TASK_TRACK_PERSON_EYES]            
-            task_params = []
-            self.execute_behavior(task_list, task_params)
-
-
-        elif ((self.current_behavior == BEHAVIOR_TRACK_NEAR_PERSON_BEST) and self.behavior_commanded == False):
-            task_list = [TASK_TRACK_PERSON_BEST]            
-            task_params = []
-            self.execute_behavior(task_list, task_params)
-
-
-        elif ((self.current_behavior == BEHAVIOR_AVOID_NEAR_PERSON) and self.behavior_commanded == False):
-            task_list = [TASK_AVOID_NEAR_PERSON]            
-            movement_duration = 1.0 # Take 1. look away
-            task_params = [ [movement_duration] ]
-
-            self.execute_behavior(task_list, task_params)
-
-        elif ((self.current_behavior == BEHAVIOR_FOLLOW_WAYPOINTS) and self.behavior_commanded == False):
-            task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
-            task_params = []
-            # Draw a clover behavior
-            piecewise_func = clover(.17, 16.0)
-
-            # Extract initial coordinates
-            coord = piecewise_func.get_position(0)
-            x = coord[0]
-            y = coord[1]
-            z = coord[2]
-
-            # Go to the initial coordinates before executing minimum jerk
-            duration = 2
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [x, y, z] ), np.array( [x, y, z] ), duration) )
-            
-            total_run_time = piecewise_func.total_run_time()
-            task_params.append( (piecewise_func, total_run_time) )
-            self.execute_behavior(task_list, task_params)
-
-        elif ((self.current_behavior == BEHAVIOR_FOLLOW_CIRCLE) and self.behavior_commanded == False):
-            task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
-            task_params = []
-            # Draw a circle behavior
-            #piecewise_func = circle(.17, 8.0)
-            piecewise_func = circle(1.0, 8.0)
-            # Extract initial coordinates
-            coord = piecewise_func.get_position(0)
-            x = coord[0]
-            y = coord[1]
-            z = coord[2]            
-
-            # Go to the initial coordinates before executing minimum jerk
-            duration = 2
-            task_params.append( self.set_prioritized_go_to_point_params(np.array( [x, y, z] ), np.array( [x, y, z] ), duration) )
-            
-            total_run_time = piecewise_func.total_run_time()
-            task_params.append( (piecewise_func, total_run_time) )
-            self.execute_behavior(task_list, task_params)
-            
-        return
-
-
-    # Function: Executes a single task based on the current index of the task_params
-    # This function executes many times over the course of a behavior
-    # 
-    def task_logic(self):
-        if self.current_task == TASK_NO_TASK:
-            return
-
-        # The following two tasks take points from the params and move eyes/head to those locations based on a minimum jerk
-        elif ((self.current_task == TASK_GO_TO_POINT_EYE_PRIORITY) and (self.task_commanded == False)):
-            self.current_state = STATE_GO_TO_POINT
-            start_time = rospy.Time.now().to_sec()  #self.ROS_current_time
-            head_xyz_gaze_loc = self.task_params[self.current_task_index][0]
-            eye_xyz_gaze_loc = self.task_params[self.current_task_index][1]            
-            movement_duration = self.task_params[self.current_task_index][2]
-
-            self.controller_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration)  
-            self.task_commanded = True
-
-        elif ((self.current_task == TASK_GO_TO_POINT_HEAD_PRIORITY) and (self.task_commanded == False)):
-            self.current_state = STATE_GO_TO_POINT
-            start_time = rospy.Time.now().to_sec()  #self.ROS_current_time
-            head_xyz_gaze_loc = self.task_params[self.current_task_index][0]
-            eye_xyz_gaze_loc = self.task_params[self.current_task_index][1]            
-            movement_duration = self.task_params[self.current_task_index][2]
-
-            self.controller_manager.specify_head_eye_gaze_point(start_time, head_xyz_gaze_loc, eye_xyz_gaze_loc, movement_duration)  
-            self.task_commanded = True
-
-        # The following three tasks don't have specifically defined movement 
-        #    because they are based on tracking people
-        elif ((self.current_task == TASK_TRACK_PERSON_HEAD) and (self.task_commanded == False)):
-            self.current_state = STATE_GO_TO_POINT
-            self.task_commanded = True
-
-
-        elif ((self.current_task == TASK_TRACK_PERSON_EYES) and (self.task_commanded == False)):
-            self.current_state = STATE_GO_TO_POINT
-            self.task_commanded = True
-
-
-        elif ((self.current_task == TASK_TRACK_PERSON_BEST) and (self.task_commanded == False)):
-            self.current_state = STATE_GO_TO_POINT
-            self.task_commanded = True
-
-
-        elif ((self.current_task == TASK_AVOID_NEAR_PERSON) and (self.task_commanded == False)):
-            self.current_state = STATE_GO_TO_POINT
-
-            start_time = rospy.Time.now().to_sec()  #self.ROS_current_time
-            movement_duration = self.task_params[self.current_task_index][0]            
-            self.controller_manager.specify_avoid_person_params(start_time, movement_duration)
-            self.task_commanded = True
-
-
-        elif ((self.current_task == TASK_FOLLOW_WAYPOINTS) and (self.task_commanded == False)):
-            self.current_state = STATE_GO_TO_POINT
-
-            start_time = rospy.Time.now().to_sec()  #self.ROS_current_time
-            piecewise_func = self.task_params[self.current_task_index][0]
-            total_run_time = self.task_params[self.current_task_index][1] 
-
-            self.controller_manager.specify_follow_traj_params(start_time, total_run_time, piecewise_func)
-            self.task_commanded = True
-
-
-        return
-
-
-    # Function: Helper function that shifts the current task to the next one in the list if index not out of bounds
-    def next_task(self):
-        if (self.current_task_index < len(self.task_list)):
-            self.current_task = self.task_list[self.current_task_index]
-
-
-    # Function: Updates variables for head joints, moves on to next task if task is completed
-    # If behavior is complete, reset the command to nothing
-    def process_task_result(self, Q_des, command_result):
-        self.update_head_joints(Q_des)
-        if (command_result == True):
-            self.task_commanded = False
-            self.current_task_index += 1
-            self.next_task()          
-
-            if self.current_task_index == len(self.task_list):
-                self.reset_state_tasks_behaviors()
-
-    # Function: Resets all command variables in Dreamer to nothing commanded
-    def reset_state_tasks_behaviors(self):
-        self.current_state = STATE_IDLE
-        self.current_task = TASK_NO_TASK 
-        self.current_behavior = BEHAVIOR_NO_BEHAVIOR
-        self.gui_command_executing = False
-        self.behavior_commanded = False
-        self.task_commanded = False
 
 
 if __name__ == "__main__":
