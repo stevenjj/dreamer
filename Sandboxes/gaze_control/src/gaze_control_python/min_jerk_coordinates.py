@@ -37,8 +37,10 @@ class Coordinates_3D():
 		return self.x.total_run_time()
 
 
-
-def circle(radius, time, distance = 2):
+# Function: Traces a circle in the yz plane with x at a specified distance away
+# Inputs: Radius of circle, total time of the trace, optional: distance away from head
+# Returns: Minimum Jerk piecewise function for the circle
+def circle_yz(radius, time, distance = 2):
 	accuracy = 16.0
 	x = []
 	x.append(single.Waypoint(distance+hk.Head_Kinematics().l2, 0, 0, 0))
@@ -55,6 +57,36 @@ def circle(radius, time, distance = 2):
 		y.append(single.Waypoint(-1 * radius * np.cos(theta), radius * np.sin(theta), radius * np.cos(theta), time/accuracy ))
 		z.append(single.Waypoint(radius*np.sin(theta)+hk.Head_Kinematics().l1, radius*np.cos(theta), -1*radius*np.sin(theta), time/accuracy))
 	y.append(single.Waypoint(-1 * radius * np.cos(2*np.pi), 0, 0, time/accuracy))
+	z.append(single.Waypoint(0+hk.Head_Kinematics().l1, 0, 0, time/accuracy))
+	
+	
+	x_coord = single.MinimumJerk(x)
+	y_coord = single.MinimumJerk(y)
+	z_coord = single.MinimumJerk(z)
+
+	circle_min = Coordinates_3D(x_coord, y_coord, z_coord)
+	return circle_min
+
+# Function: Traces a circle in the xz plane with y at 0
+# Inputs: Radius of circle, total time of the trace, optional: distance away from head
+# Returns: Minimum Jerk piecewise function for the circle
+def circle_xz(radius, time, distance = 1):
+	accuracy = 16.0
+	y = []
+	y.append(single.Waypoint(0, 0, 0, 0))
+	for i in range(0, int(accuracy)):
+	    y.append(single.Waypoint(0, 0, 0, time/accuracy))
+
+	x = []
+	z = []
+
+	x.append(single.Waypoint(-1 * radius + (hk.Head_Kinematics().l2+distance) , 0, 0, 0))
+	z.append(single.Waypoint(0+hk.Head_Kinematics().l1, 0, 0, 0))
+	for i in range(1, int(accuracy)):
+		theta = np.pi*i/(accuracy/2.0)
+		x.append(single.Waypoint(-1 * radius * np.cos(theta) + (hk.Head_Kinematics().l2+distance) , radius * np.sin(theta), radius * np.cos(theta), time/accuracy ))
+		z.append(single.Waypoint(radius*np.sin(theta)+hk.Head_Kinematics().l1, radius*np.cos(theta), -1*radius*np.sin(theta), time/accuracy))
+	x.append(single.Waypoint(-1 * radius * np.cos(2*np.pi) + (hk.Head_Kinematics().l2+distance) , 0, 0, time/accuracy))
 	z.append(single.Waypoint(0+hk.Head_Kinematics().l1, 0, 0, time/accuracy))
 	
 	
@@ -92,22 +124,37 @@ def clover(radius, time, distance = 2):
 	clover_min = Coordinates_3D(x_coord, y_coord, z_coord)
 	return clover_min
 
-f = open('output.txt', 'w')
-
-coordinate1 = clover(.15, 8)
 
 
 
 
-val = np.arange(0, 8, 0.01)
-ran = 800
-for i in range(0, ran):
-	f.write(str(coordinate1.get_velocity(val[i])[0]))
-	f.write('\t')
-	f.write(str(coordinate1.get_velocity(val[i])[1]))
-	f.write('\t')
-	f.write(str(coordinate1.get_velocity(val[i])[2]))
-	f.write('\n')
+
+
+
+
+
+
+
+
+
+
+
+# f = open('output.txt', 'w')
+
+# coordinate1 = circle_xz(.15, 8)
+
+
+
+
+# val = np.arange(0, 8, 0.01)
+# ran = 800
+# for i in range(0, ran):
+# 	f.write(str(coordinate1.get_position(val[i])[0]))
+# 	f.write('\t')
+# 	f.write(str(coordinate1.get_position(val[i])[1]))
+# 	f.write('\t')
+# 	f.write(str(coordinate1.get_position(val[i])[2]))
+# 	f.write('\n')
 
 # f.write("x = [")
 # for i in range(0, ran):

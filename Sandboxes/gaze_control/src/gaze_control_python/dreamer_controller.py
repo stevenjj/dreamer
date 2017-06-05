@@ -20,6 +20,7 @@ def calculate_dQ(J, dx):
     dQ = np.linalg.pinv(J).dot(dx)
     return dQ
 
+# TODO: Seems like unused function
 def circular_trajectory(t):
     radius = 0.4
     x_offset, y_offset, z_offset = 1.0, 0, 0.0
@@ -33,10 +34,12 @@ def circular_trajectory(t):
     return np.array([x, y, z])
     # Publish x(t) markers.
 
-# Calculate desired orientation
+
 # Accepts a 3x1 gaze location vector and an origin vector to create the desired orientation
+# Input: desired gaze location, current spatial position, desired joint configuration, initial join configuration, min_jerk scaling
+# Returns: Desired rotation matrix
 def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, orientation_type='head'):
-    # Calculate Desired Orientation
+    # Find unit vector of the difference between desired position and current position
     p_bar = x_gaze_loc - p_cur
     x_hat_d = p_bar/np.linalg.norm(p_bar)
 
@@ -54,10 +57,13 @@ def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, o
     #     print "HELLO?"
 
     z_world_hat = np.array([0,0,1])
-    y_world_hat = np.array([0,1,0])    
+    y_world_hat = np.array([0,1,0])
+
+    # phi is the angle between the error vector and the z axis of the world    
+    phi = np.arccos( (x_hat_d.dot(z_world_hat)) / (np.linalg.norm(x_hat_d)*np.linalg.norm(z_world_hat)) )
+
     # Threshold before we use y_world_hat
     epsilon = 0.1 * np.pi/180.0 # degrees in radians 
-    phi = np.arccos( (x_hat_d.dot(z_world_hat)) / (np.linalg.norm(x_hat_d)*np.linalg.norm(z_world_hat)) )
 
     z_hat_o = z_world_hat
     if (phi <= epsilon):
@@ -95,6 +101,7 @@ def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, o
 
 # Calculate error between current configuration and desired configuration
 # Inputs: desired gaze location, desired joint configuration, current joint configuration, min_jerk time scaling
+# Returns: Error in angle, angular velocities as an array
 # TODO maybe can change the output of this to only a single variable when porting to C++
 def smooth_orientation_error(x_gaze_loc, Q, Q_init, scaling, orientation_type='head'):
     global head_kin
@@ -113,8 +120,10 @@ def smooth_orientation_error(x_gaze_loc, Q, Q_init, scaling, orientation_type='h
     # Calculate desired orientation
     R_des = calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q, Q_init, scaling, orientation_type)
 
+    # Change Rotation matrices to quaternions
     q_cur = quat.R_to_quat(R_cur)
     q_des = quat.R_to_quat(R_des)
+    # Quaternion error = unit_dot_product( desired * inverse(current) )
     q_error = quat.quat_multiply(q_des, quat.conj(q_cur))
 
     return quat.quat_to_wth(q_error)
@@ -205,26 +214,6 @@ def orientation_error(x_gaze_loc, Q, orientation_type='head'):
     q_error = quat.quat_multiply(q_des, quat.conj(q_cur))
 
     return quat.quat_to_wth(q_error)
-
-def rotation_quaternion_error(R_cur, R_des):
-    q_cur = quat.R_to_quat(R_cur)
-    q_des = quat.R_to_quat(R_des)
-    q_error = quat.quat_multiply(q_des, quat.conj(q_cur))
-
-    theta = 2*np.arccos(q_error[0])
-
-    #print theta, q_error[0], q_error
-    if (mr.NearZero(1.0 - q_error[0])):
-        return 0, q_error[1:]
-
-    factor = np.sin(theta/2.0)
-    w_hat_x = q_error[1]/factor
-    w_hat_y = q_error[2]/factor
-    w_hat_z = q_error[3]/factor        
-
-    angular_vel_hat = np.array([w_hat_x, w_hat_y, w_hat_z])
-
-    return theta, angular_vel_hat
 
 
 
@@ -423,10 +412,10 @@ class Controller():
         #print '    ', self.joint_attractor_location    
 
 
-    # Function: Used for Minimum Jerk trajectories
+    # Function: Set variables for minimum jerk trajectories
     # - Reset time variables
+    # - Set piecewise functions for minimum_jerk
     # - Set initial focuses
-    # - 
     def specify_follow_traj_params(self, start_time, total_run_time, piecewise_func_head, piecewise_func_eyes):
         self.Q_o_at_start = self.kinematics.Jlist
 
@@ -464,7 +453,6 @@ class Controller():
 
         self.initialize_head_eye_focus_point(xyz_head_gaze_loc, xyz_eye_gaze_loc)
 
-        # Set Minimum Jerk parameters
         # Set total cartesian trajectory length
         self.trajectory_length[self.H]  = np.linalg.norm(xyz_head_gaze_loc - self.gaze_focus_states.focus_point_init[self.H] )
         self.trajectory_length[self.RE] = np.linalg.norm(xyz_eye_gaze_loc - self.gaze_focus_states.focus_point_init[self.RE] )        
@@ -504,7 +492,9 @@ class Controller():
             self.gaze_focus_states.focus_point_init[self.RE] = (p_right_eye_init + x_right_eye_hat*self.gaze_focus_states.focus_length[self.RE])        
             self.gaze_focus_states.focus_point_init[self.LE] = (p_left_eye_init  + x_left_eye_hat*self.gaze_focus_states.focus_length[self.LE])
 
-
+    # Function: Provides the error and the normal to the error of two vectors
+    # Inputs: time? It's not used, an initial focus point, final focus point
+    # Outputs: unit error between the two vectors, normal to the error between the two vectors
     def xi_to_xf_vec(self, t, initial_point, final_point):
         x_f, x_i = final_point, initial_point
         e = x_f - x_i
@@ -515,9 +505,8 @@ class Controller():
             return mr.Normalize(x_i), L
         return e_hat, L
 
-    # Function: Provide a minimum jerk time based on an equation for minimum jerk from 0 to 1
-    # By minimum jerk calculations: t = 10*x^3 - 15*x^4 + 6*x^5
-    # Sets upper and lower bounds of 0 and 1 for change in time
+    # Function: Provide a minimum jerk position based on an equation for minimum jerk from 0 to 1
+    # By minimum jerk calculations: position = 10*x^3 - 15*x^4 + 6*x^5
     def min_jerk_time_scaling(self, t, delta_t): # delta_t is the total movement duration
         s_t = 0.0
         x_init, x_final = 0.0, 1.0 # Set to 0 and 1 since we want time scaling from 0 to 1
@@ -895,7 +884,7 @@ class Controller():
         # Calculate new Q_des (desired configuration)
 
         # Calculate Current Desired Gaze Point
-        # Get initial focus point
+        # Get initial head focus point
         x_i_head = self.gaze_focus_states.focus_point_init[self.H]
 
         #print '         Focus Point', x_i

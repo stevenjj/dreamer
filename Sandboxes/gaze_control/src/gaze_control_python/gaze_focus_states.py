@@ -75,7 +75,7 @@ class Gaze_Focus_States():
         R_right_eye, p_right_eye = self.kinematics.get_6D_Right_Eye_Position(self.kinematics.Jlist)
         R_left_eye, p_left_eye   = self.kinematics.get_6D_Left_Eye_Position(self.kinematics.Jlist)
 
-        x_head_eye_hat = np.array(R_right_eye)[:,0]        
+        x_head_eye_hat = np.array(R_head)[:,0]        
         x_right_eye_hat = np.array(R_right_eye)[:,0]        
         x_left_eye_hat = np.array(R_left_eye)[:,0]
 

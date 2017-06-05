@@ -14,6 +14,8 @@ from dreamer_controller import *
 import min_jerk_single as single
 from min_jerk_coordinates import *
 
+import random
+
 # ROS 
 import dreamer_joint_publisher
 from gaze_control.srv import HeadJointCmd, HeadJointCmdRequest
@@ -586,8 +588,7 @@ class Dreamer_Head():
             task_params = []
 
             # Draw a circle behavior
-            #piecewise_func = circle(.17, 8.0)
-            piecewise_func_head = circle(.8, 8.0)
+            piecewise_func_head = circle_yz(.8, 8.0)
             # Extract initial coordinates
             head_coord = piecewise_func_head.get_position(0)
             x_head = head_coord[0]
@@ -615,13 +616,12 @@ class Dreamer_Head():
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
             # Draw a circle behavior
-            #piecewise_func = circle(.17, 8.0)
-            piecewise_func = circle(.8, 8.0)
+            piecewise_func = circle_xz(.5, 8.0)
             # Extract initial coordinates
             coord = piecewise_func.get_position(0)
             x = coord[0]
             y = coord[1]
-            z = coord[2]            
+            z = coord[2]       
 
             # Go to the initial coordinates before executing minimum jerk
             duration = 2
