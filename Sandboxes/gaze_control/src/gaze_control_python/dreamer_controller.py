@@ -570,15 +570,16 @@ class Controller():
         xyz_loc_dif = xyz_head_gaze_loc - xyz_head_gaze_loc_prev
 
         # Adding an array of linear translations now makes this a body twist representation of how the head should move
+        # A variable within the min_jerk will tell whether or not to move the head with the point or just the gaze location
+        # TODO: Do proper calculations for moving the head orientation
+        if(self.piecewise_func_head.get_pull(t)[0]):
+            # The following line will only cause an x translation for a certain gaze point
+            dx_head = np.concatenate( (dx_head, np.array([xyz_loc_dif[0], 0, 0]) ),  axis=0)
+        else:
+            # The following line causes no head translation
+            dx_head = np.concatenate( (dx_head, np.array([0, 0, 0]) ),  axis=0)
+
         
-        # The following line will only cause an x translation for a certain gaze point
-        dx_head = np.concatenate( (dx_head, np.array([xyz_loc_dif[0], 0, 0]) ),  axis=0)
-
-        # The following line will make the head will stay level (no change in pitch) for the xz plane circle
-        # dx_head = np.concatenate( (dx_head, np.array([xyz_loc_dif[0], xyz_loc_dif[1], xyz_loc_dif[2]]) ),  axis=0)
-        # The following line causes no head translation
-        # dx_head = np.concatenate( (dx_head, np.array([0, 0, 0]) ),  axis=0)
-
 
         # ---------------------- Eye Calculations ----------------------
         # Get Jacobian for eyes, redundant Q_cur

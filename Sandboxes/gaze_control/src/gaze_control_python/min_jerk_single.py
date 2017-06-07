@@ -7,11 +7,15 @@ import numpy as np
 #			and time to get to this point from the previous point
 #		The three movement attributes will be stored in a numpy array
 #		Dt must be a positive number
+#		pull_head notes that we want that point to move the head itself rather than change the gaze length
 class Waypoint():
-	def __init__(self, x, dot_x, ddot_x, Dt):
+	def __init__(self, x, dot_x, ddot_x, Dt, pull_head = False):
 		self.s = np.array([x, dot_x, ddot_x])
 		self.Dt = Dt
+		self.pull_head = pull_head
 
+	def get_pull(self):
+		return self.pull_head
 
 ### Class MinimumJerk
 #		Declare this class with a standard vertical array of waypoints
@@ -32,12 +36,6 @@ class MinimumJerk():
 		self.coeffs = np.zeros((len(waypoint_list), 6)) # coeffs for x,y,z axes
 		self.get_all_min_jerk_coeffs()
 
-
-	def bound_this_vel(self, des_vel):
-		desired_vel = des_vel
-		if (des_vel > self.max_vel):
-			desired_vel = self.max_vel
-		return desired_vel
 
 	def total_run_time(self):
 		return self.waypoint_list[len(self.waypoint_list)-1].Dt
@@ -78,6 +76,7 @@ class MinimumJerk():
 		length = len(self.waypoint_list)
 		if(time < 0):
 			return None
+
 		elif(time > self.waypoint_list[length-1].Dt):
 			time = self.waypoint_list[length-1].Dt
 
@@ -123,6 +122,17 @@ class MinimumJerk():
 		return (self.get_all_s(time))[3]
 
 
+	def get_pull(self, time):
+		length = len(self.waypoint_list)
+		if(time < 0):
+			return None
+
+		elif(time > self.waypoint_list[length-1].Dt):
+			time = self.waypoint_list[length-1].Dt
+
+		for i in range(1, length):
+			if (self.waypoint_list[i-1].Dt <= time <= self.waypoint_list[i].Dt):
+				return self.waypoint_list[i].get_pull()
 
 '''
 ### Sample Code:
@@ -150,13 +160,14 @@ print test_move.get_all_s(1.8)
 
 print test_move.total_run_time()
 '''
-'''
+
 # Testing Script
 f = open('output.txt', 'w')
-# First define the points as an array of Waypoint classes
 x_coord = []
 x_coord.append(Waypoint(0, 0, 0, 0))
-x_coord.append(Waypoint(10, 0, 0, 1))
+x_coord.append(Waypoint(10, 0, 0, 1, True))
+x_coord.append(Waypoint(5, 0, 0, 1))
+x_coord.append(Waypoint(0, 0, 0, 1, True))
 
 
 
@@ -165,8 +176,10 @@ x_coord.append(Waypoint(10, 0, 0, 1))
 test_move = MinimumJerk(x_coord)
 
 # Coefficients are automatically calculated, so we can simply input a time
-val = np.arange(0, 2, 0.01)
-for i in range(0, 200):
-	f.write( str(test_move.get_position(val[i])) )
+val = np.arange(0, 3, 0.01)
+for i in range(0, 300):
+	f.write("Time: ")
+	f.write(str(i/100.0))
+	f.write("	Pull: ")
+	f.write( str(test_move.get_pull(val[i])) )
 	f.write("\n")
-'''

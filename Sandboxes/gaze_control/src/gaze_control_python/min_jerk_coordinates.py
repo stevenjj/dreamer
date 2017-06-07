@@ -32,10 +32,13 @@ class Coordinates_3D():
 	def get_velocity(self, time):
 			return np.array([self.x.get_velocity(time), self.y.get_velocity(time), self.z.get_velocity(time)])
 
-	#In theory all runtimes are the same
+	# In theory all runtimes are the same
 	def total_run_time(self):
 		return self.x.total_run_time()
 
+	# Tells whether or not to pull the head during a waypoint iteration
+	def get_pull(self, time):
+		return np.array([self.x.get_pull(time), self.y.get_pull(time), self.z.get_pull(time)])
 
 # Function: Traces a circle in the yz plane with x at a specified distance away
 # Inputs: Radius of circle, total time of the trace, optional: distance away from head
@@ -84,9 +87,9 @@ def circle_xz(radius, time, distance = 1):
 	z.append(single.Waypoint(0+hk.Head_Kinematics().l1, 0, 0, 0))
 	for i in range(1, int(accuracy)):
 		theta = np.pi*i/(accuracy/2.0)
-		x.append(single.Waypoint(-1 * radius * np.cos(theta) + (hk.Head_Kinematics().l2+distance) , radius * np.sin(theta), radius * np.cos(theta), time/accuracy ))
+		x.append(single.Waypoint(-1 * radius * np.cos(theta) + (hk.Head_Kinematics().l2+distance) , radius * np.sin(theta), radius * np.cos(theta), time/accuracy, True ))
 		z.append(single.Waypoint(radius*np.sin(theta)+hk.Head_Kinematics().l1, radius*np.cos(theta), -1*radius*np.sin(theta), time/accuracy))
-	x.append(single.Waypoint(-1 * radius * np.cos(2*np.pi) + (hk.Head_Kinematics().l2+distance) , 0, 0, time/accuracy))
+	x.append(single.Waypoint(-1 * radius * np.cos(2*np.pi) + (hk.Head_Kinematics().l2+distance) , 0, 0, time/accuracy,True))
 	z.append(single.Waypoint(0+hk.Head_Kinematics().l1, 0, 0, time/accuracy))
 	
 	
@@ -129,8 +132,7 @@ def clover(radius, time, distance = 1):
 # Function: Causes dreamer to look surprised, then shake head
 # Inputs: Eye gaze length in meters
 # Outputs: Minimum Jerk functions for head and eyes
-# Notes: Eyes will remain in the same spot, but head will move
-#		 Assumes a home configuration
+# Notes:	Assumes a home configuration
 #			Motion order:
 # 						1. Initial gaze point
 # 						2. Head back
@@ -149,9 +151,9 @@ def surprised_no(gaze_length):
 	# Head will move according to above
 	head_x = []
 	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2, 0, 0, 0))
-	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2 - head_back, 0, 0, 1.0))
+	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2 - head_back, 0, 0, 1.0, True))
 	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2 - head_back, 0, 0, 5.0))
-	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2, 0, 0, 1.0))
+	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2, 0, 0, 1.0, True))
 	
 	head_y = []
 	head_y.append(single.Waypoint(0, 0, 0, 0))
@@ -163,7 +165,6 @@ def surprised_no(gaze_length):
 	head_y.append(single.Waypoint(0, 0, 0, .25))
 	head_y.append(single.Waypoint(0, 0, 0, 3))
 	
-
 	head_z = []
 	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
 	head_z.append(single.Waypoint(hk.Head_Kinematics().l1 + head_back*4, 0, 0, 1.0))
@@ -177,7 +178,9 @@ def surprised_no(gaze_length):
 
 	surprised_no_head_min = Coordinates_3D(x_coord, y_coord, z_coord)
 	
-	# Eyes will not move from their initial gaze point
+	
+
+
 	eyes_x = []
 	eyes_x.append(single.Waypoint(gaze_length*2 +hk.Head_Kinematics().l2, 0, 0, 0))
 	eyes_x.append(single.Waypoint(gaze_length*2 +hk.Head_Kinematics().l2, 0, 0, time))
