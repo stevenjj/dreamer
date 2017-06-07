@@ -40,7 +40,7 @@ class Coordinates_3D():
 # Function: Traces a circle in the yz plane with x at a specified distance away
 # Inputs: Radius of circle, total time of the trace, optional: distance away from head
 # Returns: Minimum Jerk piecewise function for the circle
-def circle_yz(radius, time, distance = 2):
+def circle_yz(radius, time, distance = 1):
 	accuracy = 16.0
 	x = []
 	x.append(single.Waypoint(distance+hk.Head_Kinematics().l2, 0, 0, 0))
@@ -97,7 +97,7 @@ def circle_xz(radius, time, distance = 1):
 	circle_min = Coordinates_3D(x_coord, y_coord, z_coord)
 	return circle_min
 
-def clover(radius, time, distance = 2):
+def clover(radius, time, distance = 1):
 	accuracy = 32.0
 	x = []
 	x.append(single.Waypoint(distance+hk.Head_Kinematics().l2, 0, 0, 0))
@@ -126,10 +126,75 @@ def clover(radius, time, distance = 2):
 
 
 
+# Function: Causes dreamer to look surprised, then shake head
+# Inputs: Eye gaze length in meters
+# Outputs: Minimum Jerk functions for head and eyes
+# Notes: Eyes will remain in the same spot, but head will move
+#		 Assumes a home configuration
+#			Motion order:
+# 						1. Initial gaze point
+# 						2. Head back
+# 						3. Shake Left
+# 						4. Shake Right
+# 						5. Shake Left
+# 						6. Shake Right
+# 						7. Return to center
+# 						8. Return to Initial gaze point
+def surprised_no(gaze_length):
+	head_min_jerk = None
+	eyes_min_jerk = None
+	time = 7.0
+	no_distance = .3
+	head_back = .04
+	# Head will move according to above
+	head_x = []
+	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2, 0, 0, 0))
+	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2 - head_back, 0, 0, 1.0))
+	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2 - head_back, 0, 0, 5.0))
+	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2, 0, 0, 1.0))
+	
+	head_y = []
+	head_y.append(single.Waypoint(0, 0, 0, 0))
+	head_y.append(single.Waypoint(0, 0, 0, 2))
+	head_y.append(single.Waypoint(no_distance, 0, 0, .25))
+	head_y.append(single.Waypoint(-no_distance, 0, 0, .5))
+	head_y.append(single.Waypoint(no_distance, 0, 0, .5))
+	head_y.append(single.Waypoint(-no_distance, 0, 0, .5))
+	head_y.append(single.Waypoint(0, 0, 0, .25))
+	head_y.append(single.Waypoint(0, 0, 0, 3))
+	
 
+	head_z = []
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1 + head_back*4, 0, 0, 1.0))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1 + head_back*4, 0, 0, 5.0))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 1))
+	
 
+	x_coord = single.MinimumJerk(head_x)
+	y_coord = single.MinimumJerk(head_y)
+	z_coord = single.MinimumJerk(head_z)
 
+	surprised_no_head_min = Coordinates_3D(x_coord, y_coord, z_coord)
+	
+	# Eyes will not move from their initial gaze point
+	eyes_x = []
+	eyes_x.append(single.Waypoint(gaze_length*2 +hk.Head_Kinematics().l2, 0, 0, 0))
+	eyes_x.append(single.Waypoint(gaze_length*2 +hk.Head_Kinematics().l2, 0, 0, time))
+	eyes_y = []
+	eyes_y.append(single.Waypoint(0, 0, 0, 0))
+	eyes_y.append(single.Waypoint(0, 0, 0, time))
+	eyes_z = []
+	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
+	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1+head_back, 0, 0, time))
 
+	x_coord = single.MinimumJerk(eyes_x)
+	y_coord = single.MinimumJerk(eyes_y)
+	z_coord = single.MinimumJerk(eyes_z)
+
+	surprised_no_eyes_min = Coordinates_3D(x_coord, y_coord, z_coord)
+
+	return surprised_no_head_min, surprised_no_eyes_min
 
 
 
@@ -141,12 +206,12 @@ def clover(radius, time, distance = 2):
 
 # f = open('output.txt', 'w')
 
-# coordinate1 = circle_xz(.15, 8)
+# coordinate1, coordinates2 = surprised_no(1)
+# print coordinate1.total_run_time()
 
 
 
-
-# val = np.arange(0, 8, 0.01)
+# val = np.arange(0, 8.01, 0.01)
 # ran = 800
 # for i in range(0, ran):
 # 	f.write(str(coordinate1.get_position(val[i])[0]))

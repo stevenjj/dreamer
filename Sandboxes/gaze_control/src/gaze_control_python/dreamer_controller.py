@@ -70,8 +70,12 @@ def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, o
         z_hat_o = y_world_hat
 
 #    x_hat_cur = np.array(R_init)[:,0]
+
+    # Get the 3rd Column of the rotation matrix (z column)
     z_hat_init = np.array(R_init)[:,2]
+
 #    print 'preffered z difference:', z_hat_o - z_hat_init   
+
     z_hat_o = mr.Normalize(z_hat_init + (z_hat_o-z_hat_init)*scaling)
     #z_hat_o = z_hat_cur
 
@@ -552,11 +556,28 @@ class Controller():
         p_head_des_cur = xyz_head_gaze_loc
 
         # Calculate FeedForward 
-        # Calculate new Q_des (desired configuration)
-        # Calculate current orientation error
+        # Calculate new Q_des (desired configuration) and current orientation error
         d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT)) 
+        
+        # Find the actual distance needed to rotate from the returned variables
         dx_head = d_theta_error * angular_vel_hat
-        dx_head = np.concatenate( (dx_head, np.array([0,0,0])),  axis=0)
+        
+
+        # Find a linear translation that will move the head with the specified points
+        # Caculate the previous point based on the change in time and find the difference between them to
+        #   specify how much to translate linearly. Keep in mind that this is an array of xyz
+        xyz_head_gaze_loc_prev = self.piecewise_func_head.get_position(t-dt)
+        xyz_loc_dif = xyz_head_gaze_loc - xyz_head_gaze_loc_prev
+
+        # Adding an array of linear translations now makes this a body twist representation of how the head should move
+        
+        # The following line will only cause an x translation for a certain gaze point
+        dx_head = np.concatenate( (dx_head, np.array([xyz_loc_dif[0], 0, 0]) ),  axis=0)
+
+        # The following line will make the head will stay level (no change in pitch) for the xz plane circle
+        # dx_head = np.concatenate( (dx_head, np.array([xyz_loc_dif[0], xyz_loc_dif[1], xyz_loc_dif[2]]) ),  axis=0)
+        # The following line causes no head translation
+        # dx_head = np.concatenate( (dx_head, np.array([0, 0, 0]) ),  axis=0)
 
 
         # ---------------------- Eye Calculations ----------------------
@@ -591,7 +612,7 @@ class Controller():
 
         HEAD = 1
         EYES = 2
-        PRIORITY = HEAD #
+        PRIORITY = EYES #
 
         if (PRIORITY == HEAD): 
             dx1 = dx_head

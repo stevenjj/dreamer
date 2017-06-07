@@ -586,9 +586,9 @@ class Dreamer_Head():
         elif ((self.current_behavior == BEHAVIOR_FOLLOW_WAYPOINTS) and self.behavior_commanded == False):
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
-
+            piecewise_func_head, piecewise_func_eyes = surprised_no(1)
             # Draw a circle behavior
-            piecewise_func_head = circle_yz(.8, 8.0)
+            # piecewise_func_head = circle_yz(.5, 8.0)
             # Extract initial coordinates
             head_coord = piecewise_func_head.get_position(0)
             x_head = head_coord[0]
@@ -596,7 +596,7 @@ class Dreamer_Head():
             z_head = head_coord[2]   
 
             # Draw a clover behavior
-            piecewise_func_eyes = clover(.5, 8.0)
+            # piecewise_func_eyes = clover(.5, 8.0)
             # Extract initial coordinates
             eyes_coord = piecewise_func_eyes.get_position(0)
             x_eyes = eyes_coord[0]
@@ -616,7 +616,7 @@ class Dreamer_Head():
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
             # Draw a circle behavior
-            piecewise_func = circle_xz(.5, 8.0)
+            piecewise_func = circle_xz(.04, 4.0)
             # Extract initial coordinates
             coord = piecewise_func.get_position(0)
             x = coord[0]
