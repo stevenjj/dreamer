@@ -40,6 +40,9 @@ class Coordinates_3D():
 	def get_pull(self, time):
 		return np.array([self.x.get_pull(time), self.y.get_pull(time), self.z.get_pull(time)])
 
+	def get_tilt(self, time):
+		return self.x.get_tilt(time)
+
 # Function: Traces a circle in the yz plane with x at a specified distance away
 # Inputs: Radius of circle, total time of the trace, optional: distance away from head
 # Returns: Minimum Jerk piecewise function for the circle
@@ -127,6 +130,38 @@ def clover(radius, time, distance = 1):
 	clover_min = Coordinates_3D(x_coord, y_coord, z_coord)
 	return clover_min
 
+# Function: Does whatever I need it to for testing purposes
+def test_script(tilt):
+	head_min_jerk = None
+	eyes_min_jerk = None
+	time = 8.0
+	head_x = []
+	head_x.append(single.Waypoint(.5+hk.Head_Kinematics().l2, 0, 0, 0))
+	head_x.append(single.Waypoint(1+hk.Head_Kinematics().l2, 0, 0, time, False, tilt))
+	
+	head_y = []
+	head_y.append(single.Waypoint(0, 0, 0, 0))
+	head_y.append(single.Waypoint(.5, 0, 0, time))
+	
+	head_z = []
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1+.5, 0, 0, time))
+
+	x_coord = single.MinimumJerk(head_x)
+	y_coord = single.MinimumJerk(head_y)
+	z_coord = single.MinimumJerk(head_z)
+
+	head_min = Coordinates_3D(x_coord, y_coord, z_coord)
+
+	eyes_x = []
+	eyes_y = []
+	eyes_z = []
+
+	return head_min
+
+
+# ------------------------------- Actual Behaviors ------------------------------- 
+
 
 
 # Function: Causes dreamer to look surprised, then shake head
@@ -157,19 +192,19 @@ def surprised_no(gaze_length):
 	
 	head_y = []
 	head_y.append(single.Waypoint(0, 0, 0, 0))
-	head_y.append(single.Waypoint(0, 0, 0, 2))
+	head_y.append(single.Waypoint(0, 0, 0, 2.0))
 	head_y.append(single.Waypoint(no_distance, 0, 0, .25))
 	head_y.append(single.Waypoint(-no_distance, 0, 0, .5))
 	head_y.append(single.Waypoint(no_distance, 0, 0, .5))
 	head_y.append(single.Waypoint(-no_distance, 0, 0, .5))
 	head_y.append(single.Waypoint(0, 0, 0, .25))
-	head_y.append(single.Waypoint(0, 0, 0, 3))
+	head_y.append(single.Waypoint(0, 0, 0, 3.0))
 	
 	head_z = []
 	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
 	head_z.append(single.Waypoint(hk.Head_Kinematics().l1 + head_back*4, 0, 0, 1.0))
 	head_z.append(single.Waypoint(hk.Head_Kinematics().l1 + head_back*4, 0, 0, 5.0))
-	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 1))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 1.0))
 	
 
 	x_coord = single.MinimumJerk(head_x)
@@ -198,9 +233,6 @@ def surprised_no(gaze_length):
 	surprised_no_eyes_min = Coordinates_3D(x_coord, y_coord, z_coord)
 
 	return surprised_no_head_min, surprised_no_eyes_min
-
-
-
 
 
 

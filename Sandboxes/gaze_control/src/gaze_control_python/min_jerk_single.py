@@ -8,14 +8,20 @@ import numpy as np
 #		The three movement attributes will be stored in a numpy array
 #		Dt must be a positive number
 #		pull_head notes that we want that point to move the head itself rather than change the gaze length
+#		tilt specifies how much to tilt the head by, runs from something like -pi/4 to pi/4
+#			This should only be used for x_coordinates
 class Waypoint():
-	def __init__(self, x, dot_x, ddot_x, Dt, pull_head = False):
+	def __init__(self, x, dot_x, ddot_x, Dt, pull_head = False, tilt = 0):
 		self.s = np.array([x, dot_x, ddot_x])
 		self.Dt = Dt
 		self.pull_head = pull_head
+		self.tilt = tilt
 
 	def get_pull(self):
 		return self.pull_head
+
+	def get_tilt(self):
+		return self.tilt
 
 ### Class MinimumJerk
 #		Declare this class with a standard vertical array of waypoints
@@ -132,7 +138,19 @@ class MinimumJerk():
 
 		for i in range(1, length):
 			if (self.waypoint_list[i-1].Dt <= time <= self.waypoint_list[i].Dt):
-				return self.waypoint_list[i].get_pull()
+				return self.waypoint_list[i].get_pull()	
+	
+	def get_tilt(self, time):
+		length = len(self.waypoint_list)
+		if(time < 0):
+			return None
+
+		elif(time > self.waypoint_list[length-1].Dt):
+			time = self.waypoint_list[length-1].Dt
+
+		for i in range(1, length):
+			if (self.waypoint_list[i-1].Dt <= time <= self.waypoint_list[i].Dt):
+				return self.waypoint_list[i].get_tilt()
 
 '''
 ### Sample Code:

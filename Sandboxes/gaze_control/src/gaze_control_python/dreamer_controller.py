@@ -16,6 +16,22 @@ NA = 0
 
 from program_constants import *
 
+# Function: Rotation operator around a vector
+#           Used for head tilts, Taken from Modern Robotics book
+# Inputs: vector to rotate about, angle to rotate
+# Returns: 3x3 rotation matrix
+def Rot(w_hat, theta):
+    w1 = w_hat[0]
+    w2 = w_hat[1]
+    w3 = w_hat[2]
+    return np.array([ [np.cos(theta) + (w1**2)*(1-np.cos(theta)),   w1*w2*(1-np.cos(theta)) - w3*np.sin(theta), w1*w3*(1-np.cos(theta))+w2*np.sin(theta)],
+                      [w1*w2*(1-np.cos(theta)) + w3*np.sin(theta),  np.cos(theta) + (w2**2)*(1-np.cos(theta)),  w2*w3*(1-np.cos(theta))-w1*np.sin(theta)],
+                      [w1*w3*(1-np.cos(theta)) - w2*np.sin(theta),  w2*w3*(1-np.cos(theta)) + w1*np.sin(theta), np.cos(theta) + (w3**2)*(1-np.cos(theta))] ])
+
+
+# Function: Find the change in joint configuration
+# Input: Jacobian matrix for joint, operational space point
+# Returns: Change in joints
 def calculate_dQ(J, dx):
     dQ = np.linalg.pinv(J).dot(dx)
     return dQ
@@ -38,7 +54,7 @@ def circular_trajectory(t):
 # Accepts a 3x1 gaze location vector and an origin vector to create the desired orientation
 # Input: desired gaze location, current spatial position, desired joint configuration, initial join configuration, min_jerk scaling
 # Returns: Desired rotation matrix
-def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, orientation_type='head'):
+def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, orientation_type='head', tilt = 0):
     # Find unit vector of the difference between desired position and current position
     p_bar = x_gaze_loc - p_cur
     x_hat_d = p_bar/np.linalg.norm(p_bar)
@@ -58,6 +74,7 @@ def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, o
 
     z_world_hat = np.array([0,0,1])
     y_world_hat = np.array([0,1,0])
+    x_world_hat = np.array([1,0,0])
 
     # phi is the angle between the error vector and the z axis of the world    
     phi = np.arccos( (x_hat_d.dot(z_world_hat)) / (np.linalg.norm(x_hat_d)*np.linalg.norm(z_world_hat)) )
@@ -91,6 +108,14 @@ def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, o
     #   let phi be the total roll in radians. set theta = phi*s(t) with s(t) being the minimum jerk scaling
     #    R_desired = R_desired*Rot(world_x_hat, theta) 
 
+    if(tilt == 0):
+        return R_desired
+    
+    # So tilting
+    phi = tilt
+    theta = phi * scaling
+    head_tilt = Rot(x_world_hat, theta)
+    return R_desired + head_tilt
     # print 'Desired Orientation '
     # print 'x_hat', x_hat_d.T
     # print 'y_hat', y_hat_d.T
@@ -98,7 +123,6 @@ def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, o
 #    print R_desired
 
 
-    return R_desired
 
 
 
@@ -107,7 +131,7 @@ def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, o
 # Inputs: desired gaze location, desired joint configuration, current joint configuration, min_jerk time scaling
 # Returns: Error in angle, angular velocities as an array
 # TODO maybe can change the output of this to only a single variable when porting to C++
-def smooth_orientation_error(x_gaze_loc, Q, Q_init, scaling, orientation_type='head'):
+def smooth_orientation_error(x_gaze_loc, Q, Q_init, scaling, orientation_type='head', tilt = 0):
     global head_kin
     J = None
     R_cur, p_cur = None, None
@@ -122,7 +146,7 @@ def smooth_orientation_error(x_gaze_loc, Q, Q_init, scaling, orientation_type='h
         raise 'unknown position and orientation needed'
 
     # Calculate desired orientation
-    R_des = calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q, Q_init, scaling, orientation_type)
+    R_des = calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q, Q_init, scaling, orientation_type, tilt)
 
     # Change Rotation matrices to quaternions
     q_cur = quat.R_to_quat(R_cur)
@@ -195,7 +219,9 @@ def calc_desired_orientation(x_gaze_loc, p_cur, Q_cur, orientation_type='head'):
 
 
 
-# Calculate error between current configuration and desired configuration
+# Function: Calculate error between current configuration and desired gaze
+# Inputs: Desired gaze location, current joint configuration
+# Returns: Error in angle, angular velocities as an array
 def orientation_error(x_gaze_loc, Q, orientation_type='head'):
     global head_kin
     J = None
@@ -532,8 +558,9 @@ class Controller():
 
 
     # Function: Head and eyes move to the same point, used for Minimum Jerk trajectories
-    # Head is prioritized over the two eyes
-    # There are 3 J_bar's, the head and both eyes
+    #           Head is prioritized over the two eyes
+    # Inputs: None
+    # Returns: Desired Joint Configuration, Completion of task
     def head_priority_eye_trajectory_follow(self):
         # Calculate Time
         t, t_prev = self.calculate_t_t_prev()
@@ -557,7 +584,7 @@ class Controller():
 
         # Calculate FeedForward 
         # Calculate new Q_des (desired configuration) and current orientation error
-        d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT)) 
+        d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'head', self.piecewise_func_head.get_tilt(t)) 
         
         # Find the actual distance needed to rotate from the returned variables
         dx_head = d_theta_error * angular_vel_hat
@@ -574,7 +601,7 @@ class Controller():
         # TODO: Do proper calculations for moving the head orientation
         if(self.piecewise_func_head.get_pull(t)[0]):
             # The following line will only cause an x translation for a certain gaze point
-            dx_head = np.concatenate( (dx_head, np.array([xyz_loc_dif[0], 0, 0]) ),  axis=0)
+            dx_head = np.concatenate( (dx_head, np.array([xyz_loc_dif[0], 0, -xyz_loc_dif[0]]) ),  axis=0)
         else:
             # The following line causes no head translation
             dx_head = np.concatenate( (dx_head, np.array([0, 0, 0]) ),  axis=0)
@@ -628,6 +655,9 @@ class Controller():
             dx2 = dx_head
             J2 = J_head
 
+        # Task 1  
+        dq1 = calculate_dQ(J1, dx1)
+
         # Magic begins: Calculate the secondary tasks
         # Equation: null space = identity matrix - pseudoinverse of Head_Jacobian 
         J1_bar = np.linalg.pinv(J1)        
@@ -642,29 +672,28 @@ class Controller():
         J2_pinv_J1_x1dot = (J2.dot(J1_bar)).dot(dx1)
 
 
-        # Task 1  
-        dq1 = calculate_dQ(J1, dx1)
 
         # Task 2
         # Part of the HCRL research mentioned previously for calculating secondary tasks
-        dq2 = N1.dot(pinv_J2_N1.dot(dx2 -J2_pinv_J1_x1dot)) # Projection with least squares opt. I think this breaks
+        dq2 = N1.dot(pinv_J2_N1.dot(dx2 -J2_pinv_J1_x1dot)) # Projection with least squares opt
         
-
+        # Add joint changes to the current configuration to get desired configuration
         dq_tot = dq1 + dq2
         Q_des = Q_cur + dq_tot
 
 
         self.prev_traj_time = t
        
+        # Get orientation error for eyes based on current joint configuration
         theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'right_eye')
         theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'left_eye')
 
-        
+        # Get joint orientations and spatial positions
         R_cur_head, p_cur_head = self.kinematics.get_6D_Head_Position(Q_cur)
         R_cur, p_cur_right_eye = self.kinematics.get_6D_Right_Eye_Position(Q_cur)
         R_cur, p_cur_left_eye = self.kinematics.get_6D_Left_Eye_Position(Q_cur)
 
-
+        # Get a unit vector of the difference between the current position and desired position
         self.gaze_focus_states.current_focus_length[self.H] =   np.linalg.norm(p_cur_head - p_head_des_cur)  
         self.gaze_focus_states.current_focus_length[self.RE] =  np.linalg.norm(p_cur_right_eye - p_des_cur_re)         
         self.gaze_focus_states.current_focus_length[self.LE] =  np.linalg.norm(p_cur_left_eye -p_des_cur_le)
@@ -679,7 +708,10 @@ class Controller():
 
 
 
-    # Fixed Head, Move Eyes Task Only
+    # Function: Calculate desired joint positions if head has higher priority than the eyes
+    #           Eyes move while head stays focused
+    # Inputs: None, uses preset variables
+    # Returns: Desired Joint Configuration, Completion of task
     def head_priority_eye_trajectory_look_at_point(self):
         # Calculate Time
         t, t_prev = self.calculate_t_t_prev()
@@ -695,7 +727,7 @@ class Controller():
         J_head = self.kinematics.get_6D_Head_Jacobian(Q_cur)
         J_head = J_head[0:3,:] #Grab the first 3 rows          
         
-        # Calculate FeedForward ---------------------------------
+        # ------------------- Calculate FeedForward for Head -------------------
         # Calculate new Q_des (desired configuration)
 
         # Calculate Current Desired Gaze Point
@@ -721,6 +753,7 @@ class Controller():
         dx_head = dx_head[0:3]        
         #dx_head = np.concatenate( (dx_head, np.array([0.0,0.,0.])),  axis=0)
 
+        # ------------------- Get Jacobian Matrices for use later -------------------
         Q_cur = self.kinematics.Jlist
         J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
         J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
@@ -737,7 +770,7 @@ class Controller():
         #print np.shape(J_eyes)        
         #J_eyes = J_2
  
-        # Calculate FeedForward ---------------------------------
+        # ------------------- Calculate FeedForward for Eyes -------------------
         # Calculate new Q_des (desired configuration)
 
         # Calculate Current Desired Gaze Point
@@ -784,7 +817,7 @@ class Controller():
 
         HEAD = 1
         EYES = 2
-        PRIORITY = HEAD #
+        PRIORITY = HEAD 
 
 
         if (PRIORITY == HEAD): 
@@ -800,6 +833,7 @@ class Controller():
             dx2 = dx_head
             J2 = J_head
 
+        # Joint movement for the primary task
         dq1 = calculate_dQ(J1, dx1)
         #print np.shape(dx2)
         #print np.shape(J2.dot(dq1))
@@ -819,7 +853,7 @@ class Controller():
         dq2 = N1.dot(calculate_dQ(J2, dx2))
         dq_tot = dq2 + dq1
 
-        print dq1   
+        # print dq1   
         #Q_des = Q_cur + dq1
         #Q_des = Q_des + dq2
 
@@ -884,8 +918,10 @@ class Controller():
 
 
 
-    # Eye has higher priority than head
-    # Head moves while eyes try to stay focused
+    # Function: Calculate desired joint positions if eyes have higher priority than the head
+    #           Head moves while eyes try to stay focused
+    # Inputs: None, uses preset variables
+    # Returns: Desired Joint Configuration, Completion of task
     def eye_priority_head_trajectory_look_at_point(self):
 
         # Calculate Time
@@ -900,9 +936,9 @@ class Controller():
         # Specify joint config and jacobian
         Q_cur = self.kinematics.Jlist
         J_head = self.kinematics.get_6D_Head_Jacobian(Q_cur)
-        J_head = J_head[0:3,:] # Grab the first 3 rows          
+        J_head = J_head[0:3,:] # Grab the first 3 joint jacobians (first 3 rows)     
         
-        # Calculate FeedForward ---------------------------------
+        # ------------------- Calculate FeedForward for Head -------------------
         # Calculate new Q_des (desired configuration)
 
         # Calculate Current Desired Gaze Point
@@ -931,13 +967,14 @@ class Controller():
 #        print '  Initial Focus Location:  ', x_i_head        
 #        print '  Final Focus Location:    ', p_head_des_cur        
 
-        # Calculate current orientation error
+        # Calculate and bound orientation error (also represents how much to move by)
         d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT)) 
         dx_head = d_theta_error * angular_vel_hat 
         dx_head = dx_head[0:3]        
         dx_head = np.array([dth_error_bound(dx_head[i]) for i in range(len(dx_head))])
         #dx_head = np.concatenate( (dx_head, np.array([0.0,0.,0.])),  axis=0)
 
+        # ------------------- Get Jacobian Matrices for use later -------------------
         Q_cur = self.kinematics.Jlist
         J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
         J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
@@ -950,7 +987,7 @@ class Controller():
         J_eyes = np.concatenate((J_1, J_2) ,axis=0)        
 
  
-        # Calculate FeedForward ---------------------------------
+        # ------------------- Calculate FeedForward for Eyes -------------------
         # Calculate new Q_des (desired configuration)
 
         # Calculate Current Desired Gaze Point

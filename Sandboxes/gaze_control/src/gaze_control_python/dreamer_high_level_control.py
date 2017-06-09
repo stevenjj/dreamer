@@ -612,11 +612,12 @@ class Dreamer_Head():
             task_params.append( (piecewise_func_head, piecewise_func_eyes, total_run_time) )
             self.execute_behavior(task_list, task_params)
 
+        # Doesn't actually draw a circle but rather does a test script for me
         elif ((self.current_behavior == BEHAVIOR_FOLLOW_CIRCLE) and self.behavior_commanded == False):
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
             # Draw a circle behavior
-            piecewise_func = circle_xz(.04, 4.0)
+            piecewise_func = test_script(-np.pi/5.5)
             # Extract initial coordinates
             coord = piecewise_func.get_position(0)
             x = coord[0]
@@ -635,35 +636,6 @@ class Dreamer_Head():
 
 
     #----------------------------------------------------------
-    # Task Helper Functions
-
-    # Function: Helper function that shifts the current task to the next one in the list if index not out of bounds
-    def next_task(self):
-        if (self.current_task_index < len(self.task_list)):
-            self.current_task = self.task_list[self.current_task_index]
-
-
-    # Function: Updates variables for head joints, moves on to next task if task is completed
-    # If behavior is complete, reset the command to nothing
-    def process_task_result(self, Q_des, command_result):
-        self.update_head_joints(Q_des)
-        if (command_result == True):
-            self.task_commanded = False
-            self.current_task_index += 1
-            self.next_task()          
-
-            if self.current_task_index == len(self.task_list):
-                self.reset_state_tasks_behaviors()
-
-    # Function: Resets all command variables in Dreamer to nothing commanded
-    def reset_state_tasks_behaviors(self):
-        self.current_state = STATE_IDLE
-        self.current_task = TASK_NO_TASK 
-        self.current_behavior = BEHAVIOR_NO_BEHAVIOR
-        self.gui_command_executing = False
-        self.behavior_commanded = False
-        self.task_commanded = False
-
 
     # Function: Executes a single task based on the current index of the task_params
     # This function executes many times over the course of a behavior
@@ -739,6 +711,35 @@ class Dreamer_Head():
 
 
     # ---------------------------------------------------------
+    # State Helper Functions
+
+    # Function: Helper function that shifts the current task to the next one in the list if index not out of bounds
+    def next_task(self):
+        if (self.current_task_index < len(self.task_list)):
+            self.current_task = self.task_list[self.current_task_index]
+
+    # Function: Updates variables for head joints, moves on to next task if task is completed
+    #           If all tasks are complete, reset
+    # Inputs: Desired Joint Configuration, Whether or not the task is now complete
+    # Returns: None
+    def process_task_result(self, Q_des, command_result):
+        self.update_head_joints(Q_des)
+        if (command_result == True):
+            self.task_commanded = False
+            self.current_task_index += 1
+            self.next_task()          
+
+            if self.current_task_index == len(self.task_list):
+                self.reset_state_tasks_behaviors()
+
+    # Function: Resets all command variables in Dreamer to nothing commanded
+    def reset_state_tasks_behaviors(self):
+        self.current_state = STATE_IDLE
+        self.current_task = TASK_NO_TASK 
+        self.current_behavior = BEHAVIOR_NO_BEHAVIOR
+        self.gui_command_executing = False
+        self.behavior_commanded = False
+        self.task_commanded = False
     # Main State Machine
     #   State Machine computes current joint positions
     def state_logic(self):
