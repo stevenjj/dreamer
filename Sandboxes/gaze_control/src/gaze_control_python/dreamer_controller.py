@@ -108,14 +108,13 @@ def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, o
     #   let phi be the total roll in radians. set theta = phi*s(t) with s(t) being the minimum jerk scaling
     #    R_desired = R_desired*Rot(world_x_hat, theta) 
 
-    if(tilt == 0):
-        return R_desired
     
     # So tilting
     phi = tilt
     theta = phi * scaling
     head_tilt = Rot(x_world_hat, theta)
-    return R_desired + head_tilt
+
+    return np.dot(R_desired, head_tilt) 
     # print 'Desired Orientation '
     # print 'x_hat', x_hat_d.T
     # print 'y_hat', y_hat_d.T
@@ -600,8 +599,9 @@ class Controller():
         # A variable within the min_jerk will tell whether or not to move the head with the point or just the gaze location
         # TODO: Do proper calculations for moving the head orientation
         if(self.piecewise_func_head.get_pull(t)[0]):
-            # The following line will only cause an x translation for a certain gaze point
-            dx_head = np.concatenate( (dx_head, np.array([xyz_loc_dif[0], 0, -xyz_loc_dif[0]]) ),  axis=0)
+            # The following line will translate the figure based on how the x point moves
+            # z position on a circle moves by r - sqrt(r**2 - x**2)
+            dx_head = np.concatenate( (dx_head, np.array([xyz_loc_dif[0], 0, hk.Head_Kinematics().l1 - np.sqrt(hk.Head_Kinematics().l1**2 - xyz_loc_dif[0]**2)]) ),  axis=0)
         else:
             # The following line causes no head translation
             dx_head = np.concatenate( (dx_head, np.array([0, 0, 0]) ),  axis=0)
@@ -640,7 +640,7 @@ class Controller():
 
         HEAD = 1
         EYES = 2
-        PRIORITY = EYES #
+        PRIORITY = HEAD #
 
         if (PRIORITY == HEAD): 
             dx1 = dx_head

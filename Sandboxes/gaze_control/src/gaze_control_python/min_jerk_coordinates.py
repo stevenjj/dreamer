@@ -168,6 +168,7 @@ def test_script(tilt):
 # Inputs: Eye gaze length in meters
 # Outputs: Minimum Jerk functions for head and eyes
 # Notes:	Assumes a home configuration
+#			TODO: Does not return to perfect home configuration
 #			Motion order:
 # 						1. Initial gaze point
 # 						2. Head back
@@ -180,31 +181,33 @@ def test_script(tilt):
 def surprised_no(gaze_length):
 	head_min_jerk = None
 	eyes_min_jerk = None
-	time = 7.0
+	time = 7.5
 	no_distance = .3
-	head_back = .04
+	# 40% of maxmimum joint movement
+	head_back = np.sin(.26)*hk.Head_Kinematics().l1*.4
 	# Head will move according to above
 	head_x = []
 	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2, 0, 0, 0))
-	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2 - head_back, 0, 0, 1.0, True))
-	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2 - head_back, 0, 0, 5.0))
-	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2, 0, 0, 1.0, True))
+	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2 - head_back, 0, 0, .25, True))
+	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2 - head_back, 0, 0, 5.25))
+	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2, 0, 0, 2.0, True))
+
 	
 	head_y = []
 	head_y.append(single.Waypoint(0, 0, 0, 0))
-	head_y.append(single.Waypoint(0, 0, 0, 2.0))
+	head_y.append(single.Waypoint(0, 0, 0, 1.5))
 	head_y.append(single.Waypoint(no_distance, 0, 0, .25))
 	head_y.append(single.Waypoint(-no_distance, 0, 0, .5))
 	head_y.append(single.Waypoint(no_distance, 0, 0, .5))
 	head_y.append(single.Waypoint(-no_distance, 0, 0, .5))
 	head_y.append(single.Waypoint(0, 0, 0, .25))
-	head_y.append(single.Waypoint(0, 0, 0, 3.0))
+	head_y.append(single.Waypoint(0, 0, 0, 4.0))
 	
 	head_z = []
 	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
-	head_z.append(single.Waypoint(hk.Head_Kinematics().l1 + head_back*4, 0, 0, 1.0))
-	head_z.append(single.Waypoint(hk.Head_Kinematics().l1 + head_back*4, 0, 0, 5.0))
-	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 1.0))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1 + head_back * 3, 0, 0, .25))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1 + head_back * 3, 0, 0, 5.25))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 2.0))
 	
 
 	x_coord = single.MinimumJerk(head_x)
@@ -224,7 +227,7 @@ def surprised_no(gaze_length):
 	eyes_y.append(single.Waypoint(0, 0, 0, time))
 	eyes_z = []
 	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
-	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1+head_back, 0, 0, time))
+	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, time))
 
 	x_coord = single.MinimumJerk(eyes_x)
 	y_coord = single.MinimumJerk(eyes_y)
