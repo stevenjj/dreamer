@@ -2,7 +2,7 @@ from distutils.core import setup
 from catkin_pkg.python_setup import generate_distutils_setup
 
 d = generate_distutils_setup(
-    packages=['gaze_control_python'],
+    packages=['gaze_control_python', 'plotting_scripts'],
     package_dir={'': 'src'}
 )
 
