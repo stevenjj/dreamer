@@ -30,7 +30,10 @@ class Coordinates_3D():
 			return np.array([self.x.get_position(time), self.y.get_position(time), self.z.get_position(time)])
 
 	def get_velocity(self, time):
-			return np.array([self.x.get_velocity(time), self.y.get_velocity(time), self.z.get_velocity(time)])
+		return np.array([self.x.get_velocity(time), self.y.get_velocity(time), self.z.get_velocity(time)])
+	
+	def get_acceleration(self, time):
+		return np.array([self.x.get_acceleration(time), self.y.get_acceleration(time), self.z.get_acceleration(time)])
 
 	# In theory all runtimes are the same
 	def total_run_time(self):
@@ -46,7 +49,7 @@ class Coordinates_3D():
 # Function: Traces a circle in the yz plane with x at a specified distance away
 # Inputs: Radius of circle, total time of the trace, optional: distance away from head
 # Returns: Minimum Jerk piecewise function for the circle
-def circle_yz(radius, time, distance = 1):
+def circle_yz(radius, time, distance = 1.0):
 	accuracy = 16.0
 	x = []
 	x.append(single.Waypoint(distance+hk.Head_Kinematics().l2, 0, 0, 0))
@@ -59,7 +62,7 @@ def circle_yz(radius, time, distance = 1):
 	y.append(single.Waypoint(-1 * radius, 0, 0, 0))
 	z.append(single.Waypoint(0+hk.Head_Kinematics().l1, 0, 0, 0))
 	for i in range(1, int(accuracy)):
-		theta = np.pi*i/(accuracy/2.0)
+		theta = np.pi*float(i)/(accuracy/2.0)
 		y.append(single.Waypoint(-1 * radius * np.cos(theta), radius * np.sin(theta), radius * np.cos(theta), time/accuracy ))
 		z.append(single.Waypoint(radius*np.sin(theta)+hk.Head_Kinematics().l1, radius*np.cos(theta), -1*radius*np.sin(theta), time/accuracy))
 	y.append(single.Waypoint(-1 * radius * np.cos(2*np.pi), 0, 0, time/accuracy))
@@ -76,7 +79,7 @@ def circle_yz(radius, time, distance = 1):
 # Function: Traces a circle in the xz plane with y at 0
 # Inputs: Radius of circle, total time of the trace, optional: distance away from head
 # Returns: Minimum Jerk piecewise function for the circle
-def circle_xz(radius, time, distance = 1):
+def circle_xz(radius, time, distance = 1.0):
 	accuracy = 16.0
 	y = []
 	y.append(single.Waypoint(0, 0, 0, 0))
@@ -90,9 +93,9 @@ def circle_xz(radius, time, distance = 1):
 	z.append(single.Waypoint(0+hk.Head_Kinematics().l1, 0, 0, 0))
 	for i in range(1, int(accuracy)):
 		theta = np.pi*i/(accuracy/2.0)
-		x.append(single.Waypoint(-1 * radius * np.cos(theta) + (hk.Head_Kinematics().l2+distance) , radius * np.sin(theta), radius * np.cos(theta), time/accuracy, True ))
+		x.append(single.Waypoint(-1 * radius * np.cos(theta) + (hk.Head_Kinematics().l2+distance) , radius * np.sin(theta), radius * np.cos(theta), time/accuracy ))
 		z.append(single.Waypoint(radius*np.sin(theta)+hk.Head_Kinematics().l1, radius*np.cos(theta), -1*radius*np.sin(theta), time/accuracy))
-	x.append(single.Waypoint(-1 * radius * np.cos(2*np.pi) + (hk.Head_Kinematics().l2+distance) , 0, 0, time/accuracy,True))
+	x.append(single.Waypoint(-1 * radius * np.cos(2*np.pi) + (hk.Head_Kinematics().l2+distance) , 0, 0, time/accuracy))
 	z.append(single.Waypoint(0+hk.Head_Kinematics().l1, 0, 0, time/accuracy))
 	
 	
@@ -161,8 +164,6 @@ def test_script(tilt):
 
 
 # ------------------------------- Actual Behaviors ------------------------------- 
-
-
 
 # Function: Causes dreamer to look surprised, then shake head
 # Inputs: Eye gaze length in meters
@@ -238,42 +239,106 @@ def surprised_no(gaze_length):
 	return surprised_no_head_min, surprised_no_eyes_min
 
 
+# Function: Looks away and rolls eyes
+# Inputs: None
+# Returns: head and eye min_jerk
+# Notes:	Assumes a home configuration
+#			TODO: Does not return to perfect home configuration
+#			Motion order:
+# 						1. Initial gaze point forward 
+#						2. Tilt head slightly while looking up to the right
+# 						3. Head still while eyes roll in parabola form: -(t-.3)**2 + l1
+# 						4. Return to Initial gaze point
+def roll_eyes():
+	head_min_jerk = None
+	eyes_min_jerk = None
+	head_x = []
+	time1 = 1.8
+	accuracy = 10
+
+	head_x.append(single.Waypoint(1.0 + hk.Head_Kinematics().l2, 0, 0, 0))
+	head_x.append(single.Waypoint(1.0 + hk.Head_Kinematics().l2, 0, 0, time1, False, np.pi/12.0))
+
+
+	
+	head_y = []
+	head_y.append(single.Waypoint(0, 0, 0, 0))
+	head_y.append(single.Waypoint(-.3, 0, 0, time1))
+
+	
+	head_z = []
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
+	head_z.append(single.Waypoint(.3 + hk.Head_Kinematics().l1, 0, 0, time1))
+
+	
+
+	x_coord = single.MinimumJerk(head_x)
+	y_coord = single.MinimumJerk(head_y)
+	z_coord = single.MinimumJerk(head_z)
+
+	roll_eyes_head_min = Coordinates_3D(x_coord, y_coord, z_coord)
+	
+
+	eyes_x = []
+	eyes_x.append(single.Waypoint(1.0 + hk.Head_Kinematics().l2, 0, 0, 0))
+	eyes_x.append(single.Waypoint(1.0 + hk.Head_Kinematics().l2, 0, 0, time1))
+
+
+	eyes_y = []
+	eyes_y.append(single.Waypoint(0, 0, 0, 0))
+	eyes_y.append(single.Waypoint(.1, 0, 0, time1/float(accuracy)))
+	eyes_y.append(single.Waypoint( -1/3 , 0, 0, time1-time1/float(accuracy)))
+	eyes_z = []
+	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
+	# eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, time1))
+	
+	for i in range(accuracy):
+		t = (i+1)/20.0
+		eyes_z.append(single.Waypoint( (0.0-1.0) * (3.0*t - .81333)**2+.8, 0, 0, time1/float(accuracy)))
+		
+
+	x_coord = single.MinimumJerk(eyes_x)
+	y_coord = single.MinimumJerk(eyes_y)
+	z_coord = single.MinimumJerk(eyes_z)
+
+	roll_eyes_eyes_min = Coordinates_3D(x_coord, y_coord, z_coord)
+
+	return roll_eyes_head_min, roll_eyes_eyes_min
 
 
 
 
-# f = open('output.txt', 'w')
 
-# coordinate1, coordinates2 = surprised_no(1)
-# print coordinate1.total_run_time()
+# f = open('output1.txt', 'w')
+
+# coordinate1, coordinate2 = roll_eyes()
 
 
-
-# val = np.arange(0, 8.01, 0.01)
-# ran = 800
+# val = np.arange(0, 6, 0.01)
+# ran = 600
 # for i in range(0, ran):
-# 	f.write(str(coordinate1.get_position(val[i])[0]))
-# 	f.write('\t')
-# 	f.write(str(coordinate1.get_position(val[i])[1]))
-# 	f.write('\t')
-# 	f.write(str(coordinate1.get_position(val[i])[2]))
-# 	f.write('\n')
+	# f.write(str(coordinate2.get_position(val[i])[0]))
+	# f.write('\t')
+	# f.write(str(coordinate2.get_position(val[i])[1]))
+	# f.write('\t')
+	# f.write(str(coordinate2.get_acceleration(val[i])[2]))
+	# f.write('\n')
 
 # f.write("x = [")
 # for i in range(0, ran):
-# 	f.write( str((coordinate1.get_velocity(val[i]))[0]) )
+# 	f.write( str((coordinate2.get_position(val[i]))[0]) )
 # 	f.write(", ")
 # f.write("]\n")
 
 # f.write("y = [")
 # for i in range(0, ran):
-# 	f.write( str((coordinate1.get_velocity(val[i]))[1]) )
+# 	f.write( str((coordinate2.get_position(val[i]))[1]) )
 # 	f.write(", ")
 # f.write("]\n")
 
 # f.write("z = [")
 # for i in range(0, ran):
-# 	f.write( str((coordinate1.get_velocity(val[i]))[2]) )
+# 	f.write( str((coordinate2.get_position(val[i]))[2]) )
 # 	f.write(", ")
 # f.write("]")
 

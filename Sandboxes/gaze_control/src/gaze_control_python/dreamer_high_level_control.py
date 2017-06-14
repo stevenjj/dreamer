@@ -586,7 +586,7 @@ class Dreamer_Head():
         elif ((self.current_behavior == BEHAVIOR_FOLLOW_WAYPOINTS) and self.behavior_commanded == False):
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
-            piecewise_func_head, piecewise_func_eyes = surprised_no(1)
+            piecewise_func_head, piecewise_func_eyes = roll_eyes()
             # Draw a circle behavior
             # piecewise_func_head = circle_yz(.5, 8.0)
             # Extract initial coordinates
@@ -612,12 +612,11 @@ class Dreamer_Head():
             task_params.append( (piecewise_func_head, piecewise_func_eyes, total_run_time) )
             self.execute_behavior(task_list, task_params)
 
-        # Doesn't actually draw a circle but rather does a test script for me
         elif ((self.current_behavior == BEHAVIOR_FOLLOW_CIRCLE) and self.behavior_commanded == False):
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
             # Draw a circle behavior
-            piecewise_func = test_script(-np.pi/5.5)
+            piecewise_func = test_script(-np.pi/16.0)
             # Extract initial coordinates
             coord = piecewise_func.get_position(0)
             x = coord[0]

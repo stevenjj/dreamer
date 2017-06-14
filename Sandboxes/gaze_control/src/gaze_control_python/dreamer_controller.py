@@ -113,8 +113,7 @@ def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, o
     phi = tilt
     theta = phi * scaling
     head_tilt = Rot(x_world_hat, theta)
-
-    return np.dot(R_desired, head_tilt) 
+    return np.dot(head_tilt, R_desired) 
     # print 'Desired Orientation '
     # print 'x_hat', x_hat_d.T
     # print 'y_hat', y_hat_d.T
@@ -268,7 +267,7 @@ class Controller():
         self.joint_range = 0.75 # 0 < range < 1.0
 
         # Intermediate task variables
-        self.buffer_region_percent = 0.05  # make each ffer region to be 10% of the full joint range  
+        self.buffer_region_percent = 0.05  # make each buffer region to be 5% of the full joint range  
         self.joint_limit_max = np.zeros(self.kinematics.J_num)
         self.joint_limit_min = np.zeros(self.kinematics.J_num)
         self.joint_limit_activation_pos = np.zeros(self.kinematics.J_num)
@@ -317,7 +316,10 @@ class Controller():
         self.piecewise_func_eyes = None
         self.piecewise_func_total_run_time = 0        
 
-
+    # Function: Sets up joint limit bounds
+    # Inputs: None
+    # Returns: None
+    # Notes: Called when controller class is initialized
     def init_intermediate_task_matrices(self):
         Q_cur = self.kinematics.Jlist
         for i in range(self.kinematics.J_num):
@@ -328,21 +330,29 @@ class Controller():
 
             self.joint_limit_max[i] = joint_max_val*0.85#JOINT_LIM_BOUND
             self.joint_limit_min[i] = joint_min_val*0.85#JOINT_LIM_BOUND            
-
+            # Acceptable joint range
             Q_range = np.abs(self.joint_limit_max[i] - self.joint_limit_min[i])            
+            # 
             self.beta[i] = Q_range*self.buffer_region_percent
             self.joint_limit_activation_pos[i] = self.joint_limit_max[i] - self.beta[i]
             self.joint_limit_activation_neg[i] = self.joint_limit_min[i] + self.beta[i]
 
-
+    # Function: Determines what region the joint is in to find out if joint limits need activation
+    # Inputs: joint number
+    # Returns: TODO determine
+    # Notes: Updates joint region based on the following
+    #       If: current joint position >= joint max
+    #       ElIf: positive activation limit < current joint position < joint max
+    #       ElIf: negative activation limit <= current joint position <= positive activation limit
+    #       ElIf: joint min < current joint position <  negative activation limit
+    #       ElIf: current joint position <= joint min
     def h_i(self, joint_index):
         i = joint_index
-        q_i = self.kinematics.Jlist[i]        
+        q_i = self.kinematics.Jlist[i]
         tilde_q_i = self.joint_limit_activation_pos[i]
         utilde_q_i = self.joint_limit_activation_neg[i]
         bar_q_i = self.joint_limit_max[i]
         ubar_q_i = self.joint_limit_min[i]        
-
         beta_i = self.beta[i]
 
         print 'joint ', i, 'q_i', q_i, 'utilde_q', utilde_q_i, 'tilde_q_i', tilde_q_i
@@ -368,7 +378,10 @@ class Controller():
             self.buffer_region_type[i] = NEG            
             return 1.0            
 
-
+    # Function: Fills in diagonals of H matrix
+    #           Wrapper to call h_i() for all joints
+    # Inputs: None
+    # Returns: None
     def update_intermediate_H_matrix(self):
         for i in range(self.kinematics.J_num):
             self.intermediate_H_matrix[i][i] = self.h_i(i)
@@ -597,10 +610,10 @@ class Controller():
 
         # Adding an array of linear translations now makes this a body twist representation of how the head should move
         # A variable within the min_jerk will tell whether or not to move the head with the point or just the gaze location
-        # TODO: Do proper calculations for moving the head orientation
+        # TODO fix for more accurate motion forward and backwards
         if(self.piecewise_func_head.get_pull(t)[0]):
             # The following line will translate the figure based on how the x point moves
-            # z position on a circle moves by r - sqrt(r**2 - x**2)
+            # z position on a circle (rotation) moves by r - sqrt(r**2 - x**2)
             dx_head = np.concatenate( (dx_head, np.array([xyz_loc_dif[0], 0, hk.Head_Kinematics().l1 - np.sqrt(hk.Head_Kinematics().l1**2 - xyz_loc_dif[0]**2)]) ),  axis=0)
         else:
             # The following line causes no head translation
@@ -656,7 +669,7 @@ class Controller():
             J2 = J_head
 
         # Task 1  
-        dq1 = calculate_dQ(J1, dx1)
+        dq1_proposed = calculate_dQ(J1, dx1)
 
         # Magic begins: Calculate the secondary tasks
         # Equation: null space = identity matrix - pseudoinverse of Head_Jacobian 
@@ -675,10 +688,101 @@ class Controller():
 
         # Task 2
         # Part of the HCRL research mentioned previously for calculating secondary tasks
-        dq2 = N1.dot(pinv_J2_N1.dot(dx2 -J2_pinv_J1_x1dot)) # Projection with least squares opt
+        dq2_proposed = N1.dot(pinv_J2_N1.dot(dx2 -J2_pinv_J1_x1dot)) # Projection with least squares opt
+        
+
+        # ------------- Attempt to add joint limit fix -------------
+        self.update_intermediate_H_matrix()
+        x0_d = np.zeros(self.kinematics.J_num)
+
+        for i in range(self.kinematics.J_num):
+            q_i = Q_cur[i]
+            k_i = self.joint_limit_buffer_gain[i]
+            bar_q_i = self.joint_limit_max[i]
+            ubar_q_i = self.joint_limit_min[i]
+            tilde_q_i = self.joint_limit_activation_pos[i]
+            utilde_q_i = self.joint_limit_activation_neg[i]
+
+            if self.buffer_region_type[i] == POS:
+                x0_d[i] = k_i*(0 - q_i) #k_i*(tilde_q_i - q_i)
+            elif self.buffer_region_type[i] == NEG:
+                x0_d[i] = k_i*(0 - q_i) #k_i*(utilde_q_i - q_i) 
+            else:
+                x0_d[i] = 0
+        
+        J0_constraint = self.intermediate_jacobian_constraint
+
+        H = self.intermediate_H_matrix
+        # I_H = np.eye(np.shape(self.intermediate_H_matrix)[0])   
+        # dx0_i = H.dot(x0_d) + (I_H - H).dot(J0_constraint.dot(dq1_proposed + dq2_proposed)) 
+
+        dx0_i = np.zeros( self.kinematics.J_num ) # Initialize intermediate task
+
+        for j in range(self.kinematics.J_num ):
+            J0_j = J0_constraint[j, :] # Joint j constraint task (7x1)
+            J0_wj = np.delete(J0_constraint, (j), axis=0) # Task 0 Task without Joint j # 6x7
+            
+            pinvJ0_wj_J0_wj = np.linalg.pinv(J0_wj).dot(J0_wj)
+            I0_wj = np.eye( np.shape(pinvJ0_wj_J0_wj)[0] )
+            N0_wj = I0_wj - pinvJ0_wj_J0_wj
+
+
+            # Define N1_0_wj Task 0 Nullspace without joint j limit task
+            pinv_J1_N0_wj = np.linalg.pinv( J1.dot(N0_wj) )            
+            I1_0_wj = np.eye(np.shape(pinv_J1_N0_wj)[0])
+            N1_0_wj = I1_0_wj - pinv_J1_N0_wj.dot(J1.dot(N0_wj))
+
+            
+            # Define x0_d_wj The desired Joint Limit Tasks without joint j
+            x0_d_wj = np.delete(x0_d, j) # Desired dx0_d without tjoint j
+            dx_0_d_wj = x0_d_wj
+
+            # Find dq_wj, the task solution without joint limit task j
+            dq0_wj = np.linalg.pinv( J0_wj).dot(dx_0_d_wj)
+            
+            # Method 2, Take into account new joint limits task
+            dq1_wj = np.linalg.pinv( (J1.dot(N0_wj)) ).dot(dx1 - J1.dot(dq0_wj)) #np.linalg.pinv(   np.around(J1.dot(N0_wj), decimals = 6)    ).dot(dx1 - J1.dot(dq0_wj))
+            dq2_wj = np.linalg.pinv( np.around( J2.dot(N0_wj.dot(N1_0_wj)), decimals = 6 ) ).dot(dx2 - J2.dot(dq1_wj + dq0_wj)) 
+            dq_wj = dq1_wj+ dq2_wj + dq0_wj   
+
+            # Define the intermediate task
+            h_j = self.intermediate_H_matrix[j][j]
+
+            if (PRIORITY == EYES):
+                if (j < 4):
+                    h_eye_max = h_j
+                    # Find maximum activating variable of eye task
+                    for i in range(4, self.kinematics.J_num):
+                        h_candidate = self.intermediate_H_matrix[i][i]
+                        if  h_candidate >= h_eye_max:
+                            h_eye_max = h_candidate
+                    h_j = h_eye_max            
+
+            print 'joint', j, 'h_j', h_j
+
+            dx0_i_j = h_j*(x0_d[j]) + (1 - h_j)*(J0_j).dot(dq_wj)
+        
+            dx0_i[j] = dx0_i_j
+
+
+        # J0_constraint is simply an identity matrix
+        # Define constraint task as highest priority
+        dq0 = np.linalg.pinv(J0_constraint).dot(dx0_i)
+        
+        # Calculate the null space of task 0 and make dq1 work in that
+        I_0 = np.eye( np.shape(J0_constraint)[0] )
+        N0 = I_0 - np.linalg.pinv(J0_constraint).dot(J0_constraint)
+        pinv_J1_N0 = np.linalg.pinv( J1.dot(N0) )
+        dq1 = (pinv_J1_N0).dot(dx1 - J1.dot(dq0))
+        
+        J1_N0 = J1.dot(N0)
+        pinv_J1_N0_J1_N0 = pinv_J1_N0.dot(J1_N0)
+        N1_0 = np.eye(np.shape(pinv_J1_N0_J1_N0)[0]) - pinv_J1_N0_J1_N0
+        pinv_J2_N0_N1_0 = np.linalg.pinv( np.around(J2.dot(N0.dot(N1_0)), decimals=6 ) )
+        dq2 = pinv_J2_N0_N1_0.dot(dx2 - J2.dot(dq0 + dq1))
         
         # Add joint changes to the current configuration to get desired configuration
-        dq_tot = dq1 + dq2
+        dq_tot = dq0 + dq1 + dq2
         Q_des = Q_cur + dq_tot
 
 
@@ -920,7 +1024,7 @@ class Controller():
 
     # Function: Calculate desired joint positions if eyes have higher priority than the head
     #           Head moves while eyes try to stay focused
-    # Inputs: None, uses preset variables
+    # Inputs: None
     # Returns: Desired Joint Configuration, Completion of task
     def eye_priority_head_trajectory_look_at_point(self):
 
@@ -1043,12 +1147,12 @@ class Controller():
             dx2 = dx_head
             J2 = J_head
 
-
+        # Caclulating secondary tasks
         J1_bar = np.linalg.pinv(J1)        
         pJ1_J1 = J1_bar.dot(J1)
-
         I_1 = np.eye(np.shape(pJ1_J1)[0])
         N1 = I_1 - pJ1_J1
+
         pinv_J2_N1 = np.linalg.pinv( np.around(J2.dot(N1), decimals = 10) )
         #pinv_J2_N1 = np.linalg.pinv( J2.dot(N1) )        
         J2_pinv_J1 = J2.dot(J1_bar)
@@ -1066,17 +1170,15 @@ class Controller():
 #         dq2 = N0.dot(dq2_proposed)
 
 
-        I_0 = np.eye( np.shape(self.joint_jacobian_constraint)[0] )
-        N0 = I_0 - np.linalg.pinv(self.joint_jacobian_constraint).dot(self.joint_jacobian_constraint)
-
-
         # Define Intermediate Task
+        # Intermediate H matrix is a diagonal matrix with values for TODO
         self.update_intermediate_H_matrix()
 
         print 'intermediate_H_matrix'
         print self.intermediate_H_matrix        
-        x0_d = np.zeros(self.kinematics.J_num)
         
+        # x0_d is an array that will give -1% of the current joint value if in a region
+        x0_d = np.zeros(self.kinematics.J_num)
         for i in range(self.kinematics.J_num):
             q_i = Q_cur[i]
             k_i = self.joint_limit_buffer_gain[i]
@@ -1097,7 +1199,6 @@ class Controller():
         H = self.intermediate_H_matrix
         I_H = np.eye(np.shape(self.intermediate_H_matrix)[0])   
         dx0_i = H.dot(x0_d) + (I_H - H).dot(J0_constraint.dot(dq1_proposed + dq2_proposed)) 
-
 
         # ATTEMPT AT INTERMEDIATE TASK -----------------------------------------------
         # Define Intermediate Task 0, dx0_i
@@ -1205,7 +1306,6 @@ class Controller():
 
 
         #This seems to work, but it needs a smoother task transition
-
 
         I_0 = np.eye( np.shape(J0_constraint)[0] )
         N0 = I_0 - np.linalg.pinv(J0_constraint).dot(J0_constraint)
