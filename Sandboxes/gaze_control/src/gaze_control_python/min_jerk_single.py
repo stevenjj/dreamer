@@ -50,8 +50,8 @@ class MinimumJerk():
 	# Input: two Waypoint classes, initial point then final point
 	# Return: coefficient matrix of the 5th order minimum Jerk equation
 	def point_min_jerk_coeffs(self, waypoint_i, waypoint_f, axis=0):
-		to = waypoint_i.Dt
-		tf = waypoint_f.Dt
+		to = float(waypoint_i.Dt)
+		tf = float(waypoint_f.Dt)
 		T_matrix_coeffs = np.array([ 
 			[1, to, to**2,   to**3,       to**4,      to**5 ],
 			[0,  1,  2*to, 3*(to**2), 4*(to**3),   5*(to**4)],

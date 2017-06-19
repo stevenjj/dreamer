@@ -616,7 +616,7 @@ class Dreamer_Head():
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
             # Draw a circle behavior
-            piecewise_func = test_script(-np.pi/16.0)
+            piecewise_func = circle_yz(.8, 16.0)
             # Extract initial coordinates
             coord = piecewise_func.get_position(0)
             x = coord[0]
