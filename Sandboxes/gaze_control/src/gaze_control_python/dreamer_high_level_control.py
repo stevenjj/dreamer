@@ -586,7 +586,7 @@ class Dreamer_Head():
         elif ((self.current_behavior == BEHAVIOR_FOLLOW_WAYPOINTS) and self.behavior_commanded == False):
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
-            piecewise_func_head, piecewise_func_eyes = roll_eyes()
+            piecewise_func_head, piecewise_func_eyes = surprised_no()
             # Draw a circle behavior
             # piecewise_func_head = circle_yz(.5, 8.0)
             # Extract initial coordinates
@@ -780,7 +780,7 @@ class Dreamer_Head():
                     self.task_commanded = False
 
             elif (self.current_task == TASK_FOLLOW_WAYPOINTS):
-                 Q_des, command_result = self.controller_manager.head_priority_eye_trajectory_follow()
+                 Q_des, command_result = self.controller_manager.head_eye_trajectory_follow()
                  self.process_task_result(Q_des, command_result)                 
 
             return

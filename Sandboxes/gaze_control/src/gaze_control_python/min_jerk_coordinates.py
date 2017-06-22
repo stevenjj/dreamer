@@ -67,7 +67,7 @@ def circle_yz(radius, time, distance = 1.0):
 		theta = np.pi*float(i)/(accuracy/2.0)
 		y.append(single.Waypoint(-1.0 * radius * np.cos(theta), radius * np.sin(theta), radius * np.cos(theta), time/accuracy ))
 		z.append(single.Waypoint(radius * np.sin(theta)+hk.Head_Kinematics().l1, radius*np.cos(theta), -1*radius*np.sin(theta), time/accuracy))
-	
+
 	y.append(single.Waypoint(-1.0 * radius, 0.0, 0.0, time/accuracy))
 	z.append(single.Waypoint(0.0 + hk.Head_Kinematics().l1, 0.0, 0.0, time/accuracy))
 	
@@ -137,21 +137,31 @@ def clover(radius, time, distance = 1):
 	return clover_min
 
 # Function: Does whatever I need it to for testing purposes
-def test_script(tilt):
+def test_script():
 	head_min_jerk = None
 	eyes_min_jerk = None
-	time = 8.0
+	time = 15.0
+	y_dist = .55
+	z_dist = .6
 	head_x = []
-	head_x.append(single.Waypoint(.5+hk.Head_Kinematics().l2, 0, 0, 0))
-	head_x.append(single.Waypoint(1+hk.Head_Kinematics().l2, 0, 0, time, False, tilt))
+	head_x.append(single.Waypoint(1.2, 0, 0, 0))
+	head_x.append(single.Waypoint(1.2, 0, 0, time))
 	
 	head_y = []
 	head_y.append(single.Waypoint(0, 0, 0, 0))
-	head_y.append(single.Waypoint(.5, 0, 0, time))
+	head_y.append(single.Waypoint(y_dist, 0, 0, time/5))
+	head_y.append(single.Waypoint(0, 0, 0, time/5))
+	head_y.append(single.Waypoint(-y_dist, 0, 0, time/5))
+	head_y.append(single.Waypoint(0, 0, 0, time/5))
+	head_y.append(single.Waypoint(y_dist, 0, 0, time/5))
 	
 	head_z = []
-	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
-	head_z.append(single.Waypoint(hk.Head_Kinematics().l1+.5, 0, 0, time))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1+z_dist, 0, 0, 0))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, time/5))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1-z_dist, 0, 0, time/5))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, time/5))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1+z_dist, 0, 0, time/5))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, time/5))
 
 	x_coord = single.MinimumJerk(head_x)
 	y_coord = single.MinimumJerk(head_y)
@@ -162,8 +172,20 @@ def test_script(tilt):
 	eyes_x = []
 	eyes_y = []
 	eyes_z = []
+	eyes_x.append(single.Waypoint(1.0, 0, 0, 0))
+	eyes_x.append(single.Waypoint(1.0, 0, 0, time))
+	eyes_y.append(single.Waypoint(0, 0, 0, 0))
+	eyes_y.append(single.Waypoint(0, 0, 0, time))
+	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
+	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, time))
 
-	return head_min
+	x_coord = single.MinimumJerk(eyes_x)
+	y_coord = single.MinimumJerk(eyes_y)
+	z_coord = single.MinimumJerk(eyes_z)
+
+	eyes_min = Coordinates_3D(x_coord, y_coord, z_coord)
+
+	return head_min, eyes_min
 
 
 # ------------------------------- Actual Behaviors ------------------------------- 
@@ -182,13 +204,13 @@ def test_script(tilt):
 #						 6. Shake Right
 #						 7. Return to center
 #						 8. Return to Initial gaze point
-def surprised_no(gaze_length):
+def surprised_no(gaze_length = 1.0):
 	head_min_jerk = None
 	eyes_min_jerk = None
 	time = 7.5
 	no_distance = .3
 	# 40% of maxmimum joint movement
-	head_back = np.sin(.26)*hk.Head_Kinematics().l1*.4
+	head_back = 0 # np.sin(.26)*hk.Head_Kinematics().l1*.6
 	# Head will move according to above
 	head_x = []
 	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2, 0, 0, 0))
@@ -307,22 +329,25 @@ def roll_eyes():
 
 
 # f = open('output.txt', 'w')
+'''
+coordinate1, coordinate2 = test_script()
 
-coordinate1, coordinate2 = roll_eyes()
-# coordinate2 = circle_yz(.8, 8.0)
-
-t = np.arange(0.0, 10, 0.05)
-# fig, ax = plt.subplots()
+t = np.arange(0.0, 30, 0.05)
 count = 0
 x = []
 y = []
 z = []
-while count < 10:
-    x.append(coordinate2.get_position(count)[0])
-    y.append(coordinate2.get_position(count)[1])
-    z.append(coordinate2.get_position(count)[2])
+while count < 30:
+    x.append(coordinate1.get_position(count)[0])
+    y.append(coordinate1.get_position(count)[1])
+    z.append(coordinate1.get_position(count)[2])
     count = count + .05
 
+fig = plt.figure()
+ax = fig.gca(projection='3d')
+ax.plot(x, y, z)
+plt.show()
+'''
 # scale = 10.0
 
 # ax.scatter(t, x, c='red', s=scale, label='x position', alpha=0.75, edgecolors='none')
@@ -334,10 +359,6 @@ while count < 10:
 # plt.show()
 
 
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-ax.plot(x, y, z)
-plt.show()
 
 # for i in range(0, ran):
 	# f.write(str(coordinate2.get_position(val[i])[0]))

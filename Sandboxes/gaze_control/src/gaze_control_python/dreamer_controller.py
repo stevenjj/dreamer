@@ -568,11 +568,12 @@ class Controller():
 
 
 
-    # Function: Head and eyes move to the same point, used for Minimum Jerk trajectories
-    #           Head is prioritized over the two eyes
+    # Function: Calculates joint movement given a specific priority
+    #           Used for Minimum Jerk trajectories
+    #           
     # Inputs: None
     # Returns: Desired Joint Configuration, Completion of task
-    def head_priority_eye_trajectory_follow(self):
+    def head_eye_trajectory_follow(self):
         # Calculate Time
         t, t_prev = self.calculate_t_t_prev()
         dt = t - t_prev
@@ -581,59 +582,30 @@ class Controller():
         # Specify current (x,y,z) gaze location through the piecewise min_jerk
         xyz_head_gaze_loc = self.piecewise_func_head.get_position(t)
         xyz_eye_gaze_loc = self.piecewise_func_eyes.get_position(t)
-
-        # Specify joint configuration and jacobian
-        Q_cur = self.kinematics.Jlist
-        J_head = self.kinematics.get_6D_Head_Jacobian(Q_cur)
-        
-        # ---------------------- Head Calculations ----------------------
-
         # Update head-eye variables with desired locations
         self.initialize_head_eye_focus_point(xyz_head_gaze_loc, xyz_eye_gaze_loc)   
 
+        # Get current joint configuration
+        Q_cur = self.kinematics.Jlist
+        
+        # ---------------------- Head Calculations ----------------------
+        # Get head Jacobian
+        J_head = self.kinematics.get_6D_Head_Jacobian(Q_cur)
+
+        # Current desired head gaze point
         p_head_des_cur = xyz_head_gaze_loc
 
         # Calculate FeedForward 
         # Calculate new Q_des (desired configuration) and current orientation error
         d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'head', self.piecewise_func_head.get_tilt(t)) 
-        
-        # Find the actual distance needed to rotate from the returned variables
         dx_head = d_theta_error * angular_vel_hat
-        
-
-        # Find a linear translation that will move the head with the specified points
-        # Caculate the previous point based on the change in time and find the difference between them to
-        #   specify how much to translate linearly. Keep in mind that this is an array of xyz
-        xyz_head_gaze_loc_prev = self.piecewise_func_head.get_position(t-dt)
-        xyz_loc_dif = xyz_head_gaze_loc - xyz_head_gaze_loc_prev
-
-        # Adding an array of linear translations now makes this a body twist representation of how the head should move
-        # A variable within the min_jerk will tell whether or not to move the head with the point or just the gaze location
-        if(self.piecewise_func_head.get_pull(t)[0]):
-            # The following line will translate the figure based on how the x point moves
-            dx_head = np.concatenate( (dx_head, np.array([xyz_loc_dif[0], 0, 0]) ),  axis=0)
-        else:
-            # The following line causes no head translation
-            dx_head = np.concatenate( (dx_head, np.array([0, 0, 0]) ),  axis=0)
-
         
 
         # ---------------------- Eye Calculations ----------------------
         # Get Jacobian for eyes, redundant Q_cur
         Q_cur = self.kinematics.Jlist
-#        J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
-#        J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
 
-
-        J_1 = self.kinematics.get_6D_Right_Eye_Jacobian_yaw_pitch(Q_cur)
-        J_2 = self.kinematics.get_6D_Left_Eye_Jacobian_yaw_pitch(Q_cur)        
-
-        # The two eye tasks are same priority so you can concatenate them
-        J_eyes = np.concatenate((J_1,J_2) ,axis=0) 
-
-        J2 = np.concatenate((J_1,J_2) ,axis=0) 
-
-        # Current desired gaze point
+        # Current desired eye gaze point
         p_des_cur_re = xyz_eye_gaze_loc
         p_des_cur_le = xyz_eye_gaze_loc      
 
@@ -644,29 +616,67 @@ class Controller():
         dx_le = d_theta_error_le * angular_vel_hat_le
 
         # Remember previously that we concatenated the two Jacobian matrices because both eyes are the same priority
-        dx_re = np.concatenate( (dx_re, np.array([0,0,0])),  axis=0)
-        dx_le = np.concatenate( (dx_le, np.array([0,0,0])),  axis=0)
-        dx_eyes = np.concatenate( (dx_re, dx_le),  axis=0)
-
+       
         HEAD = 1
         EYES = 2
-        PRIORITY = HEAD #
+        PRIORITY = EYES
 
-        if (PRIORITY == HEAD): 
+        if (PRIORITY == HEAD):
+            # Adding an array of linear translations now makes this a body twist representation of how the head should move
+            # A variable within the min_jerk will tell whether or not to move the head with the point or just the gaze location
+            # Find a linear translation that will move the head with the specified points
+            # Caculate the previous point based on the change in time and find the difference between them to
+            #   specify how much to translate linearly. Keep in mind that this is an array of xyz
+            xyz_head_gaze_loc_prev = self.piecewise_func_head.get_position(t-dt)
+            xyz_loc_dif = xyz_head_gaze_loc - xyz_head_gaze_loc_prev
+            # TODO This does not work for eye priority stuff
+            if(self.piecewise_func_head.get_pull(t)[0]):
+                # The following line will translate the figure based on how the x point moves
+                dx_head = np.concatenate( (dx_head, np.array([xyz_loc_dif[0], 0, 0]) ),  axis=0)
+            else:
+                # The following line causes no head translation
+                dx_head = np.concatenate( (dx_head, np.array([0, 0, 0]) ),  axis=0)
+ 
+            # Head parameters will remain the same
             dx1 = dx_head
             J1 = J_head
+            
+            # We only care about the actuators controlling the eyes with head priority
+            J_1 = self.kinematics.get_6D_Right_Eye_Jacobian_yaw_pitch(Q_cur)
+            J_2 = self.kinematics.get_6D_Left_Eye_Jacobian_yaw_pitch(Q_cur)        
+            J_eyes = np.concatenate((J_1,J_2) ,axis=0) 
+
+            # The eyes will have no xyz translation (mentioned above for the head)
+            dx_re = np.concatenate( (dx_re, np.array([0,0,0])),  axis=0)
+            dx_le = np.concatenate( (dx_le, np.array([0,0,0])),  axis=0)
+            # Same priority tasks can be concatenated
+            dx_eyes = np.concatenate( (dx_re, dx_le),  axis=0)
 
             dx2 = dx_eyes
             J2 = J_eyes
+
         elif (PRIORITY == EYES):
+
+            J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
+            J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
+            J_1 = J_1[1:3,:] #Grab the  rows 2 and 3      
+            J_2 = J_2[1:3,:] #Grab the  rows 2 and 3
+            J_eyes = np.concatenate((J_1,J_2) ,axis=0) 
+            
+            # We don't have the ability to do rotations about the x axis with the eyes
+            dx_re = np.array([dx_re[1]*1, dx_re[2]*1])
+            dx_le = np.array([dx_le[1]*1, dx_le[2]*1])
+            # Same priority tasks can be concatenated
+            dx_eyes = np.concatenate( (dx_re, dx_le),  axis=0)
+
             dx1 = dx_eyes
             J1 = J_eyes
 
+            dx_head = dx_head[0:3]
             dx2 = dx_head
+            J_head = J_head[0:3,:] # Grab the first 3 joints that control the head
             J2 = J_head
 
-        # Task 1  
-        dq1_proposed = calculate_dQ(J1, dx1)
 
         # Magic begins: Calculate the secondary tasks
         # Equation: null space = identity matrix - pseudoinverse of Head_Jacobian 
@@ -681,6 +691,8 @@ class Controller():
         J2_pinv_J1 = J2.dot(J1_bar)
         J2_pinv_J1_x1dot = (J2.dot(J1_bar)).dot(dx1)
 
+        # Task 1  
+        dq1_proposed = calculate_dQ(J1, dx1)
         # Task 2
         # Part of the HCRL research mentioned previously for calculating secondary tasks
         dq2_proposed = N1.dot(pinv_J2_N1.dot(dx2 -J2_pinv_J1_x1dot)) # Projection with least squares opt
@@ -771,7 +783,7 @@ class Controller():
         dq2 = pinv_J2_N0_N1_0.dot(dx2 - J2.dot(dq0 + dq1))
         
         # Add joint changes to the current configuration to get desired configuration
-        dq_tot = dq0 + dq1 + dq2
+        dq_tot = dq1_proposed + dq2_proposed # dq0 + dq1 + dq2 
         Q_des = Q_cur + dq_tot
 
 
@@ -818,7 +830,7 @@ class Controller():
         # Specify current (x,y,z) gaze location, joint config and jacobian
         Q_cur = self.kinematics.Jlist
         J_head = self.kinematics.get_6D_Head_Jacobian(Q_cur)
-        J_head = J_head[0:3,:] #Grab the first 3 rows          
+        J_head = J_head[0:3,:] # Grab the first 3 rows          
         
         # ------------------- Calculate FeedForward for Head -------------------
         # Calculate new Q_des (desired configuration)
