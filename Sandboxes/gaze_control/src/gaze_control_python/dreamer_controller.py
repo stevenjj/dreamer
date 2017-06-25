@@ -619,7 +619,7 @@ class Controller():
        
         HEAD = 1
         EYES = 2
-        PRIORITY = EYES
+        PRIORITY = HEAD
 
         if (PRIORITY == HEAD):
             # Adding an array of linear translations now makes this a body twist representation of how the head should move
@@ -642,8 +642,10 @@ class Controller():
             J1 = J_head
             
             # We only care about the actuators controlling the eyes with head priority
-            J_1 = self.kinematics.get_6D_Right_Eye_Jacobian_yaw_pitch(Q_cur)
-            J_2 = self.kinematics.get_6D_Left_Eye_Jacobian_yaw_pitch(Q_cur)        
+            J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
+            J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)                    
+#            J_1 = self.kinematics.get_6D_Right_Eye_Jacobian_yaw_pitch(Q_cur)
+#            J_2 = self.kinematics.get_6D_Left_Eye_Jacobian_yaw_pitch(Q_cur)        
             J_eyes = np.concatenate((J_1,J_2) ,axis=0) 
 
             # The eyes will have no xyz translation (mentioned above for the head)
@@ -740,10 +742,17 @@ class Controller():
 
             # Find dq_wj, the task solution without joint limit task j
             dq0_wj = np.linalg.pinv( J0_wj).dot(dx_0_d_wj)
-            
+                        
+
             # Method 2, Take into account new joint limits task
-            dq1_wj = np.linalg.pinv( (J1.dot(N0_wj)) ).dot(dx1 - J1.dot(dq0_wj)) #np.linalg.pinv(   np.around(J1.dot(N0_wj), decimals = 6)    ).dot(dx1 - J1.dot(dq0_wj))
-            dq2_wj = np.linalg.pinv( np.around( J2.dot(N0_wj.dot(N1_0_wj)), decimals = 6 ) ).dot(dx2 - J2.dot(dq1_wj + dq0_wj)) 
+            dq1_wj = np.linalg.pinv( (J1.dot(N0_wj)) ).dot(dx1*0.5 - J1.dot(dq0_wj)) #np.linalg.pinv(   np.around(J1.dot(N0_wj), decimals = 6)    ).dot(dx1 - J1.dot(dq0_wj))
+            dq2_wj = np.linalg.pinv( np.around( J2.dot(N0_wj.dot(N1_0_wj)), decimals = 6 ) ).dot(dx2*0.5 - J2.dot(dq1_wj + dq0_wj)) 
+
+            if (PRIORITY == EYES):
+                dq1_wj = np.linalg.pinv(J1).dot(dx1*1.0)
+                dq2_wj = np.linalg.pinv( J2.dot(N1) ).dot(dx2*0.5 - J2.dot(dq1_wj) )
+
+
             dq_wj = dq1_wj+ dq2_wj + dq0_wj   
 
             # Define the intermediate task
@@ -783,7 +792,7 @@ class Controller():
         dq2 = pinv_J2_N0_N1_0.dot(dx2 - J2.dot(dq0 + dq1))
         
         # Add joint changes to the current configuration to get desired configuration
-        dq_tot = dq1_proposed + dq2_proposed # dq0 + dq1 + dq2 
+        dq_tot = dq0 #+ dq1 + dq2 #dq1_proposed + dq2_proposed # dq0 + dq1 + dq2 
         Q_des = Q_cur + dq_tot
 
 
