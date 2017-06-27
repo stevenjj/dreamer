@@ -178,7 +178,7 @@ print test_move.get_all_s(1.8)
 
 print test_move.total_run_time()
 '''
-
+'''
 # Testing Script
 f = open('output.txt', 'w')
 x_coord = []
@@ -201,3 +201,4 @@ for i in range(0, 300):
 	f.write("	Pull: ")
 	f.write( str(test_move.get_pull(val[i])) )
 	f.write("\n")
+'''
