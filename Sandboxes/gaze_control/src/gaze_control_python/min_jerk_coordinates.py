@@ -45,8 +45,8 @@ class Coordinates_3D():
 	def get_pull(self, time):
 		return np.array([self.x.get_pull(time), self.y.get_pull(time), self.z.get_pull(time)])
 
-	def get_tilt(self, time):
-		return self.x.get_tilt(time)
+	def get_special(self, time):
+		return self.x.get_special(time)
 
 # Function: Traces a circle in the yz plane with x at a specified distance away
 # Inputs: Radius of circle, total time of the trace, optional: distance away from head
@@ -136,32 +136,36 @@ def clover(radius, time, distance = 1):
 	clover_min = Coordinates_3D(x_coord, y_coord, z_coord)
 	return clover_min
 
+
 # Function: Does whatever I need it to for testing purposes
 def test_script():
 	head_min_jerk = None
 	eyes_min_jerk = None
-	time = 15.0
+	time = 6.0
 	y_dist = .55
 	z_dist = .6
+	accuracy = 100
 	head_x = []
 	head_x.append(single.Waypoint(1.2, 0, 0, 0))
-	head_x.append(single.Waypoint(1.2, 0, 0, time))
+	head_x.append(single.Waypoint(1.2, 0, 0, time/16, False, np.pi/12.0))
+	head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, -np.pi/12.0))
+	head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, np.pi/12.0))
+	head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, -np.pi/12.0))
+	head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, np.pi/12.0))
+	head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, -np.pi/12.0))
+	head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, np.pi/12.0))
+	head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, -np.pi/12.0))
+	
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/2))
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/3, False, -np.pi/12.0))
 	
 	head_y = []
 	head_y.append(single.Waypoint(0, 0, 0, 0))
-	head_y.append(single.Waypoint(y_dist, 0, 0, time/5))
-	head_y.append(single.Waypoint(0, 0, 0, time/5))
-	head_y.append(single.Waypoint(-y_dist, 0, 0, time/5))
-	head_y.append(single.Waypoint(0, 0, 0, time/5))
-	head_y.append(single.Waypoint(y_dist, 0, 0, time/5))
+	head_y.append(single.Waypoint(0, 0, 0, time))
 	
 	head_z = []
-	head_z.append(single.Waypoint(hk.Head_Kinematics().l1+z_dist, 0, 0, 0))
-	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, time/5))
-	head_z.append(single.Waypoint(hk.Head_Kinematics().l1-z_dist, 0, 0, time/5))
-	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, time/5))
-	head_z.append(single.Waypoint(hk.Head_Kinematics().l1+z_dist, 0, 0, time/5))
-	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, time/5))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, time))
 
 	x_coord = single.MinimumJerk(head_x)
 	y_coord = single.MinimumJerk(head_y)
@@ -172,12 +176,16 @@ def test_script():
 	eyes_x = []
 	eyes_y = []
 	eyes_z = []
-	eyes_x.append(single.Waypoint(1.0, 0, 0, 0))
-	eyes_x.append(single.Waypoint(1.0, 0, 0, time))
+	eyes_x.append(single.Waypoint(3.0, 0, 0, 0))
+	eyes_x.append(single.Waypoint(3.0, 0, 0, time))
 	eyes_y.append(single.Waypoint(0, 0, 0, 0))
-	eyes_y.append(single.Waypoint(0, 0, 0, time))
+	eyes_y.append(single.Waypoint(.5, 0, 0, time/8))
+	eyes_y.append(single.Waypoint(.5, 0, 0, time/4))
+	eyes_y.append(single.Waypoint(-.5, 0, 0, time/8))
+	eyes_y.append(single.Waypoint(-.5, 0, 0, time/4))
 	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
-	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, time))
+	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1+1.0, 0, 0, time/8.0))
+	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1+1.0, 0, 0, time-time/8.0))
 
 	x_coord = single.MinimumJerk(eyes_x)
 	y_coord = single.MinimumJerk(eyes_y)
@@ -209,7 +217,7 @@ def surprised_no(gaze_length = 1.0):
 	eyes_min_jerk = None
 	time = 7.5
 	no_distance = gaze_length / np.cos(np.pi/6.0) # Causes 30 degree motion regardless of focus point
-	# 40% of maxmimum joint movement
+	# 60% of maxmimum joint movement
 	head_back = 0 # np.sin(.26)*hk.Head_Kinematics().l1*.6
 	# Head will move according to above
 	head_x = []
@@ -325,10 +333,10 @@ def roll_eyes(x_length = .8):
 	peak_mult = 2
 	
 	# Scaling factor for the parabola so that the left bound is always at hk.Head_Kinematics().l1
-	scale = (peak_mult*y_gaze_length - hk.Head_Kinematics().l1)/(y_gaze_length**2)
-	# Find where the parabola end point is. np.pi/3 radians from the inition point respective to the y axis
+	scale = (peak_mult*y_gaze_length + hk.Head_Kinematics().l1)/(y_gaze_length**2)
 	
-	a = 20 # Arbitrary value greater than pi/4
+	# Find where the parabola end point is. np.pi/3 radians from the inition point respective to the y axis
+	a = 20 # Arbitrary value greater than the check
 	while(a > (np.pi/3.0) ):
 		a = np.arctan( (peak_mult*-y_gaze_length + scale*((stop_point+y_gaze_length)**2) - hk.Head_Kinematics().l1) / stop_point)
 		stop_point+=.001 # 1mm of accuracy
@@ -340,7 +348,8 @@ def roll_eyes(x_length = .8):
 		eyes_x.append(single.Waypoint(x_gaze_length*np.cos(i*np.pi/(6.0*accuracy)), 0, 0, time/float(accuracy)))
 		eyes_y.append(single.Waypoint(-2*x_gaze_length*np.sin(i*np.pi/(6.0*accuracy)), 0, 0, time/float(accuracy)))
 		eyes_z.append(single.Waypoint(peak_mult*-y_gaze_length + scale*((t+y_gaze_length)**2), 0, 0, time/float(accuracy)))
-		
+	
+	
 	x_coord = single.MinimumJerk(eyes_x)
 	y_coord = single.MinimumJerk(eyes_y)
 	z_coord = single.MinimumJerk(eyes_z)
@@ -350,7 +359,6 @@ def roll_eyes(x_length = .8):
 
 
 class piecewise_np():
-
 	def to_array(self, t):
 		x = [t]
 		x = np.array(x)
@@ -368,23 +376,44 @@ class piecewise_np():
 		t = self.to_array(t)
 		dt = [0, 5, 5, 1]
 		times = self.dt_to_t(dt)
-		self.time = times[len(times)-1]
+		self.total_run_time = times[len(times)-1]
+		x = np.piecewise(t, 
+						[ (times[0] <= t) & (t < times[1]),
+						(times[1]<= t) & ( t<= times[2])],
 
+						[lambda t: t, lambda t: t])
+		return x[0]
 	
 	behavior_dictionary = {1:roll_eyes}
 	def __init__(self, behavior_num):
 		self.behavior = self.behavior_dictionary[behavior_num]
-		self.time = 0
+		self.total_run_time = 0
 
 	def get_position(self, t):
-		self.behavior(self, t)
+		return self.behavior(self, t)
+
 
 	def total_run_time(self):
-		return 1
+		self.behavior(0)
+		return self.total_run_time
+
 
 '''
+a, b = test_script()
+time = a.total_run_time()
+x = np.linspace(0, time, 200)
+y=[]
+for i in range(0, 200):
+	y.append(a.get_special(x[i]))
+plt.plot(x, y)
+plt.show()
+'''
+'''
+a = piecewise_np(1)
+
+
 # coordinate1 = circle_xz(.80, 16.0)
-coordinate1, coordinate2 = roll_eyes(.5)
+coordinate1, coordinate2 = roll_eyes()
 
 count = 0
 x = []
@@ -412,4 +441,3 @@ ax.plot(x, y, z)
 # ax.plot(x, y, z)
 plt.show()
 '''
-

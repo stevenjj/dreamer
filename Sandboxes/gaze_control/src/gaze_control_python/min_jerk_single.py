@@ -8,29 +8,28 @@ import numpy as np
 #		The three movement attributes will be stored in a numpy array
 #		Dt must be a positive number
 #		pull_head notes that we want that point to move the head itself rather than change the gaze length
-#		tilt specifies how much to tilt the head by, runs from something like -pi/4 to pi/4
-#			This should only be used for x_coordinates
+#		special specifies either how much to tilt the head by or how much to blink
+#			This should only be used for x_coordinates for head and eye respectively
+#
 class Waypoint():
-	def __init__(self, x, dot_x, ddot_x, Dt, pull_head = False, tilt = 0):
+	def __init__(self, x, dot_x, ddot_x, Dt, pull_head = False, special = 0):
 		self.s = np.array([x, dot_x, ddot_x])
 		self.Dt = Dt
 		self.pull_head = pull_head
-		self.tilt = tilt
+		self.special = special
 
 	def get_pull(self):
 		return self.pull_head
 
-	def get_tilt(self):
-		return self.tilt
+	def get_special(self):
+		return self.special
 
 ### Class MinimumJerk
 #		Declare this class with a standard vertical array of waypoints
 #		Note that in our implementation of Minimum Jerk, Dt takes a different role from in Waypoint
 #		It becomes absolute time rather than a change in time, starting from t = 0
 class MinimumJerk():
-	def __init__(self, waypoint_list, max_vel = 0.5, max_accel = 0.1):
-		self.max_vel = max_vel
-		self.max_accel = max_accel
+	def __init__(self, waypoint_list):
 		self.waypoint_list = waypoint_list
 
 		# Transfers changes in time between points to absolute time
@@ -40,16 +39,16 @@ class MinimumJerk():
 
 		# Automatically calculate all coefficients
 		self.coeffs = np.zeros((len(waypoint_list), 6)) # coeffs for x,y,z axes
+		self.special_coeffs = np.zeros((len(waypoint_list), 2)) # drawing a straight line
 		self.get_all_min_jerk_coeffs()
-
 
 	def total_run_time(self):
 		return self.waypoint_list[len(self.waypoint_list)-1].Dt
 	
 	# Function: Calculates the minimum jerk trajectory between two points
-	# Input: two Waypoint classes, initial point then final point
-	# Return: coefficient matrix of the 5th order minimum Jerk equation
-	def point_min_jerk_coeffs(self, waypoint_i, waypoint_f, axis=0):
+	# Input: Two Waypoint classes, initial point then final point
+	# Return: Coefficient matrix of the 5th order minimum Jerk equation
+	def point_min_jerk_coeffs(self, waypoint_i, waypoint_f):
 		to = float(waypoint_i.Dt)
 		tf = float(waypoint_f.Dt)
 		T_matrix_coeffs = np.array([ 
@@ -66,14 +65,23 @@ class MinimumJerk():
 
 		return coeffs
 
+	# Function: Calculates a straight line between two waypoints
+	# Input: Two Waypoint classes, initial point then final point
+	# Return: Coefficients of a straight line mx+b
+	def special_line(self, waypoint_i, waypoint_f):
+		num_waypoints = len(self.waypoint_list)
+		slope = (waypoint_f.get_special() - waypoint_i.get_special()) / (waypoint_f.Dt - waypoint_i.Dt)
+		b = waypoint_f.get_special() - slope * waypoint_f.Dt
+		return np.array([slope, b])
+
 	# Function: Updates coeffs Class variable with minimum jerk trajectories for all points
 	# Input: None
 	# Return: None
-	def get_all_min_jerk_coeffs(self, DT_des=1):
+	def get_all_min_jerk_coeffs(self):
 		num_waypoints = len(self.waypoint_list)
 		for i in range(1, len(self.waypoint_list)):
 			self.coeffs[i-1] = self.point_min_jerk_coeffs(self.waypoint_list[i-1], self.waypoint_list[i])
-
+			self.special_coeffs[i-1] = self.special_line(self.waypoint_list[i-1], self.waypoint_list[i])		
 	 
 	# Function: Returns the position, velocty, and acceleration of the functions given a time
 	# Input: time
@@ -140,17 +148,16 @@ class MinimumJerk():
 			if (self.waypoint_list[i-1].Dt <= time <= self.waypoint_list[i].Dt):
 				return self.waypoint_list[i].get_pull()	
 	
-	def get_tilt(self, time):
+	def get_special(self, time):
 		length = len(self.waypoint_list)
 		if(time < 0):
 			return None
 
 		elif(time > self.waypoint_list[length-1].Dt):
 			time = self.waypoint_list[length-1].Dt
-
 		for i in range(1, length):
 			if (self.waypoint_list[i-1].Dt <= time <= self.waypoint_list[i].Dt):
-				return self.waypoint_list[i].get_tilt()
+				return self.special_coeffs[i-1][0]*time + self.special_coeffs[i-1][1]
 
 '''
 ### Sample Code:

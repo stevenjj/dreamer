@@ -112,7 +112,7 @@ def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, o
     
     # So tilting
     phi = tilt
-    theta = phi * scaling
+    theta = phi
     head_tilt = Rot(x_world_hat, theta)
     return np.dot(head_tilt, R_desired) 
     # print 'Desired Orientation '
@@ -315,7 +315,8 @@ class Controller():
 
         self.piecewise_func_head = None
         self.piecewise_func_eyes = None
-        self.piecewise_func_total_run_time = 0        
+        self.piecewise_func_total_run_time = 0
+        self.current_tilt = 0        
 
     # Function: Sets up joint limit bounds
     # Inputs: None
@@ -355,7 +356,7 @@ class Controller():
         ubar_q_i = self.joint_limit_min[i]        
         beta_i = self.beta[i]
 
-        print 'joint ', i, 'q_i', q_i, 'utilde_q', utilde_q_i, 'tilde_q_i', tilde_q_i
+        # print 'joint ', i, 'q_i', q_i, 'utilde_q', utilde_q_i, 'tilde_q_i', tilde_q_i
 
         if (q_i >= bar_q_i):
             #print '       COND 1'
@@ -597,7 +598,8 @@ class Controller():
 
         # Calculate FeedForward 
         # Calculate new Q_des (desired configuration) and current orientation error
-        d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'head', self.piecewise_func_head.get_tilt(t)) 
+        tilt = self.piecewise_func_head.get_special(t)
+        d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'head', tilt) 
         dx_head = d_theta_error * angular_vel_hat
         
 
@@ -619,7 +621,7 @@ class Controller():
        
         HEAD = 1
         EYES = 2
-        PRIORITY = HEAD
+        PRIORITY = EYES
 
         if (PRIORITY == HEAD):
             # Adding an array of linear translations now makes this a body twist representation of how the head should move
@@ -768,7 +770,7 @@ class Controller():
                             h_eye_max = h_candidate
                     h_j = h_eye_max            
 
-            print 'joint', j, 'h_j', h_j
+            # print 'joint', j, 'h_j', h_j
 
             dx0_i_j = h_j*(x0_d[j]) + (1 - h_j)*(J0_j).dot(dq_wj)
         
@@ -818,6 +820,8 @@ class Controller():
         if (t > DT):
             result = True
 
+        # Variable to add blinking parameter
+        blink = self.piecewise_func_eyes.get_special(t)
         return Q_des, result
 
 
