@@ -43,7 +43,7 @@ class Coordinates_3D():
 
 	# Tells whether or not to pull the head during a waypoint iteration
 	def get_pull(self, time):
-		return np.array([self.x.get_pull(time), self.y.get_pull(time), self.z.get_pull(time)])
+		return self.x.get_pull(time)
 
 	def get_special(self, time):
 		return self.x.get_special(time)
@@ -141,57 +141,89 @@ def clover(radius, time, distance = 1):
 def test_script():
 	head_min_jerk = None
 	eyes_min_jerk = None
-	time = 6.0
-	y_dist = .55
-	z_dist = .6
-	accuracy = 100
+	gaze_length = 4.0
+	shift = .6
+	yaw = .6
+	time = 8.0
 	head_x = []
-	head_x.append(single.Waypoint(1.2, 0, 0, 0))
-	head_x.append(single.Waypoint(1.2, 0, 0, time/16, False, np.pi/12.0))
-	head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, -np.pi/12.0))
-	head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, np.pi/12.0))
-	head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, -np.pi/12.0))
-	head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, np.pi/12.0))
-	head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, -np.pi/12.0))
-	head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, np.pi/12.0))
-	head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, -np.pi/12.0))
-	
-	# head_x.append(single.Waypoint(1.2, 0, 0, time/2))
-	# head_x.append(single.Waypoint(1.2, 0, 0, time/3, False, -np.pi/12.0))
-	
+	head_x.append(single.Waypoint(gaze_length, 0, 0, 0))
+	head_x.append(single.Waypoint(gaze_length, 0, 0, time))
 	head_y = []
 	head_y.append(single.Waypoint(0, 0, 0, 0))
-	head_y.append(single.Waypoint(0, 0, 0, time))
-	
+	head_y.append(single.Waypoint(yaw, 0, 0, time))
 	head_z = []
 	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
-	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, time))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1+shift, 0, 0, time))
 
 	x_coord = single.MinimumJerk(head_x)
 	y_coord = single.MinimumJerk(head_y)
 	z_coord = single.MinimumJerk(head_z)
-
+	
 	head_min = Coordinates_3D(x_coord, y_coord, z_coord)
+
 
 	eyes_x = []
 	eyes_y = []
 	eyes_z = []
-	eyes_x.append(single.Waypoint(3.0, 0, 0, 0))
-	eyes_x.append(single.Waypoint(3.0, 0, 0, time))
+	eyes_x.append(single.Waypoint(gaze_length, 0, 0, 0))
+	eyes_x.append(single.Waypoint(gaze_length, 0, 0, time))
 	eyes_y.append(single.Waypoint(0, 0, 0, 0))
-	eyes_y.append(single.Waypoint(.5, 0, 0, time/8))
-	eyes_y.append(single.Waypoint(.5, 0, 0, time/4))
-	eyes_y.append(single.Waypoint(-.5, 0, 0, time/8))
-	eyes_y.append(single.Waypoint(-.5, 0, 0, time/4))
+	eyes_y.append(single.Waypoint(yaw, 0, 0, time))
 	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
-	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1+1.0, 0, 0, time/8.0))
-	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1+1.0, 0, 0, time-time/8.0))
-
+	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1+shift, 0, 0, time))
+	
 	x_coord = single.MinimumJerk(eyes_x)
 	y_coord = single.MinimumJerk(eyes_y)
 	z_coord = single.MinimumJerk(eyes_z)
-
 	eyes_min = Coordinates_3D(x_coord, y_coord, z_coord)
+	
+
+	# y_dist = .55
+	# z_dist = .6
+	# accuracy = 100
+	# head_x = []
+	# head_x.append(single.Waypoint(1.2, 0, 0, 0))
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/16, False, np.pi/12.0))
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, -np.pi/12.0))
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, np.pi/12.0))
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, -np.pi/12.0))
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, np.pi/12.0))
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, -np.pi/12.0))
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, np.pi/12.0))
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, -np.pi/12.0))
+	
+	# # head_x.append(single.Waypoint(1.2, 0, 0, time/2))
+	# # head_x.append(single.Waypoint(1.2, 0, 0, time/3, False, -np.pi/12.0))
+	
+	# head_y = []
+	# head_y.append(single.Waypoint(0, 0, 0, 0))
+	# head_y.append(single.Waypoint(0, 0, 0, time))
+	
+	# head_z = []
+	# head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
+	# head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, time))
+
+	# x_coord = single.MinimumJerk(head_x)
+	# y_coord = single.MinimumJerk(head_y)
+	# z_coord = single.MinimumJerk(head_z)
+
+	# head_min = Coordinates_3D(x_coord, y_coord, z_coord)
+
+	# eyes_x = []
+	# eyes_y = []
+	# eyes_z = []
+	# eyes_x.append(single.Waypoint(3.0, 0, 0, 0))
+	# eyes_x.append(single.Waypoint(3.0, 0, 0, time))
+	# eyes_y.append(single.Waypoint(0, 0, 0, 0))
+	# eyes_y.append(single.Waypoint(0, 0, 0, time))
+	# eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
+	# eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, time))
+
+	# x_coord = single.MinimumJerk(eyes_x)
+	# y_coord = single.MinimumJerk(eyes_y)
+	# z_coord = single.MinimumJerk(eyes_z)
+
+	# eyes_min = Coordinates_3D(x_coord, y_coord, z_coord)
 
 	return head_min, eyes_min
 
@@ -216,7 +248,7 @@ def surprised_no(gaze_length = 1.0):
 	head_min_jerk = None
 	eyes_min_jerk = None
 	time = 7.5
-	no_distance = gaze_length / np.cos(np.pi/6.0) # Causes 30 degree motion regardless of focus point
+	no_distance = gaze_length * np.tan(np.pi/12.0) # Causes 30 degree motion total regardless of focus point
 	# 60% of maxmimum joint movement
 	head_back = 0 # np.sin(.26)*hk.Head_Kinematics().l1*.6
 	# Head will move according to above
@@ -296,7 +328,7 @@ def roll_eyes(x_length = .8):
 	# Apply tilting to head x coordinate
 	head_x = []
 	head_x.append(single.Waypoint(x_gaze_length, 0, 0, 0))
-	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time, False, np.pi/12.0))
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time, False, np.pi/10.0))
 	
 	# We want a pi/6 rotation of the head about the z axis which will be dependent upon gaze length
 	# z head gaze will follow a 1-1 ratio
@@ -330,14 +362,14 @@ def roll_eyes(x_length = .8):
 
 	# Multiplier for how much higher above the head position to look
 	# Human max gaze up is 30 degrees so because the head already moves 30 degrees up, we simply double
-	peak_mult = 2
+	peak_mult = 2.5
 	
 	# Scaling factor for the parabola so that the left bound is always at hk.Head_Kinematics().l1
 	scale = (peak_mult*y_gaze_length + hk.Head_Kinematics().l1)/(y_gaze_length**2)
 	
 	# Find where the parabola end point is. np.pi/3 radians from the inition point respective to the y axis
 	a = 20 # Arbitrary value greater than the check
-	while(a > (np.pi/3.0) ):
+	while(a > (np.pi/5.0) ):
 		a = np.arctan( (peak_mult*-y_gaze_length + scale*((stop_point+y_gaze_length)**2) - hk.Head_Kinematics().l1) / stop_point)
 		stop_point+=.001 # 1mm of accuracy
 
@@ -408,8 +440,8 @@ for i in range(0, 200):
 plt.plot(x, y)
 plt.show()
 '''
-'''
-a = piecewise_np(1)
+
+# a = piecewise_np(1)
 
 
 # coordinate1 = circle_xz(.80, 16.0)
@@ -440,4 +472,3 @@ ax.plot(x, y, z)
 #     count = count + .05
 # ax.plot(x, y, z)
 plt.show()
-'''

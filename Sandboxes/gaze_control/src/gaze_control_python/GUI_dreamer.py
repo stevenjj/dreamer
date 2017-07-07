@@ -42,7 +42,8 @@ class DreamerGui(QtGui.QWidget):
                        TRACK_NEAR_PERSON_BEST_STRING,                       
                        AVOID_NEAR_PERSON_STRING,
                        DO_WAYPOINT_TRAJ_STRING,
-                       CIRCLE_TRAJ_STRING
+                       CIRCLE_TRAJ_STRING,
+                       LOW_LEVEL_PUBLISH_STRING
                        ] 
       
       positions = [(i,j) for i in range(len(self.commands)) for j in range(3)]
@@ -118,6 +119,9 @@ class DreamerGui(QtGui.QWidget):
       
       elif command == CIRCLE_TRAJ_STRING: 
         num_cmd = CIRCLE_TRAJ
+
+      elif command == LOW_LEVEL_PUBLISH_STRING: 
+        num_cmd = LOW_LEVEL_PUBLISH
       
       else:
         num_cmd = INVALID_CMD

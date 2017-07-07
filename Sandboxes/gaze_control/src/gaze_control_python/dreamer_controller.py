@@ -621,7 +621,7 @@ class Controller():
        
         HEAD = 1
         EYES = 2
-        PRIORITY = EYES
+        PRIORITY = HEAD
 
         if (PRIORITY == HEAD):
             # Adding an array of linear translations now makes this a body twist representation of how the head should move
@@ -632,7 +632,7 @@ class Controller():
             xyz_head_gaze_loc_prev = self.piecewise_func_head.get_position(t-dt)
             xyz_loc_dif = xyz_head_gaze_loc - xyz_head_gaze_loc_prev
             # TODO This does not work for eye priority stuff
-            if(self.piecewise_func_head.get_pull(t)[0]):
+            if(self.piecewise_func_head.get_pull(t)):
                 # The following line will translate the figure based on how the x point moves
                 dx_head = np.concatenate( (dx_head, np.array([xyz_loc_dif[0], 0, 0]) ),  axis=0)
             else:

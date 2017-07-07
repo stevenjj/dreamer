@@ -18,3 +18,4 @@ AVOID_NEAR_PERSON,	    	  AVOID_NEAR_PERSON_STRING   		         = 9, "Avoid Near
 DO_WAYPOINT_TRAJ,   	 	  DO_WAYPOINT_TRAJ_STRING   		         = 10, "Go To Waypoints" # Eye Priority
 
 CIRCLE_TRAJ,   	 	  CIRCLE_TRAJ_STRING   		         = 11, "Trace Circle" # Head Priority
+LOW_LEVEL_PUBLISH,   	 	  LOW_LEVEL_PUBLISH_STRING   		         = 12, "Publish To Low Level" 

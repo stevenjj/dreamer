@@ -200,7 +200,10 @@ class Dreamer_Head():
         self.gui_command_executing = False
         self.behavior_commanded = False
         self.task_commanded = False
-
+        
+        # For my slow af computer
+        self.publish_to_low_level = False
+        self.low_level_fifo = []
 
 
     #-------------------------------------------------------------
@@ -268,7 +271,7 @@ class Dreamer_Head():
         hjc = HeadJointCmdRequest()
         hjc.numCtrlSteps.data = LOW_LEVEL_FREQ*self.interval 
 
-        joints = joint_map
+        joints = joint_map 
         rads = joint_val
 
         print rads
@@ -311,6 +314,47 @@ class Dreamer_Head():
 
 
 
+# ----------------------- Commands for Manual Publish of joints -------------------------
+    def save_low_level_commands(self):
+        joint_map, joint_val = self.prepare_joint_command()
+        joint_val = joint_val * 1.0 # limit the joint value for now
+        hjc = HeadJointCmdRequest()
+        hjc.numCtrlSteps.data = LOW_LEVEL_FREQ*self.interval 
+
+        joints = joint_map
+        rads = joint_val
+
+        hjc.joint_mapping.data = joints
+        hjc.q_cmd_radians.data = rads
+        self.low_level_fifo.append(hjc)
+
+
+    def publish_low_level_commands(self):
+        self.enable_low_level()
+        print "Publishing Low Level Commands"
+        i = 0
+        while ( (not rospy.is_shutdown()) and (i < len(self.low_level_fifo))):
+            self.update_time()
+            self.interval = self.ROS_current_time - self.time_since_last_loop                       
+            # Append commands at 30 Hz
+            if (self.interval > (1.0/50.0)):
+                try:
+                    self.ctrl_deq_append(self.low_level_fifo[i])
+                except:
+                    print 'failed to send message'
+                    print 'ctrl_deq_append must not be initialized'
+                self.time_since_last_loop = self.ROS_current_time
+                i+=1
+        print "Low Level Publish Complete"
+        self.disable_low_level()
+        self.low_level_fifo = []
+        self.publish_to_low_level = False
+        return
+
+
+
+
+
     # -----------------------------------------------------------------
     # Function: Send Joint Commands to RVIZ
     #   and to low Level if possible @ the control loop frequency
@@ -321,11 +365,15 @@ class Dreamer_Head():
             # Send Low Level Commands if LL Control is enabled
         if (self.low_level_control and 
             self.current_state != STATE_IDLE and 
-            self.current_state != STATE_GO_HOME):
+            self.current_state != STATE_GO_HOME
+            and (not self.publish_to_low_level)):
 
             print 'sending low level commands now'
             self.send_low_level_commands()
 
+        elif(self.current_state != STATE_IDLE and
+            self.current_state != STATE_GO_HOME):
+            self.save_low_level_commands()
 
         self.cmd_rate_measured = 1.0/self.interval #1.0/self.dt #1.0/cmd_interval
         self.time_since_last_cmd_sent = rospy.get_time()
@@ -367,6 +415,9 @@ class Dreamer_Head():
             # Change State to Idle
             self.current_state = STATE_IDLE                     
             self.reset_state_tasks_behaviors()
+
+            self.publish_to_low_level = False
+            self.low_level_fifo = []
         
         elif gui_command == GO_HOME:
             self.gui_command = gui_command
@@ -427,7 +478,17 @@ class Dreamer_Head():
             self.gui_command = gui_command
             self.gui_command_string = CIRCLE_TRAJ_STRING
             self.reset_state_tasks_behaviors()            
-            self.current_behavior = BEHAVIOR_FOLLOW_CIRCLE            
+            self.current_behavior = BEHAVIOR_FOLLOW_CIRCLE  
+
+        elif gui_command == LOW_LEVEL_PUBLISH:
+            self.gui_command = gui_command
+            self.gui_command_string = LOW_LEVEL_PUBLISH_STRING
+            self.publish_to_low_level = True # Variable used to stop standard low level publisher
+            f = open('output.txt', 'w')
+            f.write(str(self.low_level_fifo))
+            self.publish_low_level_commands()
+
+
         
         else:
             print gui_command, "Invalid Command"
@@ -586,7 +647,7 @@ class Dreamer_Head():
         elif ((self.current_behavior == BEHAVIOR_FOLLOW_WAYPOINTS) and self.behavior_commanded == False):
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
-            piecewise_func_head, piecewise_func_eyes = roll_eyes(1.5)
+            piecewise_func_head, piecewise_func_eyes = roll_eyes()
             # Draw a circle behavior
             # piecewise_func_head = circle_yz(.5, 8.0)
             # Extract initial coordinates
@@ -605,7 +666,7 @@ class Dreamer_Head():
 
 
             # Go to the initial coordinates before executing minimum jerk
-            duration = 2
+            duration = 2.0
             task_params.append( self.set_prioritized_go_to_point_params(np.array( [x_head, y_head, z_head] ), np.array( [x_eyes, y_eyes, z_eyes] ), duration) )
             
             total_run_time = piecewise_func_head.total_run_time()
@@ -624,7 +685,7 @@ class Dreamer_Head():
             z = coord[2]       
 
             # Go to the initial coordinates before executing minimum jerk
-            duration = 2
+            duration = 2.0
             task_params.append( self.set_prioritized_go_to_point_params(np.array( [x, y, z] ), np.array( [x, y, z] ), duration) )
             
             total_run_time = piecewise_func.total_run_time()
@@ -739,6 +800,9 @@ class Dreamer_Head():
         self.gui_command_executing = False
         self.behavior_commanded = False
         self.task_commanded = False
+        self.publish_to_low_level = False # Variable used to stop standard low level publisher
+
+
     # Main State Machine
     #   State Machine computes current joint positions
     def state_logic(self):
