@@ -83,7 +83,12 @@ class Custom_Joint_Publisher():
                 if jtype == 'continuous':
                     joint['continuous'] = True
                 self.free_joints[name] = joint
-
+        
+        # Manually add eyelids
+        self.joint_list.append('eyelids')
+        joint = {'min': 0.0, 'max': 3.14159265359, 'zero': 0}
+        joint['position'] = zeroval
+        self.free_joints['eyelids'] = joint
         #self.print_joints()
 
     def print_joints(self):

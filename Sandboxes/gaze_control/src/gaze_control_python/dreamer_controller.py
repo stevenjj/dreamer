@@ -86,7 +86,11 @@ def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, o
     z_hat_o = z_world_hat
     if (phi <= epsilon):
         z_hat_o = y_world_hat
-
+    # So tilting
+    phi = tilt
+    theta = phi
+    head_tilt = Rot(x_world_hat, theta)
+    z_hat_o = np.dot(head_tilt, z_hat_o)
 #    x_hat_cur = np.array(R_init)[:,0]
 
     # Get the z axis of the orientation
@@ -110,11 +114,7 @@ def calc_smooth_desired_orientation(x_gaze_loc, p_cur, Q_cur, Q_init, scaling, o
     #    R_desired = R_desired*Rot(world_x_hat, theta) 
 
     
-    # So tilting
-    phi = tilt
-    theta = phi
-    head_tilt = Rot(x_world_hat, theta)
-    return np.dot(head_tilt, R_desired) 
+    return R_desired 
     # print 'Desired Orientation '
     # print 'x_hat', x_hat_d.T
     # print 'y_hat', y_hat_d.T
@@ -593,6 +593,7 @@ class Controller():
         # Get head Jacobian
         J_head = self.kinematics.get_6D_Head_Jacobian(Q_cur)
 
+
         # Current desired head gaze point
         p_head_des_cur = xyz_head_gaze_loc
 
@@ -777,6 +778,7 @@ class Controller():
             dx0_i[j] = dx0_i_j
 
 
+
         # Define constraint task as highest priority
         dq0 = np.linalg.pinv(J0_constraint).dot(dx0_i)
         
@@ -797,9 +799,8 @@ class Controller():
         dq_tot = dq0 #+ dq1 + dq2 #dq1_proposed + dq2_proposed # dq0 + dq1 + dq2 
         Q_des = Q_cur + dq_tot
 
-
+        
         self.prev_traj_time = t
-       
         # Get orientation error for eyes based on current joint configuration
         theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'right_eye')
         theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'left_eye')
@@ -808,12 +809,10 @@ class Controller():
         R_cur_head, p_cur_head = self.kinematics.get_6D_Head_Position(Q_cur)
         R_cur, p_cur_right_eye = self.kinematics.get_6D_Right_Eye_Position(Q_cur)
         R_cur, p_cur_left_eye = self.kinematics.get_6D_Left_Eye_Position(Q_cur)
-
         # Get a unit vector of the difference between the current position and desired position
         self.gaze_focus_states.current_focus_length[self.H] =   np.linalg.norm(p_cur_head - p_head_des_cur)  
         self.gaze_focus_states.current_focus_length[self.RE] =  np.linalg.norm(p_cur_right_eye - p_des_cur_re)         
         self.gaze_focus_states.current_focus_length[self.LE] =  np.linalg.norm(p_cur_left_eye -p_des_cur_le)
-
 
         # Prepare result of command
         result = False
@@ -1011,8 +1010,8 @@ class Controller():
         # p_des_cur_re = xyz_eye_gaze_loc
         # p_des_cur_le = xyz_eye_gaze_loc        
 
-        print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
-        print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
+        # print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
+        # print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
 
 
         R_cur_head, p_cur_head = self.kinematics.get_6D_Head_Position(Q_cur)

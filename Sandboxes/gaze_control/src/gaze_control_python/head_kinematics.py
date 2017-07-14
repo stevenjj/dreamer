@@ -42,6 +42,7 @@ class Head_Kinematics():
 	S4 = [0, -1, 0, l1, 0, -l2]
 	S5 = [0,  0, 1, -l3, -l2, 0]
 	S6 = [0,  0, 1, l3, -l2, 0]
+	S7 = [0, 1, 0, 0, -l2, 0]
 
 	R_head_home = np.eye(3)
 	p_head_home = [0, 0, l1]
@@ -64,7 +65,8 @@ class Head_Kinematics():
 								3: "upper_neck_pitch", \
 								4: "eye_pitch", \
 								5: "right_eye_yaw", \
-								6: "left_eye_yaw"}								
+								6: "left_eye_yaw", \
+								7: "eyelids"}								
 
 	# Returns the head's 6xn Jacobian
 	def get_6D_Head_Jacobian(self, JList):

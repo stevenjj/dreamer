@@ -29,7 +29,7 @@ from GUI_params import *
 JOINT_LIM_BOUND = 0.9 #between 0 to 1.0
 
 # Rate Constants
-NODE_RATE = 100#10 # Update rate of this node in Hz
+NODE_RATE = 50#10 # Update rate of this node in Hz
 
 LOW_LEVEL_FREQ = 550
 
@@ -315,9 +315,12 @@ class Dreamer_Head():
 
 
 # ----------------------- Commands for Manual Publish of joints -------------------------
+    # Function: Saves joint positions to a fifo for later publishing
+    # Inputs: None
+    # Outputs: None
     def save_low_level_commands(self):
         joint_map, joint_val = self.prepare_joint_command()
-        joint_val = joint_val * 1.0 # limit the joint value for now
+        joint_val = joint_val
         hjc = HeadJointCmdRequest()
         hjc.numCtrlSteps.data = LOW_LEVEL_FREQ*self.interval 
 
@@ -327,8 +330,13 @@ class Dreamer_Head():
         hjc.joint_mapping.data = joints
         hjc.q_cmd_radians.data = rads
         self.low_level_fifo.append(hjc)
+        return
 
-
+    # Function: Publish saved joint positions from low level fifo to dreamer robot
+    # Inputs: None
+    # Outputs: None
+    # Notes: Make sure not to publish commands too quickly or it'll skip some
+    #        After completion will clear the fifo, disable low level, and turn off low level publishing
     def publish_low_level_commands(self):
         self.enable_low_level()
         print "Publishing Low Level Commands"
@@ -336,8 +344,8 @@ class Dreamer_Head():
         while ( (not rospy.is_shutdown()) and (i < len(self.low_level_fifo))):
             self.update_time()
             self.interval = self.ROS_current_time - self.time_since_last_loop                       
-            # Append commands at 30 Hz
-            if (self.interval > (1.0/50.0)):
+            # Append commands at 20 Hz to not overflow the fifo
+            if (self.interval > (1.0/20.0)):
                 try:
                     self.ctrl_deq_append(self.low_level_fifo[i])
                 except:
@@ -416,6 +424,7 @@ class Dreamer_Head():
             self.current_state = STATE_IDLE                     
             self.reset_state_tasks_behaviors()
 
+            # Clear low level fifo saved information
             self.publish_to_low_level = False
             self.low_level_fifo = []
         
@@ -647,7 +656,7 @@ class Dreamer_Head():
         elif ((self.current_behavior == BEHAVIOR_FOLLOW_WAYPOINTS) and self.behavior_commanded == False):
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
-            piecewise_func_head, piecewise_func_eyes = roll_eyes()
+            piecewise_func_head, piecewise_func_eyes = test_script()
             # Draw a circle behavior
             # piecewise_func_head = circle_yz(.5, 8.0)
             # Extract initial coordinates
@@ -663,10 +672,10 @@ class Dreamer_Head():
             x_eyes = eyes_coord[0]
             y_eyes = eyes_coord[1]
             z_eyes = eyes_coord[2]            
-
+            scale = 1.0
 
             # Go to the initial coordinates before executing minimum jerk
-            duration = 2.0
+            duration = 2.0 * scale
             task_params.append( self.set_prioritized_go_to_point_params(np.array( [x_head, y_head, z_head] ), np.array( [x_eyes, y_eyes, z_eyes] ), duration) )
             
             total_run_time = piecewise_func_head.total_run_time()
@@ -901,18 +910,17 @@ class Dreamer_Head():
                 self.state_logic()
                 # Send Commands
                 self.send_command()
-
+                
                 # Visualization
                 self.gaze_focus_states.publish_focus_length()
-
+                
                 # Find People
-                self.people_manager.loop()
+                # self.people_manager.loop()
 
                 # Print state information
                 # self.print_debug()
                 # Sleep
                 self.time_since_last_loop = self.ROS_current_time
-
 
 
 

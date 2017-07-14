@@ -12,7 +12,7 @@ import numpy as np
 #			This should only be used for x_coordinates for head and eye respectively
 #
 class Waypoint():
-	def __init__(self, x, dot_x, ddot_x, Dt, pull_head = False, special = 0):
+	def __init__(self, x, dot_x, ddot_x, Dt, special = 0, pull_head = False):
 		self.s = np.array([x, dot_x, ddot_x])
 		self.Dt = Dt
 		self.pull_head = pull_head

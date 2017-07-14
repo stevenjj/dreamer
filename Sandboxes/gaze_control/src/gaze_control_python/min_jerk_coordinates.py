@@ -25,8 +25,8 @@ class Coordinates_3D():
 			x = self.x.get_position(time)*np.sin(self.z.get_position(time))*np.cos(self.y.get_position(time))
 			# y = r * sin(phi) * sin(theta)
 			y = self.x.get_position(time)*np.sin(self.z.get_position(time))*np.sin(self.y.get_position(time))
-			# z = r * sin(phi)
-			z = self.x.get_position(time)*np.sin(self.z.get_position(time))
+			# z = r * cos(phi)
+			z = self.x.get_position(time)*np.cos(self.z.get_position(time))+hk.Head_Kinematics().l1
 			return np.array([x,y,z])
 		else:
 			return np.array([self.x.get_position(time), self.y.get_position(time), self.z.get_position(time)])
@@ -141,13 +141,13 @@ def clover(radius, time, distance = 1):
 def test_script():
 	head_min_jerk = None
 	eyes_min_jerk = None
-	gaze_length = 4.0
-	shift = .6
-	yaw = .6
-	time = 8.0
+	gaze_length = 1.0
+	shift = .3
+	yaw = .3
+	time = 6.0
 	head_x = []
 	head_x.append(single.Waypoint(gaze_length, 0, 0, 0))
-	head_x.append(single.Waypoint(gaze_length, 0, 0, time))
+	head_x.append(single.Waypoint(gaze_length, 0, 0, time, np.pi/13.0))
 	head_y = []
 	head_y.append(single.Waypoint(0, 0, 0, 0))
 	head_y.append(single.Waypoint(yaw, 0, 0, time))
@@ -183,14 +183,14 @@ def test_script():
 	# accuracy = 100
 	# head_x = []
 	# head_x.append(single.Waypoint(1.2, 0, 0, 0))
-	# head_x.append(single.Waypoint(1.2, 0, 0, time/16, False, np.pi/12.0))
-	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, -np.pi/12.0))
-	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, np.pi/12.0))
-	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, -np.pi/12.0))
-	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, np.pi/12.0))
-	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, -np.pi/12.0))
-	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, np.pi/12.0))
-	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, False, -np.pi/12.0))
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/16, np.pi/12.0))
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, -np.pi/12.0))
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, np.pi/12.0))
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, -np.pi/12.0))
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, np.pi/12.0))
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, -np.pi/12.0))
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, np.pi/12.0))
+	# head_x.append(single.Waypoint(1.2, 0, 0, time/8, -np.pi/12.0))
 	
 	# # head_x.append(single.Waypoint(1.2, 0, 0, time/2))
 	# # head_x.append(single.Waypoint(1.2, 0, 0, time/3, False, -np.pi/12.0))
@@ -254,9 +254,9 @@ def surprised_no(gaze_length = 1.0):
 	# Head will move according to above
 	head_x = []
 	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2, 0, 0, 0))
-	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2 - head_back, 0, 0, .25, True))
+	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2 - head_back, 0, 0, .25, 0, True))
 	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2 - head_back, 0, 0, 5.25))
-	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2, 0, 0, 2.0, True))
+	head_x.append(single.Waypoint(gaze_length + hk.Head_Kinematics().l2, 0, 0, 2.0, 0, True))
 
 	
 	head_y = []
@@ -320,26 +320,25 @@ def surprised_no(gaze_length = 1.0):
 def roll_eyes(x_length = .8):
 	head_min_jerk = None
 	eyes_min_jerk = None
-	time = 1.9
+	time = 2.0*3.0
 	accuracy = 150
 
-	x_gaze_length = hk.Head_Kinematics().l2 + x_length
 
+	static_x_gaze_length = hk.Head_Kinematics().l2 + .8
 	# Apply tilting to head x coordinate
 	head_x = []
-	head_x.append(single.Waypoint(x_gaze_length, 0, 0, 0))
-	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time, False, np.pi/10.0))
+	head_x.append(single.Waypoint(static_x_gaze_length, 0, 0, 0))
+	head_x.append(single.Waypoint(static_x_gaze_length, 0, 0, time, -np.pi/26.0))
 	
 	# We want a pi/6 rotation of the head about the z axis which will be dependent upon gaze length
 	# z head gaze will follow a 1-1 ratio
-	y_gaze_length = -x_gaze_length * np.tan(np.pi/6.0)
+	static_y_gaze_length = -static_x_gaze_length * np.tan(np.pi/5.0)
 	head_y = []
 	head_y.append(single.Waypoint(0, 0, 0, 0))
-	head_y.append(single.Waypoint(y_gaze_length, 0, 0, time))
-
+	head_y.append(single.Waypoint(0, 0, 0, time))
 	head_z = []
 	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
-	head_z.append(single.Waypoint(-y_gaze_length + hk.Head_Kinematics().l1, 0, 0, time))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, time))
 
 
 	x_coord = single.MinimumJerk(head_x)
@@ -349,45 +348,339 @@ def roll_eyes(x_length = .8):
 	roll_eyes_head_min = Coordinates_3D(x_coord, y_coord, z_coord)
 	
 
+
+	# Eyes are done in polar coordinates
+	# x is radius, y is theta, z is phi
+
+	x_gaze_length = hk.Head_Kinematics().l2 + x_length
+	y_gaze_length = -x_gaze_length * np.tan(np.pi/6.0)
+
 	eyes_x = []
-	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, 0))
-
 	eyes_y = []
-	eyes_y.append(single.Waypoint(0, 0, 0, 0))
-
 	eyes_z = []
-	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
-	# eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, time))
-	stop_point = float(-y_gaze_length)
-
-	# Multiplier for how much higher above the head position to look
-	# Human max gaze up is 30 degrees so because the head already moves 30 degrees up, we simply double
-	peak_mult = 2.5
-	
-	# Scaling factor for the parabola so that the left bound is always at hk.Head_Kinematics().l1
-	scale = (peak_mult*y_gaze_length + hk.Head_Kinematics().l1)/(y_gaze_length**2)
-	
-	# Find where the parabola end point is. np.pi/3 radians from the inition point respective to the y axis
-	a = 20 # Arbitrary value greater than the check
-	while(a > (np.pi/5.0) ):
-		a = np.arctan( (peak_mult*-y_gaze_length + scale*((stop_point+y_gaze_length)**2) - hk.Head_Kinematics().l1) / stop_point)
-		stop_point+=.001 # 1mm of accuracy
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, 0))
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time))
 
 
-	time_range = np.linspace(0, stop_point, accuracy)
-	for i in range(accuracy):
-		t = time_range[i]
-		eyes_x.append(single.Waypoint(x_gaze_length*np.cos(i*np.pi/(6.0*accuracy)), 0, 0, time/float(accuracy)))
-		eyes_y.append(single.Waypoint(-2*x_gaze_length*np.sin(i*np.pi/(6.0*accuracy)), 0, 0, time/float(accuracy)))
-		eyes_z.append(single.Waypoint(peak_mult*-y_gaze_length + scale*((t+y_gaze_length)**2), 0, 0, time/float(accuracy)))
+	eyes_y.append(single.Waypoint(np.pi/12.0, 0, 0, 0))
+	for i in range(1, accuracy):
+		t = i/float(accuracy)
+		eyes_y.append(single.Waypoint((-np.pi/8.0 - np.pi/12.0)*t + np.pi/12.0, 0, 0, time/accuracy))
+
+
+
+	start_z = 3*np.pi/5.0
+	peak_z = np.pi/3.0
+
+	eyes_z.append(single.Waypoint(start_z, 0, 0, 0))
+	for i in range(1, accuracy):
+		t = .75*i*np.pi/float(accuracy)
+		eyes_z.append(single.Waypoint((peak_z-start_z)*np.sin(t) + start_z, 0, 0, time/accuracy))
 	
-	
+
 	x_coord = single.MinimumJerk(eyes_x)
 	y_coord = single.MinimumJerk(eyes_y)
 	z_coord = single.MinimumJerk(eyes_z)
-	roll_eyes_eyes_min = Coordinates_3D(x_coord, y_coord, z_coord)
+	roll_eyes_eyes_min = Coordinates_3D(x_coord, y_coord, z_coord, 'p')
 
 	return roll_eyes_head_min, roll_eyes_eyes_min
+	
+	# eyes_x = []
+	# eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, 0))
+
+	# eyes_y = []
+	# eyes_y.append(single.Waypoint(0, 0, 0, 0))
+
+
+	# # Multiplier for how much higher above the head position to look
+	# # Human max gaze up is 30 degrees so because the head already moves 30 degrees up, we will go more than double
+	# peak_mult = 3.0
+	
+	# # Scaling factor for the parabola so that the left bound is always at hk.Head_Kinematics().l1
+	# scale = (peak_mult*y_gaze_length + hk.Head_Kinematics().l1)/(y_gaze_length**2)
+	
+	# z_gaze_length = -x_gaze_length * np.tan(np.pi/12.0)
+	# stop_point_init = (-np.sqrt((z_gaze_length - peak_mult*-y_gaze_length)/scale) - y_gaze_length)
+	# print peak_mult*-y_gaze_length + scale*((stop_point_init+y_gaze_length)**2)
+
+	# eyes_z = []
+	# eyes_z.append(single.Waypoint(peak_mult*-y_gaze_length + scale*((stop_point_init+y_gaze_length)**2), 0, 0, 0))
+
+
+
+
+	# # Find where the parabola end point is. np.pi/3 radians from the inition point respective to the y axis
+	# stop_point_final = float(-y_gaze_length)
+	# a = 20 # Arbitrary value greater than the check
+	# while(a > (np.pi/6.0) ):
+	# 	a = np.arctan( (peak_mult*-y_gaze_length + scale*((stop_point_final+y_gaze_length)**2) - hk.Head_Kinematics().l1) / stop_point_final)
+	# 	stop_point_final+=.001 # 1mm of accuracy
+
+
+	# time_range = np.linspace(stop_point_init, stop_point_final, accuracy)
+	# for i in range(accuracy):
+	# 	t = time_range[i]
+	# 	eyes_x.append(single.Waypoint(x_gaze_length*np.cos(i*np.pi/(6.0*accuracy)), 0, 0, time/float(accuracy)))
+	# 	eyes_y.append(single.Waypoint(-2*x_gaze_length*np.sin(i*np.pi/(6.0*accuracy*stop_point_final)), 0, 0, time/float(accuracy)))
+	# 	eyes_z.append(single.Waypoint(peak_mult*-y_gaze_length + scale*((t+y_gaze_length)**2), 0, 0, time/float(accuracy)))
+	
+# Function: Makes dreamer look sleepy, needs eyelids added though
+# Inputs: None
+# Returns: head and eye min_jerk
+# Notes:
+#		pi/13~ is the max I can roll
+# 		Done in polar coordinates
+# 		Motion Order:
+#			1. random motion up and down with faster motion up than down
+# 			
+# 
+# 
+def sleepy():
+	x_gaze_length = 1.0
+	accuracy = 25
+	close_eyes = np.pi*35.0/36.0
+	open_eyes = np.pi/36.0
+	rand_head_pitch_low = (np.random.rand()) * np.pi/18.0 + np.pi/2
+	rand_head_yaw = (np.random.rand()-.5) * np.pi/12
+
+	head_x = []
+	head_y = []
+	head_z = []
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, 0))
+	head_y.append(single.Waypoint(rand_head_yaw, 0, 0, 0))
+	head_z.append(single.Waypoint(rand_head_pitch_low, 0, 0, 0))
+
+	eyes_x = []
+	eyes_y = []
+	eyes_z = []
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, 0))
+	eyes_y.append(single.Waypoint(rand_head_yaw, 0, 0, 0))
+	eyes_z.append(single.Waypoint(rand_head_pitch_low, 0, 0, 0))
+
+	for i in range(10):
+		rand_head_tilt = (np.random.rand()-.5) * np.pi/8
+		rand_head_pitch_low = (np.random.rand()) * np.pi/8.0 + np.pi/2.0 + np.pi/18.0
+		rand_head_pitch_high = (np.random.rand()) * -np.pi/36.0 + np.pi/2.0
+		rand_head_yaw = (np.random.rand()-.5) * np.pi/12
+		time = (np.random.rand() + 1.0) * 2 * (rand_head_pitch_low-np.pi/2.0)/(np.pi/18.0) 
+		time2 = (rand_head_pitch_low-np.pi/2.0)/(np.pi/18.0)
+
+		head_x.append(single.Waypoint(x_gaze_length, 0, 0, time, rand_head_tilt))
+		head_y.append(single.Waypoint(rand_head_yaw, 0, 0, time))
+		head_z.append(single.Waypoint(rand_head_pitch_low, 0, 0, time))
+		
+		eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time, close_eyes))
+		eyes_y.append(single.Waypoint(rand_head_yaw, 0, 0, time))
+		eyes_z.append(single.Waypoint(rand_head_pitch_low, 0, 0, time))
+
+
+		rand_head_yaw_low = (np.random.rand()-.5)*np.pi/12.0
+		head_x.append(single.Waypoint(x_gaze_length, 0, 0, time2, rand_head_tilt * .5 * (np.random.rand() - .5)))
+		head_y.append(single.Waypoint(rand_head_yaw_low, 0, 0, time2))
+		head_z.append(single.Waypoint(rand_head_pitch_high, 0, 0, time2))
+		
+		eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time2, open_eyes))
+		eyes_y.append(single.Waypoint(rand_head_yaw_low, 0, 0, time2))
+		eyes_z.append(single.Waypoint(rand_head_pitch_high, 0, 0, time2))
+
+
+	rand_head_tilt = (np.random.rand()-.5) * np.pi/8
+	rand_head_pitch_low = (np.random.rand()) * np.pi/8.0 + np.pi/2.0 + np.pi/18.0
+	rand_head_yaw = (np.random.rand()-.5) * np.pi/12
+	time = (np.random.rand() + 1.0) * 2 * (rand_head_pitch_low-np.pi/2.0)/(np.pi/18.0) 
+	
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time, rand_head_tilt))
+	head_y.append(single.Waypoint(rand_head_yaw, 0, 0, time))
+	head_z.append(single.Waypoint(rand_head_pitch_low, 0, 0, time))
+	
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time, close_eyes))
+	eyes_y.append(single.Waypoint(rand_head_yaw, 0, 0, time))
+	eyes_z.append(single.Waypoint(rand_head_pitch_low, 0, 0, time))
+
+
+	x_coord = single.MinimumJerk(head_x)
+	y_coord = single.MinimumJerk(head_y)
+	z_coord = single.MinimumJerk(head_z)
+	sleepy_head_min = Coordinates_3D(x_coord, y_coord, z_coord, 'p')
+			
+	x_coord = single.MinimumJerk(eyes_x)
+	y_coord = single.MinimumJerk(eyes_y)
+	z_coord = single.MinimumJerk(eyes_z)
+	sleepy_eyes_min = Coordinates_3D(x_coord, y_coord, z_coord, 'p')
+
+	return sleepy_head_min, sleepy_eyes_min
+
+
+def ashamed():
+	scale = 4.0
+	x_gaze_length = 1.0
+
+	head_pitch = np.pi/2 + np.pi/8.0
+	head_yaw = np.pi/6.0
+
+	head_look_pitch = np.pi/2.0+np.pi/10.0
+	head_look_yaw = np.pi/12.0
+
+	head_x = []
+	head_y = []
+	head_z = []
+
+	eyes_x = []
+	eyes_y = []
+	eyes_z = []
+
+	# First look down and away
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, 0))
+	head_y.append(single.Waypoint(head_yaw, 0, 0, 0))
+	head_z.append(single.Waypoint(head_pitch, 0, 0, 0))
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, 0))
+	eyes_y.append(single.Waypoint(head_yaw, 0, 0, 0))
+	eyes_z.append(single.Waypoint(head_pitch, 0, 0, 0))
+
+	time_hold = 1.5 * scale
+	# Hold
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time_hold))
+	head_y.append(single.Waypoint(head_yaw, 0, 0, time_hold))
+	head_z.append(single.Waypoint(head_pitch, 0, 0, time_hold))
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time_hold))
+	eyes_y.append(single.Waypoint(head_yaw, 0, 0, time_hold))
+	eyes_z.append(single.Waypoint(head_pitch, 0, 0, time_hold))
+
+	time = 2.0 * scale
+	# Peek
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time))
+	head_y.append(single.Waypoint(head_look_yaw, 0, 0, time))
+	head_z.append(single.Waypoint(head_look_pitch, 0, 0, time))
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time))
+	eyes_y.append(single.Waypoint(0, 0, 0, time))
+	eyes_z.append(single.Waypoint(np.pi/2.0, 0, 0, time))
+
+	time_hold = .5 * scale
+	# Hold Peek
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time_hold))
+	head_y.append(single.Waypoint(head_look_yaw, 0, 0, time_hold))
+	head_z.append(single.Waypoint(head_look_pitch, 0, 0, time_hold))
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time_hold))
+	eyes_y.append(single.Waypoint(0, 0, 0, time_hold))
+	eyes_z.append(single.Waypoint(np.pi/2.0, 0, 0, time_hold))
+
+	time = 1.25 * scale
+	# Move head quickly away again
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time))
+	head_y.append(single.Waypoint(head_yaw, 0, 0, time))
+	head_z.append(single.Waypoint(head_pitch, 0, 0, time))
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time))
+	eyes_y.append(single.Waypoint(head_yaw, 0, 0, time))
+	eyes_z.append(single.Waypoint(head_pitch, 0, 0, time))	
+
+	time_hold = .75 * scale
+	# Hold
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time_hold))
+	head_y.append(single.Waypoint(head_yaw, 0, 0, time_hold))
+	head_z.append(single.Waypoint(head_pitch, 0, 0, time_hold))
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time_hold))
+	eyes_y.append(single.Waypoint(head_yaw, 0, 0, time_hold))
+	eyes_z.append(single.Waypoint(head_pitch, 0, 0, time_hold))
+
+	time = 1.5 * scale
+	# Look away more
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time))
+	head_y.append(single.Waypoint(head_yaw, 0, 0, time))
+	head_z.append(single.Waypoint(head_pitch, 0, 0, time))
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time))
+	eyes_y.append(single.Waypoint(head_yaw*1.5, 0, 0, time))
+	eyes_z.append(single.Waypoint(head_look_pitch, 0, 0, time))
+
+	time_hold = .85 * scale
+	# Hold
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time_hold))
+	head_y.append(single.Waypoint(head_yaw, 0, 0, time_hold))
+	head_z.append(single.Waypoint(head_pitch, 0, 0, time_hold))
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time_hold))
+	eyes_y.append(single.Waypoint(head_yaw*1.5, 0, 0, time_hold))
+	eyes_z.append(single.Waypoint(head_look_pitch, 0, 0, time_hold))
+
+	time = 2.5 * scale
+	# Move head to other side 
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time))
+	head_y.append(single.Waypoint(-head_yaw, 0, 0, time))
+	head_z.append(single.Waypoint(head_pitch, 0, 0, time))
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time))
+	eyes_y.append(single.Waypoint(-head_yaw*1.5, 0, 0, time))
+	eyes_z.append(single.Waypoint(head_pitch+np.pi/12.0, 0, 0, time/2.0))
+	eyes_z.append(single.Waypoint(head_pitch, 0, 0, time/2.0))
+
+	time_hold = 2.0 * scale
+	# Hold 
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time_hold, -np.pi/52.0))
+	head_y.append(single.Waypoint(-head_yaw, 0, 0, time_hold))
+	head_z.append(single.Waypoint(head_pitch, 0, 0, time_hold))
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time_hold))
+	eyes_y.append(single.Waypoint(-head_yaw*1.5, 0, 0, time_hold))
+	eyes_z.append(single.Waypoint(head_pitch, 0, 0, time_hold))
+	
+	time = 1.75 * scale
+	# Look up some 
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time))
+	head_y.append(single.Waypoint(-head_look_yaw, 0, 0, time))
+	head_z.append(single.Waypoint(head_pitch, 0, 0, time))
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time))
+	eyes_y.append(single.Waypoint(-head_look_yaw, 0, 0, time))
+	eyes_z.append(single.Waypoint(head_pitch, 0, 0, time))
+
+	time_hold = 2.0 * scale
+	# Hold 
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time_hold))
+	head_y.append(single.Waypoint(-head_look_yaw, 0, 0, time_hold))
+	head_z.append(single.Waypoint(head_pitch, 0, 0, time_hold))
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time_hold))
+	eyes_y.append(single.Waypoint(-head_look_yaw, 0, 0, time_hold))
+	eyes_z.append(single.Waypoint(head_pitch, 0, 0, time_hold))
+
+	time = 1.5 * scale
+	# Peek again 
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time))
+	head_y.append(single.Waypoint(-head_look_yaw, 0, 0, time))
+	head_z.append(single.Waypoint(head_look_pitch, 0, 0, time))
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time))
+	eyes_y.append(single.Waypoint(0, 0, 0, time))
+	eyes_z.append(single.Waypoint(np.pi/2.0, 0, 0, time))
+
+	time_hold = .80 * scale
+	# Hold peek
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time_hold))
+	head_y.append(single.Waypoint(-head_look_yaw, 0, 0, time_hold))
+	head_z.append(single.Waypoint(head_look_pitch, 0, 0, time_hold))
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time_hold))
+	eyes_y.append(single.Waypoint(0, 0, 0, time_hold))
+	eyes_z.append(single.Waypoint(np.pi/2.0, 0, 0, time_hold))
+
+	time = 1.5 * scale
+	# Finally look away
+	head_x.append(single.Waypoint(x_gaze_length, 0, 0, time))
+	head_y.append(single.Waypoint(head_yaw, 0, 0, time))
+	head_z.append(single.Waypoint(head_pitch, 0, 0, time))
+	eyes_x.append(single.Waypoint(x_gaze_length, 0, 0, time))
+	eyes_y.append(single.Waypoint(head_yaw, 0, 0, time))
+	eyes_z.append(single.Waypoint(head_pitch, 0, 0, time))
+
+	x_coord = single.MinimumJerk(head_x)
+	y_coord = single.MinimumJerk(head_y)
+	z_coord = single.MinimumJerk(head_z)
+	shy_head_min = Coordinates_3D(x_coord, y_coord, z_coord, 'p')
+			
+	x_coord = single.MinimumJerk(eyes_x)
+	y_coord = single.MinimumJerk(eyes_y)
+	z_coord = single.MinimumJerk(eyes_z)
+	shy_eyes_min = Coordinates_3D(x_coord, y_coord, z_coord, 'p')
+
+	return shy_head_min, shy_eyes_min
+
+
+
+
+
+
 
 
 class piecewise_np():
@@ -406,15 +699,33 @@ class piecewise_np():
 
 	def roll_eyes(self, t):
 		t = self.to_array(t)
-		dt = [0, 5, 5, 1]
+		x_gaze_length = 1.0
+		dt = [0, 2]
 		times = self.dt_to_t(dt)
 		self.total_run_time = times[len(times)-1]
-		x = np.piecewise(t, 
+		head_x = np.piecewise(t, 
 						[ (times[0] <= t) & (t < times[1]),
-						(times[1]<= t) & ( t<= times[2])],
+							(times[1] <= t)],
+
+						[x_gaze_length, x_gaze_length])
+		head_y = np.piecewise(t, 
+						[ (times[0] <= t) & (t < times[1]),
+						(times[1] <= t)],
+
+						[0, 0])
+		head_z = np.piecewise(t, 
+						[ (times[0] <= t) & (t < times[1]),
+						(times[1] <= t)],
 
 						[lambda t: t, lambda t: t])
-		return x[0]
+
+		eyes_y = np.piecewise(t, 
+						[ (times[0] <= t) & (t < times[1]),
+						(times[1] <= t)],
+
+						[lambda t: (-np.pi/8.0 - np.pi/12.0)*t + np.pi/12.0, 
+						(-np.pi/8.0 - np.pi/12.0)*times[1] + np.pi/12.0])
+		return head_x[0]
 	
 	behavior_dictionary = {1:roll_eyes}
 	def __init__(self, behavior_num):
@@ -430,6 +741,7 @@ class piecewise_np():
 		return self.total_run_time
 
 
+
 '''
 a, b = test_script()
 time = a.total_run_time()
@@ -441,11 +753,12 @@ plt.plot(x, y)
 plt.show()
 '''
 
-# a = piecewise_np(1)
+a = piecewise_np(1)
 
-
+print a.get_position(1)
+'''
 # coordinate1 = circle_xz(.80, 16.0)
-coordinate1, coordinate2 = roll_eyes()
+coordinate1, coordinate2 = sleepy()
 
 count = 0
 x = []
@@ -472,3 +785,4 @@ ax.plot(x, y, z)
 #     count = count + .05
 # ax.plot(x, y, z)
 plt.show()
+'''
