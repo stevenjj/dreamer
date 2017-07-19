@@ -1,11 +1,12 @@
-#include <iostream>
-#include <vector>
 // Must add Eigen to /usr/local/include
 #include <Eigen/Dense>
-#include <ctime>
 #include <cmath>
 
-
+/*TODO:
+	- add const stuff?
+	- pass references if I don't mess with things
+	- Don't use eigen dense if not needed
+*/
 bool NearZero(double val){
 	return (std::abs(val) < .000001);
 }
@@ -83,6 +84,13 @@ Eigen::Matrix3d MatrixExp3(Eigen::Matrix3d so3mat){
 	}
 }
 
+Eigen::MatrixXd RpToTrans(Eigen::Matrix3d R, Eigen::Vector3d p){
+	Eigen::MatrixXd m_ret(4,4);
+	m_ret << R, p,
+		0, 0, 0, 1;
+	return m_ret;
+}
+
 
 Eigen::MatrixXd* TransToRp(Eigen::MatrixXd T){
 	static Eigen::MatrixXd Rp_ret[2];
@@ -116,7 +124,22 @@ Eigen::MatrixXd VecTose3(Eigen::VectorXd V){
 	return m_ret;
 }
 
-// Memory leaks suck
+/*#Takes T a transformation matrix SE(3).
+#Returns the corresponding 6x6 adjoint representation [AdT].
+    '''
+Example Input: 
+T = [[1, 0,  0, 0], 
+     [0, 0, -1, 0], 
+     [0, 1,  0, 3], 
+     [0, 0,  0, 1]]
+Output:
+[[1, 0,  0, 0, 0,  0],
+ [0, 0, -1, 0, 0,  0],
+ [0, 1,  0, 0, 0,  0],
+ [0, 0,  3, 1, 0,  0],
+ [3, 0,  0, 0, 0, -1],
+ [0, 0,  0, 0, 1,  0]]
+    '''*/
 Eigen::MatrixXd Adjoint(Eigen::MatrixXd T){
 	Eigen::MatrixXd *R = TransToRp(T);
 	Eigen::MatrixXd ad_ret(6,6);
@@ -171,8 +194,57 @@ Eigen::MatrixXd MatrixExp6(Eigen::MatrixXd se3mat){
 
 }
 
-/* Function: 
- * 
+
+/*#Takes M: the home configuration (position and orientation) of the 
+#         end-effector,
+#      Slist: The joint screw axes in the space frame when the manipulator
+#             is at the home position,
+#      thetalist: A list of joint coordinates.
+#Returns T in SE(3) representing the end-effector frame when the joints are
+#at the specified coordinates (i.t.o Space Frame).
+    '''
+Example Input: 
+import numpy as np
+from math import pi
+M = [[-1, 0, 0, 0], [0, 1, 0, 6], [0, 0, -1, 2], [0, 0, 0, 1]]
+Slist = np.array([[0, 0,  1,  4, 0,    0],
+                  [0, 0,  0,  0, 1,    0],
+                  [0, 0, -1, -6, 0, -0.1]]).T
+thetalist = [pi / 2.0, 3, pi]
+Output:
+[[ -1.14423775e-17   1.00000000e+00   0.00000000e+00  -5.00000000e+00],
+ [  1.00000000e+00   1.14423775e-17   0.00000000e+00   4.00000000e+00],
+ [              0.               0.              -1.       1.68584073],
+ [              0.               0.               0.               1.]]
+    '''*/
+Eigen::MatrixXd FKinSpace(Eigen::MatrixXd M, Eigen::MatrixXd Slist, Eigen::VectorXd thetaList){
+	for(int i=(thetaList.size()-1); i>-1; i--){
+			M = MatrixExp6(VecTose3(Slist.col(i)*thetaList(i))) * M;
+	}
+	return M;
+}	
+
+/*
+#Takes Slist: The joint screw axes in the space frame when the manipulator
+#             is at the home position,
+#      thetalist: A list of joint coordinates.
+#Returns the corresponding space Jacobian (6xn real numbers).
+    '''
+Example Input: 
+import numpy as np
+Slist = np.array([[0, 0, 1,   0, 0.2, 0.2], 
+                  [1, 0, 0,   2,   0,   3], 
+                  [0, 1, 0,   0,   2,   1], 
+                  [1, 0, 0, 0.2, 0.3, 0.4]]).T
+thetalist = [0.2, 1.1, 0.1, 1.2]
+Output:
+[[ 0.          0.98006658 -0.09011564  0.95749426]
+ [ 0.          0.19866933  0.4445544   0.28487557]
+ [ 1.          0.          0.89120736 -0.04528405]
+ [ 0.          1.95218638 -2.21635216 -0.51161537]
+ [ 0.2         0.43654132 -2.43712573  2.77535713]
+ [ 0.2         2.96026613  3.23573065  2.22512443]]
+    '''
  */
 Eigen::MatrixXd JacobianSpace(Eigen::MatrixXd Slist,Eigen::MatrixXd thetaList) {
 	Eigen::MatrixXd Js = Slist;
@@ -186,72 +258,4 @@ Eigen::MatrixXd JacobianSpace(Eigen::MatrixXd Slist,Eigen::MatrixXd thetaList) {
 	}
 
 	return Js;
-}
-
-
-int main()
-{
-	// // Testing AxisAng3
-	// Eigen::Vector3d v3;
-	// v3 << 1,2,3;
-	// std::cout<< AxisAng3(v3) << std::endl;
-	
-
-	// // Testing Matrix3d
-	// Eigen::Matrix3d m3;
-	// m3 << 0,-3,2,
-	// 	3,0,-1,
-	// 	-2,1,0;
-	// MatrixExp3(m3);
-
-	// // Testing MatrixExp6
-	// Eigen::MatrixXd mx(4,4);
-	// mx <<0,                 0,                  0,                 0,
-	//         0,                 0, -1.570796326794897, 2.356194490192345,
-	//         0, 1.570796326794897,                  0, 2.356194490192345,
-	//         0,                 0,                  0,                 0;
-	//    std::cout << MatrixExp6(mx) << std::endl;
-
-	Eigen::MatrixXd sList(4,6);
-	sList << 0, 0, 1,   0, 0.2, 0.2, 
-                  1, 0, 0,   2,   0,   3, 
-                  0, 1, 0,   0,   2,   1, 
-                  1, 0, 0, 0.2, 0.3, 0.4;
-
-    Eigen::Vector4d thetaList;
-    thetaList << .2, 1.1, .1, 1.2;
-    std::cout << JacobianSpace(sList.transpose(), thetaList) << std::endl;
-
-
- //    Eigen::MatrixXd adTest(4,4);
- //    adTest << 1, 0,  0, 0, 
-	//      0, 0, -1, 0, 
-	//      0, 1,  0, 3, 
-	//      0, 0,  0, 1;
-	// std::cout<<Adjoint(adTest)<<std::endl;
-
-	//	//transtorp test
-	//    Eigen::MatrixXd transTest(4,4);
-	//    adTest << 1, 0,  0, 0, 
-	//      0, 0, -1, 0, 
-	//      0, 1,  0, 3, 
-	//      0, 0,  0, 1;
-	// Eigen::MatrixXd *test;
-	// test = TransToRp(adTest);
-	// std::cout << test[1] << std::endl;
-
-
-
-
-
-
-	// std::cout<< MatrixExp3(m3) << std::endl;
-
-	// std::clock_t start;
-	// start = std::clock();
-	// Eigen::Vector3d b(1, 1, 0);
-	// b.normalize();
-	// std::cout << b << std::endl;
-	// std::cout << "Time: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC) << " s" << std::endl;
-	// return 0;
 }

@@ -1,0 +1,6 @@
+output.txt
+test.py
+*.pyc
+*.o
+Makefile
+execute

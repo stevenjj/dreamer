@@ -24,3 +24,7 @@ rosrun gaze_control UART_com_v2.py
 
 # Start remote control
 rosrun gaze_control RunRemCtrl.py
+
+# To use the low level fifo that saves joint commands, run a behavior while making sure low level control is off
+# After the behavior is complete, press the "Low Level Publish" button
+# "State to Idle" will clear the low level fifo
