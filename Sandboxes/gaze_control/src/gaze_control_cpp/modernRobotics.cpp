@@ -7,10 +7,21 @@
 	- pass references if I don't mess with things
 	- Don't use eigen dense if not needed
 */
-bool NearZero(double val){
+
+/* Function: Find if the value is negligible enough to consider 0
+ * Input: value to be checked as a double
+ * Output: Boolean of true-ignore or false-can't ignore
+ */
+bool NearZero(const double val){
 	return (std::abs(val) < .000001);
 }
 
+/* Function: Returns a normalized version of the input vector
+ * Input: Eigen::MatrixXd
+ * Output: Eigen::MatrixXd
+ * Note: MatrixXd is used instead of VectorXd for the case of row vectors 
+ * 		Requires a copy
+ */
 Eigen::MatrixXd Normalize(Eigen::MatrixXd V){
 	V.normalize();
 	return V;
@@ -20,7 +31,7 @@ Eigen::MatrixXd Normalize(Eigen::MatrixXd V){
  * Input: Eigen::Vecotor3d 3x1 angular velocity vector
  * Returns: Eigen::MatrixXd 3x3 skew symmetric matrix
  */
-Eigen::Matrix3d VecToso3(Eigen::Vector3d omg) {
+Eigen::Matrix3d VecToso3(const Eigen::Vector3d& omg) {
 	Eigen::Matrix3d m_ret;
 	m_ret << 0, -omg(2), omg(1),
 			omg(2), 0, -omg(0),
@@ -33,7 +44,7 @@ Eigen::Matrix3d VecToso3(Eigen::Vector3d omg) {
  * Inputs: Eigen::MatrixXd 3x3 skew symmetric matrix
  * Returns: Eigen::Vector3d 3x1 angular velocity
  */
-Eigen::Vector3d so3ToVec(Eigen::MatrixXd so3mat) {
+Eigen::Vector3d so3ToVec(const Eigen::MatrixXd& so3mat) {
 	Eigen::Vector3d v_ret;
 	v_ret << so3mat(2,1), so3mat(0,2), so3mat(1,0);
 	return v_ret;
@@ -51,7 +62,7 @@ Output:
  3.7416573867739413) 
     '''
     */
-Eigen::Vector4d AxisAng3(Eigen::Vector3d expc3){
+Eigen::Vector4d AxisAng3(const Eigen::Vector3d& expc3){
 	Eigen::Vector4d v_ret;
 	v_ret << Normalize(expc3), expc3.norm();
 	return v_ret;
@@ -70,7 +81,7 @@ Eigen::Vector4d AxisAng3(Eigen::Vector3d expc3){
 //  [-0.19200697, -0.30378504,  0.93319235],
 //  [ 0.69297817,  0.6313497 ,  0.34810748]]
 //     '''
-Eigen::Matrix3d MatrixExp3(Eigen::Matrix3d so3mat){
+Eigen::Matrix3d MatrixExp3(const Eigen::Matrix3d& so3mat){
 	Eigen::Vector3d omgtheta = so3ToVec(so3mat);
 
 	Eigen::Matrix3d m_ret = Eigen::Matrix3d::Identity();
@@ -84,7 +95,7 @@ Eigen::Matrix3d MatrixExp3(Eigen::Matrix3d so3mat){
 	}
 }
 
-Eigen::MatrixXd RpToTrans(Eigen::Matrix3d R, Eigen::Vector3d p){
+Eigen::MatrixXd RpToTrans(const Eigen::Matrix3d& R, const Eigen::Vector3d& p){
 	Eigen::MatrixXd m_ret(4,4);
 	m_ret << R, p,
 		0, 0, 0, 1;
@@ -92,7 +103,7 @@ Eigen::MatrixXd RpToTrans(Eigen::Matrix3d R, Eigen::Vector3d p){
 }
 
 
-Eigen::MatrixXd* TransToRp(Eigen::MatrixXd T){
+Eigen::MatrixXd* TransToRp(const Eigen::MatrixXd& T){
 	static Eigen::MatrixXd Rp_ret[2];
 	Eigen::Matrix3d R_ret;
 	R_ret = T.block<3,3>(0,0);
@@ -110,7 +121,7 @@ Eigen::MatrixXd* TransToRp(Eigen::MatrixXd T){
 /* Function: Returns an se3 matrix from a spatial velocity vector
  *
  */
-Eigen::MatrixXd VecTose3(Eigen::VectorXd V){
+Eigen::MatrixXd VecTose3(const Eigen::VectorXd& V){
 	Eigen::Vector3d temp;
 	temp << V(0), V(1), V(2);
 
@@ -140,7 +151,7 @@ Output:
  [3, 0,  0, 0, 0, -1],
  [0, 0,  0, 0, 1,  0]]
     '''*/
-Eigen::MatrixXd Adjoint(Eigen::MatrixXd T){
+Eigen::MatrixXd Adjoint(const Eigen::MatrixXd& T){
 	Eigen::MatrixXd *R = TransToRp(T);
 	Eigen::MatrixXd ad_ret(6,6);
 	Eigen::MatrixXd zeroes = Eigen::MatrixXd::Zero(3,3);
@@ -167,7 +178,7 @@ Output:
  [0.0, 1.0,  0.0, 3.0],
  [  0,   0,    0,   1]]
     '''  */
-Eigen::MatrixXd MatrixExp6(Eigen::MatrixXd se3mat){
+Eigen::MatrixXd MatrixExp6(const Eigen::MatrixXd& se3mat){
 	Eigen::Matrix3d se3mat_cut = se3mat.block<3,3>(0,0);
 	Eigen::Vector3d omgtheta = so3ToVec(se3mat_cut);
 	Eigen::MatrixXd m_ret(4,4);
@@ -216,8 +227,10 @@ Output:
  [  1.00000000e+00   1.14423775e-17   0.00000000e+00   4.00000000e+00],
  [              0.               0.              -1.       1.68584073],
  [              0.               0.               0.               1.]]
-    '''*/
-Eigen::MatrixXd FKinSpace(Eigen::MatrixXd M, Eigen::MatrixXd Slist, Eigen::VectorXd thetaList){
+    '''
+ * Note: Requires M be a copy
+ */
+Eigen::MatrixXd FKinSpace(Eigen::MatrixXd M, const Eigen::MatrixXd& Slist, const Eigen::VectorXd& thetaList){
 	for(int i=(thetaList.size()-1); i>-1; i--){
 			M = MatrixExp6(VecTose3(Slist.col(i)*thetaList(i))) * M;
 	}
@@ -244,9 +257,9 @@ Output:
  [ 0.          1.95218638 -2.21635216 -0.51161537]
  [ 0.2         0.43654132 -2.43712573  2.77535713]
  [ 0.2         2.96026613  3.23573065  2.22512443]]
-    '''
+    '''   
  */
-Eigen::MatrixXd JacobianSpace(Eigen::MatrixXd Slist,Eigen::MatrixXd thetaList) {
+Eigen::MatrixXd JacobianSpace(const Eigen::MatrixXd& Slist, const Eigen::MatrixXd& thetaList) {
 	Eigen::MatrixXd Js = Slist;
 	Eigen::MatrixXd T = Eigen::MatrixXd::Identity(4,4);
 	Eigen::VectorXd sListTemp(Slist.col(0).size());
