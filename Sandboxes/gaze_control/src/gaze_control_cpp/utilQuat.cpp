@@ -3,13 +3,21 @@
 #include <cmath>
 #include "modernRobotics.h"
 
+/* Function: Change an exponential representation to quaternion
+ * Inputs: angular velocity vector, rotation about that vector
+ * Returns: Quaternion
+ */
 Eigen::RowVector4d wthToQuat(const Eigen::RowVector3d& wHat, double theta){
 	Eigen::RowVector3d w = Normalize(wHat) * std::sin(theta/2);
 	Eigen::RowVector4d v_ret(std::cos(theta/2.0), w(0), w(1), w(2));
 	return v_ret; 
 }
 
-Eigen::RowVector3d quatToWth(Eigen::RowVector4d q){
+/* Function: Changes a quaternion to the exponential representation
+ * Inputs: Quaternion
+ * Returns: Exponential representation
+ */
+Eigen::RowVector3d quatToWth(const Eigen::RowVector4d& q){
 	Eigen::RowVector3d v_ret(0,0,0);
 	if(NearZero(1 - q(0))){
 		return v_ret;
@@ -21,7 +29,11 @@ Eigen::RowVector3d quatToWth(Eigen::RowVector4d q){
 	return v_ret * theta;
 }
 
-Eigen::RowVector4d RToQuat(Eigen::Matrix3d R){
+/* Function: Converts a rotation matrix to a quaternion
+ * Inputs: Rotation matrix
+ * Returns: Quaternion
+ */
+Eigen::RowVector4d RToQuat(const Eigen::Matrix3d& R){
 	double q0 = .5 * std::sqrt(1 + R(0,0) + R(1,1) + R(2,2));
 	Eigen::RowVector3d q123(R(2,1) - R(1,2),	 R(0,2) - R(2,0),	 R(1,0 - R(0,1))); 
 	q123 = q123 * (1 / (4 * q0));
@@ -29,7 +41,11 @@ Eigen::RowVector4d RToQuat(Eigen::Matrix3d R){
 	return v_ret;
 }
 
-Eigen::Matrix3d quatToR(Eigen::RowVector4d q){
+/* Function: Converts a quaternion to a rotation matrix
+ * Inputs: Quaternion
+ * Returns: Rotation matrix
+ */
+Eigen::Matrix3d quatToR(const Eigen::RowVector4d& q){
 	double q0, q1, q2, q3;
 	q0 = q(0);
 	q1 = q(1); 
@@ -42,7 +58,11 @@ Eigen::Matrix3d quatToR(Eigen::RowVector4d q){
     return m_ret;
 }
 
-// Copy needed
+/* Function: Provides the unit quaternion product of two quaternions
+ * Inputs: 2 Quaternions
+ * Returns: Unit quaternion product
+ * Notes: Copy needed
+ */
 Eigen::RowVector4d quatMultiply(Eigen::RowVector4d q, Eigen::RowVector4d p){
 	q = Normalize(q);
 	p = Normalize(p);
@@ -57,12 +77,19 @@ Eigen::RowVector4d quatMultiply(Eigen::RowVector4d q, Eigen::RowVector4d p){
 	return r_ret;
 }
 
-// Copy needed
+/* Function: Returns the conjugate of a unit quaternion
+ * Inputs: Quaternion
+ * Returns: Inverse/conjugate of the quaternion
+ * Notes: Copy needed
+ */
 Eigen::RowVector4d conj(Eigen::RowVector4d q){
 	q = Normalize(q);
 	q << q(0), -q(1), -q(2), -q(3);
 	return q;
 }
+
+
+
 /*
 Eigen::Matrix3d R;
 	R << 1,0,0,

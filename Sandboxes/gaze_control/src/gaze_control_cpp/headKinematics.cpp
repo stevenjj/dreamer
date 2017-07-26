@@ -31,6 +31,10 @@ headKinematics::headKinematics(void){
 
 headKinematics::~headKinematics(void){}
 
+/* Function: Gives the 6D Jacobian for Dreamer's head
+ * Inputs: Joint configuration
+ * Returns: 6D Spatial Head Jacobian
+ */
 Eigen::MatrixXd headKinematics::get6D_HeadJacobian(const Eigen::VectorXd& JList){
 	const int screwAxisEnd = 3;
 	const int numJoints = screwAxisEnd + 1;
@@ -47,6 +51,10 @@ Eigen::MatrixXd headKinematics::get6D_HeadJacobian(const Eigen::VectorXd& JList)
 	return JSpatial_6DHead;
 }
 
+/* Function: Gives the 6D Jacobian for Dreamer's Right Eye
+ * Inputs: Joint configuration
+ * Returns: 6D Spatial Right Eye Jacobian
+ */
 Eigen::MatrixXd headKinematics::get6D_RightEyeJacobian(const Eigen::VectorXd& JList){
 	const int screwAxisEnd = 5;
 	const int numJoints = screwAxisEnd + 1;
@@ -63,7 +71,10 @@ Eigen::MatrixXd headKinematics::get6D_RightEyeJacobian(const Eigen::VectorXd& JL
 	return JSpatial_6DRightEye;
 }
 
-
+/* Function: Gives the 6D Jacobian for Dreamer's Left Eye
+ * Inputs: Joint configuration
+ * Returns: 6D Spatial Left Eye Jacobian
+ */
 Eigen::MatrixXd headKinematics::get6D_LeftEyeJacobian(const Eigen::VectorXd& JList){
 	const int screwAxisEnd = 6;
 	const int numJoints = screwAxisEnd;
@@ -84,7 +95,10 @@ Eigen::MatrixXd headKinematics::get6D_LeftEyeJacobian(const Eigen::VectorXd& JLi
 	return JSpatial_6DLeftEye;
 }
 
-
+/* Function: Gives the 6D Jacobian for Dreamer's Right Eye exlcuding head joints
+ * Inputs: Joint configuration
+ * Returns: 6D Spatial Jacobian
+ */
 Eigen::MatrixXd headKinematics::get6D_RightEyeJacobianYawPitch(const Eigen::VectorXd& JList){
 	const int screwAxisEnd = 5;
 	const int numJoints = screwAxisEnd + 1;
@@ -101,6 +115,10 @@ Eigen::MatrixXd headKinematics::get6D_RightEyeJacobianYawPitch(const Eigen::Vect
 	return JSpatial_6DRightEye;
 }
 
+/* Function: Gives the 6D Jacobian for Dreamer's Left Eye exlcuding head joints
+ * Inputs: Joint configuration
+ * Returns: 6D Spatial Jacobian
+ */
 Eigen::MatrixXd headKinematics::get6D_LeftEyeJacobianYawPitch(const Eigen::VectorXd& JList){
 	const int screwAxisEnd = 6;
 	const int numJoints = screwAxisEnd;
@@ -119,7 +137,11 @@ Eigen::MatrixXd headKinematics::get6D_LeftEyeJacobianYawPitch(const Eigen::Vecto
 	return JSpatial_6DLeftEye;
 }
 
-
+/* Function: Gives the spatial position of Dreamer's Head
+ * Inputs: Joint configuration
+ * Returns: Spatial position of the head
+ * Note: Returned array must be externally freed
+ */
 Eigen::MatrixXd* headKinematics::get6D_HeadPosition(const Eigen::VectorXd& JList){
 	const int screwAxisEnd = 3;
 	const int numJoints = screwAxisEnd + 1;
@@ -133,7 +155,11 @@ Eigen::MatrixXd* headKinematics::get6D_HeadPosition(const Eigen::VectorXd& JList
 	return TransToRp(T_Head);
 }
 
-
+/* Function: Gives the spatial position of Dreamer's Right Eye
+ * Inputs: Joint configuration
+ * Returns: Spatial position of the right eye
+ * Note: Returned array must be externally freed
+ */
 Eigen::MatrixXd* headKinematics::get6D_RightEyePosition(const Eigen::VectorXd& JList){
 	const int screwAxisEnd = 5;
 	const int numJoints = screwAxisEnd + 1;
@@ -147,7 +173,11 @@ Eigen::MatrixXd* headKinematics::get6D_RightEyePosition(const Eigen::VectorXd& J
 	return TransToRp(T_RightEye);
 }
 
-
+/* Function: Gives the spatial position of Dreamer's Left Eye
+ * Inputs: Joint configuration
+ * Returns: Spatial position of the left eye
+ * Note: Returned array must be externally freed
+ */
 Eigen::MatrixXd* headKinematics::get6D_LeftEyePosition(const Eigen::VectorXd& JList){
 	const int screwAxisEnd = 6;
 	const int numJoints = screwAxisEnd;
@@ -156,7 +186,7 @@ Eigen::MatrixXd* headKinematics::get6D_LeftEyePosition(const Eigen::VectorXd& JL
 	Slist << screwAxisTables.block<5, 6>(0,0), screwAxisTables.block<1, 6>(6,0);
 
 	Eigen::RowVectorXd thetaList(6);
-	thetaList << JList.head(numJoints-1), JList(numJoints);
+	thetaList << JList.head(numJoints-1).transpose(), JList(numJoints);
 
 	Eigen::MatrixXd M_LeftEyeHome = RpToTrans(rLeftEyeHome, pLeftEyeHome);
 	

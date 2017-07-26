@@ -11,8 +11,6 @@ Eigen::MatrixXd* TransToRp(const Eigen::MatrixXd&);
 Eigen::MatrixXd VecTose3(const Eigen::VectorXd&);
 Eigen::MatrixXd Adjoint(const Eigen::MatrixXd&);
 Eigen::MatrixXd MatrixExp6(const Eigen::MatrixXd&);
-Eigen::MatrixXd FKinSpace(Eigen::MatrixXd, const Eigen::MatrixXd&, const Eigen::VectorXd&);
+Eigen::MatrixXd FKinSpace(const Eigen::MatrixXd&, const Eigen::MatrixXd&, const Eigen::VectorXd&);
 Eigen::MatrixXd JacobianSpace(const Eigen::MatrixXd&, const Eigen::MatrixXd&);
-
-
 #endif
