@@ -124,7 +124,21 @@ class MinimumJerk():
 
 	# Helper functions in case you only want one value
 	def get_position(self, time):
-		return (self.get_all_s(time))[0]
+		length = len(self.waypoint_list)
+		if(time < 0):
+			return None
+
+		elif(time > self.waypoint_list[length-1].Dt):
+			time = self.waypoint_list[length-1].Dt
+
+		for i in range(1, length):
+			if (self.waypoint_list[i-1].Dt <= time <= self.waypoint_list[i].Dt):
+				return self.coeffs[i-1][0] + \
+					    self.coeffs[i-1][1] * time + \
+					    self.coeffs[i-1][2] * (time**2) + \
+					    self.coeffs[i-1][3] * (time**3) + \
+					    self.coeffs[i-1][4] * (time**4) + \
+					    self.coeffs[i-1][5] * (time**5)
 
 	def get_velocity(self, time):
 		return (self.get_all_s(time))[1]

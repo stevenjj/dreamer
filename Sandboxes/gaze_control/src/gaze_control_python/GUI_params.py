@@ -19,3 +19,4 @@ DO_WAYPOINT_TRAJ,   	 	  DO_WAYPOINT_TRAJ_STRING   		         = 10, "Go To Waypo
 
 CIRCLE_TRAJ,   	 	  CIRCLE_TRAJ_STRING   		         = 11, "Trace Circle" # Head Priority
 LOW_LEVEL_PUBLISH,   	 	  LOW_LEVEL_PUBLISH_STRING   		         = 12, "Publish To Low Level" 
+CALC_BEHAV_AT_RATE,			CALC_BEHAV_AT_RATE_STRING		= 13, "Calc Joint at Rate"

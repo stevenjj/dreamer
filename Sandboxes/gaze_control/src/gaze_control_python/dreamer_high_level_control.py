@@ -204,7 +204,7 @@ class Dreamer_Head():
         # For my slow af computer
         self.publish_to_low_level = False
         self.low_level_fifo = []
-
+        self.calculate_low_level = False
 
     #-------------------------------------------------------------
     # Joint and Gaze Focus Update
@@ -344,7 +344,7 @@ class Dreamer_Head():
         while ( (not rospy.is_shutdown()) and (i < len(self.low_level_fifo))):
             self.update_time()
             self.interval = self.ROS_current_time - self.time_since_last_loop                       
-            # Append commands at 20 Hz to not overflow the fifo
+            # Append commands at ~~ Hz to not overflow the fifo
             if (self.interval > (1.0/20.0)):
                 try:
                     self.ctrl_deq_append(self.low_level_fifo[i])
@@ -360,6 +360,49 @@ class Dreamer_Head():
         return
 
 
+
+    # Function: Calculates joints at a specified rate, saves them, and visualizes them in Rviz
+    # Inputs: Rate in Hz of joint calculation
+    # Outputs: None
+    # Notes: In order for this to work, a time variable needed to be added to state_logic and fancy math
+    #           for timing
+    #        I calculate the number of terms in the fifo by multiplying the seconds by the rate/second
+    #        Rviz will try to visualize the behavior at the specified rate
+    def calculate_behavior_joints(self, rate):
+        print "\nCalculating Joints"
+        current_time = rospy.get_time()
+        self.current_behavior = BEHAVIOR_FOLLOW_WAYPOINTS  
+        time = 0
+        while (self.current_behavior == BEHAVIOR_FOLLOW_WAYPOINTS):
+            self.behavior_logic()
+            self.task_logic()
+            self.state_logic(time)
+            self.save_low_level_commands()
+            time += 1.0/rate
+
+        self.calculate_low_level = False
+        print "Took: ", rospy.get_time() - current_time, "s"
+        print "Joint Calculation Complete\n"
+
+        f = open('gaze_control_python/output.txt', 'w')
+        f.write(str(self.low_level_fifo))
+        print "Low Level Commands saved to output.txt"
+        # Need to iterate through the low level fifo now
+        print "\nVisualizing in rviz"
+
+        loop = 0
+        while(loop < len(self.low_level_fifo)):
+            self.update_time()
+            # print loop
+            self.interval = self.ROS_current_time - self.time_since_last_loop              
+            if self.interval > (1.0/rate):
+                self.update_head_joints(self.low_level_fifo[loop].q_cmd_radians.data)
+                self.joint_publisher.publish_joints()
+                self.gaze_focus_states.publish_focus_length()
+                loop += 1
+                self.time_since_last_loop = self.ROS_current_time
+
+        print "Visualization Complete"
 
 
 
@@ -492,11 +535,18 @@ class Dreamer_Head():
         elif gui_command == LOW_LEVEL_PUBLISH:
             self.gui_command = gui_command
             self.gui_command_string = LOW_LEVEL_PUBLISH_STRING
-            self.publish_to_low_level = True # Variable used to stop standard low level publisher
-            f = open('output.txt', 'w')
+            print "Low Level Commands saved to output.txt"
+            f = open('gaze_control_python/output.txt', 'w')
             f.write(str(self.low_level_fifo))
-            self.publish_low_level_commands()
+            self.publish_to_low_level = True # Variable used to stop standard low level publisher
 
+        elif gui_command == CALC_BEHAV_AT_RATE:
+            self.gui_command = gui_command
+            self.gui_command_string = CALC_BEHAV_AT_RATE_STRING
+            self.disable_low_level()
+            self.publish_to_low_level = False
+            self.low_level_fifo = []
+            self.calculate_low_level = True
 
         
         else:
@@ -548,7 +598,7 @@ class Dreamer_Head():
             #self.gaze_focus_states.print_debug()
             #self.gaze_focus_states.print_debugxy()
             #self.controller_manager.print_debug()
-            self.people_manager.print_debug()
+            # self.people_manager.print_debug()
 
 
     
@@ -656,7 +706,8 @@ class Dreamer_Head():
         elif ((self.current_behavior == BEHAVIOR_FOLLOW_WAYPOINTS) and self.behavior_commanded == False):
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
-            piecewise_func_head, piecewise_func_eyes = test_script()
+            piecewise_func_head, piecewise_func_eyes = ashamed()
+            # piecewise_func_head, piecewise_func_eyes = test_script()
             # Draw a circle behavior
             # piecewise_func_head = circle_yz(.5, 8.0)
             # Extract initial coordinates
@@ -675,7 +726,7 @@ class Dreamer_Head():
             scale = 1.0
 
             # Go to the initial coordinates before executing minimum jerk
-            duration = 2.0 * scale
+            duration = 4.0 * scale
             task_params.append( self.set_prioritized_go_to_point_params(np.array( [x_head, y_head, z_head] ), np.array( [x_eyes, y_eyes, z_eyes] ), duration) )
             
             total_run_time = piecewise_func_head.total_run_time()
@@ -694,7 +745,7 @@ class Dreamer_Head():
             z = coord[2]       
 
             # Go to the initial coordinates before executing minimum jerk
-            duration = 2.0
+            duration = 3.0
             task_params.append( self.set_prioritized_go_to_point_params(np.array( [x, y, z] ), np.array( [x, y, z] ), duration) )
             
             total_run_time = piecewise_func.total_run_time()
@@ -814,7 +865,7 @@ class Dreamer_Head():
 
     # Main State Machine
     #   State Machine computes current joint positions
-    def state_logic(self):
+    def state_logic(self, time = None):
         #--------------
         # STATE IDLE
         if (self.current_state == STATE_IDLE):
@@ -829,7 +880,7 @@ class Dreamer_Head():
                  self.process_task_result(Q_des, command_result)
 
             elif (self.current_task == TASK_GO_TO_POINT_HEAD_PRIORITY):
-                 Q_des, command_result = self.controller_manager.head_priority_eye_trajectory_look_at_point()                
+                 Q_des, command_result = self.controller_manager.head_priority_eye_trajectory_look_at_point(time)                
                  self.process_task_result(Q_des, command_result)
 
             elif (self.current_task == TASK_TRACK_PERSON_HEAD):
@@ -853,7 +904,9 @@ class Dreamer_Head():
                     self.task_commanded = False
 
             elif (self.current_task == TASK_FOLLOW_WAYPOINTS):
-                 Q_des, command_result = self.controller_manager.head_eye_trajectory_follow()
+                 if time != None:
+                    time -= self.task_params[self.current_task_index-1][2] 
+                 Q_des, command_result = self.controller_manager.head_eye_trajectory_follow(time)
                  self.process_task_result(Q_des, command_result)                 
 
             return
@@ -910,7 +963,6 @@ class Dreamer_Head():
                 self.state_logic()
                 # Send Commands
                 self.send_command()
-                
                 # Visualization
                 self.gaze_focus_states.publish_focus_length()
                 
@@ -921,6 +973,12 @@ class Dreamer_Head():
                 # self.print_debug()
                 # Sleep
                 self.time_since_last_loop = self.ROS_current_time
+                # print '        Node Rate (Hz)      :' , 1.0/self.interval #self.dt 
+
+            if self.publish_to_low_level:
+                self.publish_low_level_commands()
+            if self.calculate_low_level:
+                self.calculate_behavior_joints(20.0)
 
 
 

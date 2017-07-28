@@ -574,9 +574,11 @@ class Controller():
     #           
     # Inputs: None
     # Returns: Desired Joint Configuration, Completion of task
-    def head_eye_trajectory_follow(self):
+    def head_eye_trajectory_follow(self, time):
         # Calculate Time
         t, t_prev = self.calculate_t_t_prev()
+        if(time != None):
+            t = time
         dt = t - t_prev
         DT = self.piecewise_func_total_run_time
         
@@ -829,9 +831,12 @@ class Controller():
     #           Eyes move while head stays focused
     # Inputs: None, uses preset variables
     # Returns: Desired Joint Configuration, Completion of task
-    def head_priority_eye_trajectory_look_at_point(self):
+    def head_priority_eye_trajectory_look_at_point(self, time):
         # Calculate Time
         t, t_prev = self.calculate_t_t_prev()
+        if(time != None):
+            t = time 
+
         dt = t - t_prev
         DT = self.movement_duration
 
