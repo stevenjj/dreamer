@@ -5,6 +5,12 @@
 #include "headKinematics.h"
 
 headKinematics::headKinematics(void){
+	l0 = 0.3115;
+	l1 = 0.13849;
+	l2 = 0.12508;
+	l3 = 0.053;
+	
+	// S0 = Eigen::VectorXd::Zero(6);
 	S0 << 0, -1, 0, 0, 0, 0; 
 	S1 << 0, 0, 1, 0, 0, 0;
 	S2 << -1, 0, 0, 0, -l1, 0;  
@@ -13,12 +19,20 @@ headKinematics::headKinematics(void){
 	S5 << 0, 0, 1, -l3, -l2, 0;  
 	S6 << 0, 0, 1, l3, -l2, 0;  
 
+	rHeadHome = Eigen::MatrixXd::Identity(3,3);
+	rRightEyeHome = Eigen::MatrixXd::Identity(3,3);
+	rLeftEyeHome = Eigen::MatrixXd::Identity(3,3);
+
 
 	pHeadHome << 0, 0, l1;
 	pRightEyeHome << l2, -l3, l1;
 	pLeftEyeHome << l2, l3, l1;
 	
 	screwAxisTables << S0, S1, S2, S3, S4, S5, S6;
+
+	J_num = screwAxisTables.rows();
+
+	Jlist = Eigen::VectorXd::Zero(screwAxisTables.rows());
 
 	JIndexToNames[0] = "lowerNeckPitch";
 	JIndexToNames[1] = "upperNeckYaw";

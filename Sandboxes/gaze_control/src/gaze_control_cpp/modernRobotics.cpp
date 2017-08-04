@@ -154,7 +154,7 @@ Eigen::MatrixXd Adjoint(const Eigen::MatrixXd& T){
 
 
 
-/* Function: Makes Rotations nice =\
+/* Function: Rotation expanded for screw axis
  * Inputs: se3 matrix representation of exponential coordinates (transformation matrix)
  * Returns: 6x6 Matrix representing the rotation 
  */
@@ -181,8 +181,8 @@ Eigen::MatrixXd MatrixExp6(const Eigen::MatrixXd& se3mat){
 		Eigen::Matrix3d omgmat = se3mat.block<3,3>(0,0) / theta;
 		Eigen::Matrix3d expExpand = Eigen::MatrixXd::Identity(3,3) * theta + (1-std::cos(theta)) * omgmat + ((theta - std::sin(theta)) * (omgmat * omgmat));
 		Eigen::Vector3d linear(se3mat(0,3), se3mat(1,3), se3mat(2,3));
-		Eigen::Vector3d topRight = (expExpand*linear) / theta;
-		m_ret << MatrixExp3(se3mat_cut), topRight,
+		Eigen::Vector3d GThetaV = (expExpand*linear) / theta;
+		m_ret << MatrixExp3(se3mat_cut), GThetaV,
 				0, 0, 0, 1;
 		return m_ret;
 	}

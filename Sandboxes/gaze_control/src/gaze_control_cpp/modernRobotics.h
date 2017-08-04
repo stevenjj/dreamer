@@ -1,5 +1,6 @@
 #ifndef _modernRobotics_h
 #define _modernRobotics_h
+#include <Eigen/Dense>
 bool NearZero(const double);
 Eigen::MatrixXd Normalize(Eigen::MatrixXd);
 Eigen::Matrix3d VecToso3(const Eigen::Vector3d&);

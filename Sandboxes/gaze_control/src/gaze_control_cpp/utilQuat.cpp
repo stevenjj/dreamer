@@ -35,7 +35,7 @@ Eigen::RowVector3d quatToWth(const Eigen::RowVector4d& q){
  */
 Eigen::RowVector4d RToQuat(const Eigen::Matrix3d& R){
 	double q0 = .5 * std::sqrt(1 + R(0,0) + R(1,1) + R(2,2));
-	Eigen::RowVector3d q123(R(2,1) - R(1,2),	 R(0,2) - R(2,0),	 R(1,0 - R(0,1))); 
+	Eigen::RowVector3d q123( R(2,1) - R(1,2),	 R(0,2) - R(2,0),	 R(1,0) - R(0,1) ); 
 	q123 = q123 * (1 / (4 * q0));
 	Eigen::RowVector4d v_ret(q0, q123(0), q123(1),q123(2));
 	return v_ret;
