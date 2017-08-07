@@ -11,8 +11,9 @@
 #include "utilQuat.h"
 #include "dreamerController.h"
 
-headKinematics hk;
 const double pi = M_PI;
+const double FOCUS_THRESH = 0.08;
+const double INIT_FOCUS_LENGTH = 0.6;
 
 /* Function: Rotation operator around a vector
  *           Used for head tilts, Taken from Modern Robotics book
@@ -42,11 +43,86 @@ Eigen::MatrixXd calculate_dQ(const Eigen::MatrixXd& J, const Eigen::MatrixXd& dx
 }
 
 
+void dreamerController::updateGazeFocus(const double dt = 1.0){
+	gazeOldPosition[H] = gazePosition[H];
+	gazeOldPosition[RE] = gazePosition[RE];
+	gazeOldPosition[LE] = gazePosition[LE];
+
+	Eigen::MatrixXd *hPoint = kinematics.get6D_HeadPosition(kinematics.Jlist);
+	Eigen::MatrixXd *rePoint = kinematics.get6D_RightEyePosition(kinematics.Jlist);
+	Eigen::MatrixXd *lePoint = kinematics.get6D_LeftEyePosition(kinematics.Jlist);
+
+	gazePosition[H] = hPoint[0].block<1,3>(0,0) * currentFocusLength[H] + hPoint[1].transpose();
+	gazePosition[RE] = rePoint[0].block<1,3>(0,0) * currentFocusLength[RE] + rePoint[1].transpose();
+	gazePosition[LE] = lePoint[0].block<1,3>(0,0) * currentFocusLength[LE] + lePoint[1].transpose();
+
+	delete [] hPoint;
+	delete [] rePoint;
+	delete [] lePoint;
+
+	gazeVelocity[H] = (gazePosition[H] - gazeOldPosition[H])/dt;
+	gazeVelocity[RE] = (gazePosition[RE] - gazeOldPosition[RE])/dt;
+	gazeVelocity[LE] = (gazePosition[LE] - gazeOldPosition[LE])/dt;
+}
+
+dreamerController::dreamerController(void){
+	H = "head";
+	RE = "right_eye";
+	LE = "left_eye";
+
+	focusPointInit[H] << 1, 0, 0;
+	focusPointInit[RE] << 1, 0, 0;
+	focusPointInit[LE] << 1, 0, 0;
+
+	currentFocusLength[H] = INIT_FOCUS_LENGTH;
+	currentFocusLength[RE] = INIT_FOCUS_LENGTH;
+	currentFocusLength[LE] = INIT_FOCUS_LENGTH;
+
+
+	// Gaze Focus States
+	Eigen::RowVector3d zero = Eigen::VectorXd::Zero(3);
+
+	gazePosition[H] = zero;
+	gazePosition[RE] = zero;
+	gazePosition[LE] = zero;
+
+	gazeOldPosition[H] = zero;
+	gazeOldPosition[RE] = zero;
+	gazeOldPosition[LE] = zero;
+
+	gazeVelocity[H] = zero;
+	gazeVelocity[RE] = zero;
+	gazeVelocity[LE] = zero;
+
+	updateGazeFocus();
+
+}
+
+dreamerController::~dreamerController(void){}
+
+
+
+
+
+bool dreamerController::gazeAreEyesFocused(void){
+	return ( (gazePosition[RE] - gazePosition[LE]).norm() < FOCUS_THRESH);
+}
+
+
+double dreamerController::minJerkTimeScaling(const double t, const double dt){
+	if(t < 0)
+		return 0.0;
+	else if(t >= dt)
+		return 1.0;
+	else
+		return 10*std::pow(t/dt, 3) - 15*std::pow(t/dt, 4) + 6*std::pow(t/dt, 5); 
+}
+
 /* Function: Calculate a rotation matrix based on the desired parameters
  * Inputs: desired gaze location, current spatial position, desired joint configuration, initial join configuration, min_jerk scaling, head component, head roll
  * Returns: Desired Rotation Matrix
  */
-Eigen::Matrix3d calcSmoothDesiredOrientation(const Eigen::Vector3d& xGazeLoc, const Eigen::Vector3d& pCur, const Eigen::VectorXd& Q_cur, const Eigen::VectorXd& Q_init, const double scaling, const std::string orientationType = "head", const double tilt = 0) {
+Eigen::Matrix3d dreamerController::calcSmoothDesiredOrientation(const Eigen::Vector3d& xGazeLoc, const Eigen::Vector3d& pCur, const Eigen::VectorXd& Q_cur, const Eigen::VectorXd& Q_init, const double scaling, const std::string orientationType = "head", const double tilt = 0) {
 	// Find unit vector of the difference between desired position and current position
 	Eigen::Vector3d pBar = xGazeLoc - pCur;
 	Eigen::Vector3d xHatD = Normalize(pBar);
@@ -55,11 +131,11 @@ Eigen::Matrix3d calcSmoothDesiredOrientation(const Eigen::Vector3d& xGazeLoc, co
 	// Get Rotation and position of the component
 	Eigen::MatrixXd *pos;
 	if(orientationType == "head")
-		pos = hk.get6D_HeadPosition(Q_init);
+		pos = kinematics.get6D_HeadPosition(Q_init);
 	else if(orientationType == "right_eye")
-		pos = hk.get6D_RightEyePosition(Q_init);
+		pos = kinematics.get6D_RightEyePosition(Q_init);
 	else if(orientationType == "left_eye")
-		pos = hk.get6D_LeftEyePosition(Q_init);
+		pos = kinematics.get6D_LeftEyePosition(Q_init);
 	else
 		throw std::invalid_argument("Unknown position and orientation needed");
 
@@ -103,18 +179,18 @@ Eigen::Matrix3d calcSmoothDesiredOrientation(const Eigen::Vector3d& xGazeLoc, co
  * Inputs: desired gaze location, desired joint configuration, current joint configuration, min_jerk time scaling
  * Returns: Error in angle * angular velocities as an array
  */
-Eigen::Vector3d smoothOrientationError(const Eigen::Vector3d& xGazeLoc, const Eigen::VectorXd& Q, const Eigen::VectorXd& Q_init, const double scaling, const std::string orientationType = "head", const double tilt = 0){
+Eigen::Vector3d dreamerController::smoothOrientationError(const Eigen::Vector3d& xGazeLoc, const Eigen::VectorXd& Q_des, const Eigen::VectorXd& Q_init, const double scaling, const std::string orientationType = "head", const double tilt = 0){
 	Eigen::MatrixXd *pos;
 	if(orientationType == "head")
-		pos = hk.get6D_HeadPosition(Q);
+		pos = kinematics.get6D_HeadPosition(Q_des);
 	else if(orientationType == "right_eye")
-		pos = hk.get6D_RightEyePosition(Q);
+		pos = kinematics.get6D_RightEyePosition(Q_des);
 	else if(orientationType == "left_eye")
-		pos = hk.get6D_LeftEyePosition(Q);
+		pos = kinematics.get6D_LeftEyePosition(Q_des);
 	else
 		throw std::invalid_argument("Unknown position and orientation needed");
 
-	Eigen::Matrix3d R_des = calcSmoothDesiredOrientation(xGazeLoc, pos[1], Q, Q_init, scaling, orientationType, tilt);
+	Eigen::Matrix3d R_des = calcSmoothDesiredOrientation(xGazeLoc, pos[1], Q_des, Q_init, scaling, orientationType, tilt);
 
 	Eigen::RowVector4d qCur = RToQuat(pos[0]);
 	Eigen::RowVector4d qDes = RToQuat(R_des);
@@ -126,63 +202,159 @@ Eigen::Vector3d smoothOrientationError(const Eigen::Vector3d& xGazeLoc, const Ei
 
 
 
-dreamerController::dreamerController(void){}
-
-dreamerController::~dreamerController(void){}
-
-
-
-
 /**
  * Function: Calculate desired joint positions for go to point with head priority
- * Inputs: xyz head gaze, xyz eye gaze, start time, total run time
- * 
+ * Inputs: xyz head gaze, xyz eye gaze, motion start time, total motion run time
+ * Outputs: Desired joint configuation
  */
-Eigen::MatrixXd dreamerController::headPriorityEyeTrajectoryLookAtPoint(Eigen::Vector3d xyzHeadGaze, Eigen::Vector3d xyzEyeGaze, const double stime, const double ttime){
-	Eigen::MatrixXd m_ret; // dummy return
-	double currentTrajectoryTime = ros::Time::now().toSec() - stime;
-	std::cout << currentTime << std::endl;
-	return m_ret;
+Eigen::VectorXd dreamerController::headPriorityEyeTrajectoryLookAtPoint(const Eigen::Vector3d& xyzHeadGaze, const Eigen::Vector3d& xyzEyeGaze, const Eigen::VectorXd& initQ, const double sTime, const double tTime){
+	// double currentTrajectoryTime = ros::Time::now().toSec() - stime; //
+	double currentTrajectoryTime = 3;
+
+	/************************** Head Calculations **************************/
+	// Get only the joints that affect the head orientation
+	Eigen::VectorXd Q_cur = kinematics.Jlist;
+	Eigen::MatrixXd J_head = kinematics.get6D_HeadJacobian(Q_cur);
+	Eigen::MatrixXd J_head_block = J_head.block(0, 0, 3, J_head.cols());
+
+	// Find the head focus length
+	Eigen::RowVector3d headFocus = focusPointInit[H];
+
+	// Draw a line between the desired and final vectors
+	Eigen::Vector3d error = Normalize(xyzHeadGaze - headFocus.transpose());
+	double lHead = (xyzHeadGaze - headFocus.transpose()).norm();
+	
+	// If the difference between the two vectors is small, do nothing
+	if(NearZero(lHead))
+		error = Normalize(headFocus);
+	
+	// Move towards the desired point along a minimum jerk
+	Eigen::Vector3d pHeadDesired = headFocus.transpose() + error * lHead * minJerkTimeScaling(currentTrajectoryTime, tTime);
+
+	// Find the operational space change
+	Eigen::Vector3d dxHead = smoothOrientationError(pHeadDesired, Q_cur, initQ, minJerkTimeScaling(currentTrajectoryTime, tTime));
+
+
+	/************************** Eyes Calculations **************************/
+	Eigen::MatrixXd J1 = kinematics.get6D_RightEyeJacobian(Q_cur);
+	Eigen::MatrixXd J2 = kinematics.get6D_LeftEyeJacobian(Q_cur);
+
+	Eigen::MatrixXd J1_block = J1.block(0, 0, 3, J1.cols());
+	Eigen::MatrixXd J2_block = J2.block(0, 0, 3, J2.cols());
+
+	Eigen::MatrixXd J_eyes(J1_block.rows()+J2_block.rows(), J1_block.cols());
+	J_eyes << J1_block,
+			  J2_block;
+
+	Eigen::RowVector3d reFocus = focusPointInit[RE];
+	Eigen::RowVector3d leFocus = focusPointInit[LE];
+
+	Eigen::Vector3d errorRE = Normalize(xyzEyeGaze - reFocus.transpose());
+	Eigen::Vector3d errorLE = Normalize(xyzEyeGaze - leFocus.transpose());
+	double lRE = (xyzEyeGaze - reFocus.transpose()).norm();
+	double lLE = (xyzEyeGaze - leFocus.transpose()).norm();
+
+	if(NearZero(lRE))
+		errorRE = Normalize(reFocus);
+	if(NearZero(lLE))
+		errorLE = Normalize(leFocus);
+
+	Eigen::Vector3d pRightEyeDesired = reFocus.transpose() + errorRE * lRE * minJerkTimeScaling(currentTrajectoryTime, tTime);
+	Eigen::Vector3d pLeftEyeDesired = leFocus.transpose() + errorLE * lLE * minJerkTimeScaling(currentTrajectoryTime, tTime);
+
+
+	Eigen::Vector3d dxRE = smoothOrientationError(pRightEyeDesired, Q_cur, initQ, minJerkTimeScaling(currentTrajectoryTime, tTime), "right_eye");
+	Eigen::Vector3d dxLE = smoothOrientationError(pLeftEyeDesired, Q_cur, initQ, minJerkTimeScaling(currentTrajectoryTime, tTime), "left_eye");
+	Eigen::MatrixXd dxEyes(dxRE.rows() + dxLE.rows(), dxRE.cols());
+
+	dxEyes << dxRE,
+			  dxLE;
+
+
+	// Specify priority
+	J1 = J_head_block;
+	Eigen::MatrixXd dx1 = dxHead;
+	J2 = J_eyes;
+	Eigen::MatrixXd dx2 = dxEyes;
+	
+
+
+	// Calculate joint movement
+	Eigen::VectorXd dq1 = calculate_dQ(J1, dx1);
+	
+
+	// Calculate secondary joint movement
+	Eigen::MatrixXd J1_Bar = J1.completeOrthogonalDecomposition().pseudoInverse();
+	Eigen::MatrixXd pJ1_J1 = J1_Bar*J1;
+	Eigen::MatrixXd Identity = Eigen::MatrixXd::Identity(pJ1_J1.rows(), pJ1_J1.cols());
+	Eigen::MatrixXd N1 = Identity - pJ1_J1;
+
+	Eigen::MatrixXd pinv_J2_N1 = (J2*N1).completeOrthogonalDecomposition().pseudoInverse();	
+	Eigen::MatrixXd J2_pinv_J1 = J2*J1_Bar;
+	Eigen::MatrixXd J2_pinv_J1_x1dot = (J2*J1_Bar)*dx1;
+	Eigen::VectorXd dq2 = N1 * calculate_dQ(J2, dx2);
+
+	Eigen::VectorXd dq_tot = dq1 + dq2;
+	Eigen::VectorXd Q_des = Q_cur + dq_tot;
+
+	
+
+	Eigen::MatrixXd *hPoint = kinematics.get6D_HeadPosition(kinematics.Jlist);
+	Eigen::MatrixXd *rePoint = kinematics.get6D_RightEyePosition(kinematics.Jlist);
+	Eigen::MatrixXd *lePoint = kinematics.get6D_LeftEyePosition(kinematics.Jlist);
+
+
+	currentFocusLength[H] = (pHeadDesired - hPoint[1]).norm();
+	currentFocusLength[RE] = (pRightEyeDesired - rePoint[1]).norm();
+	currentFocusLength[LE] = (pLeftEyeDesired - lePoint[1]).norm();
+
+
+	delete [] hPoint;
+	delete [] rePoint;
+	delete [] lePoint;
+
+	return Q_des;
 }
 
 
 
 int main(void){
-	ros::Time::init();
+	// ros::Time::init();
 	std::cout << "Beginning ROS" << std::endl;
-	double init_time = ros::Time::now().toSec();
+	
+	// double initTime = ros::Time::now().toSec();
+	double initTime = 0;
+	Eigen::Vector3d xyzHead(1,1,1);
+	Eigen::Vector3d xyzEye(1,1,1);
+	double endTime = 5.0;
 
+	dreamerController ctrl;
+		
+	
+	Eigen::RowVectorXd J(7);
+	J << 1,2,3,4,5,6,7;
 
-
-
-	// Eigen::MatrixXd *point1 = hk.get6D_LeftEyePosition(hk.Jlist);
-	// Eigen::MatrixXd *point2 = hk.get6D_RightEyePosition(hk.Jlist);
-	// Eigen::MatrixXd *point3 = hk.get6D_HeadPosition(hk.Jlist);
-	// std::cout << point1[1] << std::endl;
-	// std::cout << point2[1] << std::endl;
-	// std::cout << point3[1] << std::endl;
-	// delete [] point1;
-	// delete [] point2;
-	// delete [] point3;
-
-
-
-	// for(int i=0; i<1000; i++) {
-	// }
+	Eigen::VectorXd ret = ctrl.headPriorityEyeTrajectoryLookAtPoint(xyzHead, xyzEye, J, initTime, endTime);
+	// std::cout << ret << std::endl;
 	// std::cout << "Time Taken: " << (ros::Time::now().toSec() - init_time) << " ms" << std::endl;
 
-	// double time = 0;
-	//    for(int i = 0; i < 1000; i++) {
-	// 	std::clock_t    start;
-	//    	start = std::clock();
-	// 	Eigen::MatrixXd *point1 = hk.get6D_LeftEyePosition(hk.Jlist);
-	// 	time+=(std::clock() - start) / (double)(CLOCKS_PER_SEC/1000);
-	// }
-	//    std::cout << "Time: " << (time/1000) << " ms" << std::endl;
-	// return -1;
+	double time = 0;
+	for(int i = 0; i < 1000; i++) {
+		std::clock_t start;
+	   	start = std::clock();
+		ctrl.headPriorityEyeTrajectoryLookAtPoint(xyzHead, xyzEye, ctrl.kinematics.Jlist, initTime, endTime);
+		time += (std::clock() - start) / (double)(CLOCKS_PER_SEC/1000);
+	}
+	std::cout << "Time: " << (time/1000) << " ms" << std::endl;
+	
 
+	return -1;
 }
 
+		// Eigen::JacobiSVD<Eigen::MatrixXd> svd(J1, Eigen::ComputeThinU | Eigen::ComputeThinV);
+		// Eigen::MatrixXd pJ1_J1 = svd.solve(J1);
+		// Eigen::MatrixXd J1_Bar = J1.completeOrthogonalDecomposition().pseudoInverse();
+		// Eigen::MatrixXd pJ1_J1 = J1_Bar*J1;
 
 //Pseudoinverse stuff
 // Eigen::JacobiSVD<Eigen::MatrixXd> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);

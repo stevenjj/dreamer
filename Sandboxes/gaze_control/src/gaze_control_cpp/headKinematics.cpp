@@ -10,13 +10,19 @@ headKinematics::headKinematics(void){
 	l2 = 0.12508;
 	l3 = 0.053;
 	
-	// S0 = Eigen::VectorXd::Zero(6);
+	S0 = Eigen::VectorXd::Zero(6);
 	S0 << 0, -1, 0, 0, 0, 0; 
+	S1 = Eigen::VectorXd::Zero(6);
 	S1 << 0, 0, 1, 0, 0, 0;
+	S2 = Eigen::VectorXd::Zero(6);
 	S2 << -1, 0, 0, 0, -l1, 0;  
+	S3 = Eigen::VectorXd::Zero(6);
 	S3 << 0, -1, 0, l1, 0, 0;  
+	S4 = Eigen::VectorXd::Zero(6);
 	S4 << 0, -1, 0, l1, 0, -l2;  
+	S5 = Eigen::VectorXd::Zero(6);
 	S5 << 0, 0, 1, -l3, -l2, 0;  
+	S6 = Eigen::VectorXd::Zero(6);
 	S6 << 0, 0, 1, l3, -l2, 0;  
 
 	rHeadHome = Eigen::MatrixXd::Identity(3,3);
@@ -28,6 +34,7 @@ headKinematics::headKinematics(void){
 	pRightEyeHome << l2, -l3, l1;
 	pLeftEyeHome << l2, l3, l1;
 	
+	screwAxisTables = Eigen::MatrixXd::Zero(7,6);
 	screwAxisTables << S0, S1, S2, S3, S4, S5, S6;
 
 	J_num = screwAxisTables.rows();
@@ -44,6 +51,7 @@ headKinematics::headKinematics(void){
 }
 
 headKinematics::~headKinematics(void){}
+
 
 /* Function: Gives the 6D Jacobian for Dreamer's head
  * Inputs: Joint configuration
@@ -65,6 +73,7 @@ Eigen::MatrixXd headKinematics::get6D_HeadJacobian(const Eigen::VectorXd& JList)
 	return JSpatial_6DHead;
 }
 
+
 /* Function: Gives the 6D Jacobian for Dreamer's Right Eye
  * Inputs: Joint configuration
  * Returns: 6D Spatial Right Eye Jacobian
@@ -85,6 +94,7 @@ Eigen::MatrixXd headKinematics::get6D_RightEyeJacobian(const Eigen::VectorXd& JL
 	return JSpatial_6DRightEye;
 }
 
+
 /* Function: Gives the 6D Jacobian for Dreamer's Left Eye
  * Inputs: Joint configuration
  * Returns: 6D Spatial Left Eye Jacobian
@@ -96,7 +106,7 @@ Eigen::MatrixXd headKinematics::get6D_LeftEyeJacobian(const Eigen::VectorXd& JLi
 	Slist << screwAxisTables.block<5, 6>(0,0), screwAxisTables.block<1, 6>(6,0);
 
 	Eigen::RowVectorXd thetaList(6);
-	thetaList << JList.head(numJoints-1), JList(numJoints);
+	thetaList << JList.head(numJoints-1).transpose(), JList(numJoints);
 	
 	Eigen::MatrixXd JSpatial = JacobianSpace(Slist.transpose(), thetaList);
 
@@ -108,6 +118,7 @@ Eigen::MatrixXd headKinematics::get6D_LeftEyeJacobian(const Eigen::VectorXd& JLi
 
 	return JSpatial_6DLeftEye;
 }
+
 
 /* Function: Gives the 6D Jacobian for Dreamer's Right Eye exlcuding head joints
  * Inputs: Joint configuration
@@ -128,6 +139,7 @@ Eigen::MatrixXd headKinematics::get6D_RightEyeJacobianYawPitch(const Eigen::Vect
 
 	return JSpatial_6DRightEye;
 }
+
 
 /* Function: Gives the 6D Jacobian for Dreamer's Left Eye exlcuding head joints
  * Inputs: Joint configuration
@@ -151,6 +163,7 @@ Eigen::MatrixXd headKinematics::get6D_LeftEyeJacobianYawPitch(const Eigen::Vecto
 	return JSpatial_6DLeftEye;
 }
 
+
 /* Function: Gives the spatial position of Dreamer's Head
  * Inputs: Joint configuration
  * Returns: Spatial position of the head
@@ -169,6 +182,7 @@ Eigen::MatrixXd* headKinematics::get6D_HeadPosition(const Eigen::VectorXd& JList
 	return TransToRp(T_Head);
 }
 
+
 /* Function: Gives the spatial position of Dreamer's Right Eye
  * Inputs: Joint configuration
  * Returns: Spatial position of the right eye
@@ -186,6 +200,7 @@ Eigen::MatrixXd* headKinematics::get6D_RightEyePosition(const Eigen::VectorXd& J
 
 	return TransToRp(T_RightEye);
 }
+
 
 /* Function: Gives the spatial position of Dreamer's Left Eye
  * Inputs: Joint configuration
