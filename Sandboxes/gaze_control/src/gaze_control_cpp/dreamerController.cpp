@@ -70,6 +70,8 @@ dreamerController::dreamerController(void){
 	RE = "right_eye";
 	LE = "left_eye";
 
+	movement_complete = false;
+
 	focusPointInit[H] << 1, 0, 0;
 	focusPointInit[RE] << 1, 0, 0;
 	focusPointInit[LE] << 1, 0, 0;
@@ -284,14 +286,17 @@ Eigen::VectorXd dreamerController::headPriorityEyeTrajectoryLookAtPoint(const Ei
 	
 
 	// Calculate secondary joint movement
-	Eigen::MatrixXd J1_Bar = J1.completeOrthogonalDecomposition().pseudoInverse();
-	Eigen::MatrixXd pJ1_J1 = J1_Bar*J1;
+	// TODO this may not work anymore
+	//Eigen::MatrixXd J1_Bar = J1.completeOrthogonalDecomposition().pseudoInverse();
+	Eigen::JacobiSVD<Eigen::MatrixXd> J1_Bar(J1, Eigen::ComputeThinU | Eigen::ComputeThinV);
+	Eigen::MatrixXd pJ1_J1 = J1_Bar.solve(J1);
 	Eigen::MatrixXd Identity = Eigen::MatrixXd::Identity(pJ1_J1.rows(), pJ1_J1.cols());
 	Eigen::MatrixXd N1 = Identity - pJ1_J1;
 
-	Eigen::MatrixXd pinv_J2_N1 = (J2*N1).completeOrthogonalDecomposition().pseudoInverse();	
-	Eigen::MatrixXd J2_pinv_J1 = J2*J1_Bar;
-	Eigen::MatrixXd J2_pinv_J1_x1dot = (J2*J1_Bar)*dx1;
+	// Eigen::MatrixXd pinv_J2_N1 = (J2*N1).completeOrthogonalDecomposition().pseudoInverse();	
+	// Eigen::JacobiSVD<Eigen::MatrixXd> pinv_J2_N1(J2*N1, Eigen::ComputeThinU | Eigen::ComputeThinV);
+	// Eigen::MatrixXd J2_pinv_J1 = J2*J1_Bar;
+	// Eigen::MatrixXd J2_pinv_J1_x1dot = (J2*J1_Bar)*dx1;
 	Eigen::VectorXd dq2 = N1 * calculate_dQ(J2, dx2);
 
 	Eigen::VectorXd dq_tot = dq1 + dq2;
@@ -309,6 +314,9 @@ Eigen::VectorXd dreamerController::headPriorityEyeTrajectoryLookAtPoint(const Ei
 	currentFocusLength[LE] = (pLeftEyeDesired - lePoint[1]).norm();
 
 
+	if (currentTrajectoryTime > tTime)
+		movement_complete = true;
+
 	delete [] hPoint;
 	delete [] rePoint;
 	delete [] lePoint;
@@ -317,7 +325,7 @@ Eigen::VectorXd dreamerController::headPriorityEyeTrajectoryLookAtPoint(const Ei
 }
 
 
-
+/*
 int main(void){
 	// ros::Time::init();
 	std::cout << "Beginning ROS" << std::endl;
@@ -338,19 +346,19 @@ int main(void){
 	// std::cout << ret << std::endl;
 	// std::cout << "Time Taken: " << (ros::Time::now().toSec() - init_time) << " ms" << std::endl;
 
-	double time = 0;
-	for(int i = 0; i < 1000; i++) {
-		std::clock_t start;
-	   	start = std::clock();
-		ctrl.headPriorityEyeTrajectoryLookAtPoint(xyzHead, xyzEye, ctrl.kinematics.Jlist, initTime, endTime);
-		time += (std::clock() - start) / (double)(CLOCKS_PER_SEC/1000);
-	}
-	std::cout << "Time: " << (time/1000) << " ms" << std::endl;
+	// double time = 0;
+	// for(int i = 0; i < 1000; i++) {
+	// 	std::clock_t start;
+	//    	start = std::clock();
+	// 	ctrl.headPriorityEyeTrajectoryLookAtPoint(xyzHead, xyzEye, ctrl.kinematics.Jlist, initTime, endTime);
+	// 	time += (std::clock() - start) / (double)(CLOCKS_PER_SEC/1000);
+	// }
+	// std::cout << "Time: " << (time/1000) << " ms" << std::endl;
 	
 
 	return -1;
 }
-
+*/
 		// Eigen::JacobiSVD<Eigen::MatrixXd> svd(J1, Eigen::ComputeThinU | Eigen::ComputeThinV);
 		// Eigen::MatrixXd pJ1_J1 = svd.solve(J1);
 		// Eigen::MatrixXd J1_Bar = J1.completeOrthogonalDecomposition().pseudoInverse();

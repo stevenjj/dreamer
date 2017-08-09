@@ -14,8 +14,9 @@ class dreamerController{
 		std::string RE;
 		std::string LE;
 
+		bool movement_complete;
+
 		headKinematics kinematics;
-		// gazeFocusStates
 		// peopleManager
 		// jointPublisher
 		
