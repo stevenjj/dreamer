@@ -1,15 +1,15 @@
-#include <urdf/model.h>
-#include <tinyxml.h>
 #include <iostream>
 #include <cstring>
 #include <cmath>
 #include <vector>
 #include <map>
+
 #include "ros/ros.h"
+#include <tinyxml.h>
 #include <sensor_msgs/JointState.h>
-// #include "std_msgs/String.h"
 
 #include "dreamerJointPublisher.h"
+
 
 dreamerJointPublisher::dreamerJointPublisher(){
 	loadJointInformation(n);
@@ -112,8 +112,8 @@ void dreamerJointPublisher::loadJointInformation(ros::NodeHandle n){
 }
 
 
-void dreamerJointPublisher::publishJoints(void){
-	std::cout << "Publishing joints" << std::endl;
+void dreamerJointPublisher::publishJoints(void){	
+	// std::cout << "Publishing joints" << std::endl;
 	sensor_msgs::JointState msg;
 	msg.header.stamp = ros::Time::now();
 
@@ -147,72 +147,3 @@ void dreamerJointPublisher::printDebug(void){
 		std::cout << "\tzero: " << it->second["zero"] << std::endl;
 	}
 }
-
-
-
-
-
-/*
-torso_lower_pitch
-torso_upper_pitch
-right_shoulder_extensor
-right_shoulder_abductor
-right_shoulder_rotator
-right_elbow
-right_wrist_rotator
-right_wrist_pitch
-right_wrist_yaw
-left_shoulder_extensor
-left_shoulder_abductor
-left_shoulder_rotator
-left_elbow
-left_wrist_rotator
-left_wrist_pitch
-left_wrist_yaw
-lower_neck_pitch
-upper_neck_yaw
-upper_neck_roll
-upper_neck_pitch
-eye_pitch
-right_eye_yaw
-left_eye_yaw
-right_thumb_cmc
-right_thumb_mcp
-right_thumb_ip
-right_pointer_finger_mcp
-right_pointer_finger_pip
-right_pointer_finger_dip
-right_middle_finger_mcp
-right_middle_finger_pip
-right_middle_finger_dip
-right_pinky_mcp
-right_pinky_pip
-right_pinky_dip
-l_gripper_l_finger_joint
-l_gripper_r_finger_joint
-l_gripper_l_finger_tip_joint
-l_gripper_r_finger_tip_joint
-
-header: 
-  seq: 4386
-  stamp: 
-    secs: 1502304064
-    nsecs: 607492923
-  frame_id: ''
-name: ['torso_lower_pitch', 'torso_upper_pitch', 'right_shoulder_extensor', 'right_shoulder_abductor', 'right_shoulder_rotator', 'right_elbow', 'right_wrist_rotator', 'right_wrist_pitch', 'right_wrist_yaw', 'left_shoulder_extensor', 'left_shoulder_abductor', 'left_shoulder_rotator', 'left_elbow', 'left_wrist_rotator', 'left_wrist_pitch', 'left_wrist_yaw', 'lower_neck_pitch', 'upper_neck_yaw', 'upper_neck_roll', 'upper_neck_pitch', 'eye_pitch', 'right_eye_yaw', 'left_eye_yaw', 'right_thumb_cmc', 'right_thumb_mcp', 'right_thumb_ip', 'right_pointer_finger_mcp', 'right_pointer_finger_pip', 'right_pointer_finger_dip', 'right_middle_finger_mcp', 'right_middle_finger_pip', 'right_middle_finger_dip', 'right_pinky_mcp', 'right_pinky_pip', 'right_pinky_dip', 'l_gripper_l_finger_joint', 'l_gripper_r_finger_joint', 'l_gripper_l_finger_tip_joint', 'l_gripper_r_finger_tip_joint']
-position: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-velocity: []
-effort: []
-
-header: 
-  seq: 4
-  stamp: 
-    secs: 1502304092
-    nsecs: 640752163
-  frame_id: ''
-name: ['eye_pitch', 'l_gripper_l_finger_joint', 'l_gripper_l_finger_tip_joint', 'l_gripper_r_finger_joint', 'l_gripper_r_finger_tip_joint', 'left_elbow', 'left_eye_yaw', 'left_shoulder_abductor', 'left_shoulder_extensor', 'left_shoulder_rotator', 'left_wrist_pitch', 'left_wrist_rotator', 'left_wrist_yaw', 'lower_neck_pitch', 'right_elbow', 'right_eye_yaw', 'right_middle_finger_dip', 'right_middle_finger_mcp', 'right_middle_finger_pip', 'right_pinky_dip', 'right_pinky_mcp', 'right_pinky_pip', 'right_pointer_finger_dip', 'right_pointer_finger_mcp', 'right_pointer_finger_pip', 'right_shoulder_abductor', 'right_shoulder_extensor', 'right_shoulder_rotator', 'right_thumb_cmc', 'right_thumb_ip', 'right_thumb_mcp', 'right_wrist_pitch', 'right_wrist_rotator', 'right_wrist_yaw', 'torso_lower_pitch', 'torso_upper_pitch', 'upper_neck_pitch', 'upper_neck_roll', 'upper_neck_yaw']
-position: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-velocity: []
-effort: []
-
- */

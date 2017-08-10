@@ -41,13 +41,13 @@ headKinematics::headKinematics(void){
 
 	Jlist = Eigen::VectorXd::Zero(screwAxisTables.rows());
 
-	JIndexToNames[0] = "lowerNeckPitch";
-	JIndexToNames[1] = "upperNeckYaw";
-	JIndexToNames[2] = "upperNeckRoll";
-	JIndexToNames[3] = "upperNeckPitch";
-	JIndexToNames[4] = "eyePitch";
-	JIndexToNames[5] = "rightEyeYaw";
-	JIndexToNames[6] = "leftEyeYaw";
+	JIndexToNames[0] = "lower_neck_pitch";
+	JIndexToNames[1] = "upper_neck_yaw";
+	JIndexToNames[2] = "upper_neck_roll";
+	JIndexToNames[3] = "upper_neck_pitch";
+	JIndexToNames[4] = "eye_pitch";
+	JIndexToNames[5] = "right_eye_yaw";
+	JIndexToNames[6] = "left_eye_yaw";
 }
 
 headKinematics::~headKinematics(void){}

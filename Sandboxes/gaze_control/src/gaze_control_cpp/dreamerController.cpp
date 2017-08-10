@@ -6,6 +6,7 @@
 #include <cmath>
 
 #include "ros/ros.h"
+#include "std_msgs/Float32MultiArray.h"
 #include "modernRobotics.h"
 #include "headKinematics.h"
 #include "utilQuat.h"
@@ -98,12 +99,21 @@ dreamerController::dreamerController(void){
 
 	updateGazeFocus();
 
+	gazePublisher = n.advertise<std_msgs::Float32MultiArray>("setArrLength", 1);
+
 }
 
 dreamerController::~dreamerController(void){}
 
 
+void dreamerController::publishFocusLength(void){
+	std_msgs::Float32MultiArray msg;
+	msg.data.push_back(currentFocusLength[LE]);
+	msg.data.push_back(currentFocusLength[RE]);
+	msg.data.push_back(currentFocusLength[H]);
+	gazePublisher.publish(msg);
 
+}
 
 
 bool dreamerController::gazeAreEyesFocused(void){
@@ -119,6 +129,31 @@ double dreamerController::minJerkTimeScaling(const double t, const double dt){
 	else
 		return 10*std::pow(t/dt, 3) - 15*std::pow(t/dt, 4) + 6*std::pow(t/dt, 5); 
 }
+
+
+void dreamerController::initializeHeadEyeFocusPoint(const Eigen::Vector3d& xyzHead, const Eigen::Vector3d& xyzEye){
+	Eigen::MatrixXd *head = kinematics.get6D_HeadPosition(kinematics.Jlist);
+	Eigen::MatrixXd *re = kinematics.get6D_RightEyePosition(kinematics.Jlist);
+	Eigen::MatrixXd *le = kinematics.get6D_LeftEyePosition(kinematics.Jlist);
+
+	Eigen::Vector3d xhead = head[0].block<3,1>(0, 0);
+	Eigen::Vector3d xre = re[0].block<3,1>(0, 0);
+	Eigen::Vector3d xle = le[0].block<3,1>(0, 0);
+	// If eyes not are focused enough
+	if(!gazeAreEyesFocused()){
+		currentFocusLength[H] = (xyzHead - head[1]).norm();
+		currentFocusLength[RE] = (xyzEye - re[1]).norm();
+		currentFocusLength[LE] = (xyzEye - le[1]).norm();
+	}
+
+	focusPointInit[H] = (head[1] + xhead * currentFocusLength[H]).transpose();
+	focusPointInit[RE] = (re[1] + xre * currentFocusLength[RE]).transpose();
+	focusPointInit[LE] = (le[1] + xle * currentFocusLength[LE]).transpose();
+}
+
+
+
+
 
 /* Function: Calculate a rotation matrix based on the desired parameters
  * Inputs: desired gaze location, current spatial position, desired joint configuration, initial join configuration, min_jerk scaling, head component, head roll
@@ -210,12 +245,12 @@ Eigen::Vector3d dreamerController::smoothOrientationError(const Eigen::Vector3d&
  * Outputs: Desired joint configuation
  */
 Eigen::VectorXd dreamerController::headPriorityEyeTrajectoryLookAtPoint(const Eigen::Vector3d& xyzHeadGaze, const Eigen::Vector3d& xyzEyeGaze, const Eigen::VectorXd& initQ, const double sTime, const double tTime){
-	// double currentTrajectoryTime = ros::Time::now().toSec() - stime; //
-	double currentTrajectoryTime = 3;
-
+	double currentTrajectoryTime = ros::Time::now().toSec();
+	currentTrajectoryTime -= sTime;
+	// double currentTrajectoryTime = 3;
 	/************************** Head Calculations **************************/
 	// Get only the joints that affect the head orientation
-	Eigen::VectorXd Q_cur = kinematics.Jlist;
+	Eigen::VectorXd Q_cur = initQ;
 	Eigen::MatrixXd J_head = kinematics.get6D_HeadJacobian(Q_cur);
 	Eigen::MatrixXd J_head_block = J_head.block(0, 0, 3, J_head.cols());
 
@@ -228,13 +263,15 @@ Eigen::VectorXd dreamerController::headPriorityEyeTrajectoryLookAtPoint(const Ei
 	
 	// If the difference between the two vectors is small, do nothing
 	if(NearZero(lHead))
-		error = Normalize(headFocus);
+		error = Normalize(headFocus).transpose();
+		// std::cout << Normalize(headFocus) << std::endl;
 	
 	// Move towards the desired point along a minimum jerk
 	Eigen::Vector3d pHeadDesired = headFocus.transpose() + error * lHead * minJerkTimeScaling(currentTrajectoryTime, tTime);
 
 	// Find the operational space change
 	Eigen::Vector3d dxHead = smoothOrientationError(pHeadDesired, Q_cur, initQ, minJerkTimeScaling(currentTrajectoryTime, tTime));
+	// std::cout << dxHead << std::endl;
 
 
 	/************************** Eyes Calculations **************************/
@@ -257,9 +294,9 @@ Eigen::VectorXd dreamerController::headPriorityEyeTrajectoryLookAtPoint(const Ei
 	double lLE = (xyzEyeGaze - leFocus.transpose()).norm();
 
 	if(NearZero(lRE))
-		errorRE = Normalize(reFocus);
+		errorRE = Normalize(reFocus).transpose();
 	if(NearZero(lLE))
-		errorLE = Normalize(leFocus);
+		errorLE = Normalize(leFocus).transpose();
 
 	Eigen::Vector3d pRightEyeDesired = reFocus.transpose() + errorRE * lRE * minJerkTimeScaling(currentTrajectoryTime, tTime);
 	Eigen::Vector3d pLeftEyeDesired = leFocus.transpose() + errorLE * lLE * minJerkTimeScaling(currentTrajectoryTime, tTime);

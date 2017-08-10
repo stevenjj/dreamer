@@ -1,7 +1,6 @@
 #ifndef dreamerJointPublisher_h
 #define dreamerJointPublisher_h
 
-#include <urdf/model.h>
 #include <tinyxml.h>
 #include <cstring>
 #include <vector>
