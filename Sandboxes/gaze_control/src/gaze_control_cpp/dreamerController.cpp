@@ -44,27 +44,6 @@ Eigen::MatrixXd calculate_dQ(const Eigen::MatrixXd& J, const Eigen::MatrixXd& dx
 }
 
 
-void dreamerController::updateGazeFocus(const double dt = 1.0){
-	gazeOldPosition[H] = gazePosition[H];
-	gazeOldPosition[RE] = gazePosition[RE];
-	gazeOldPosition[LE] = gazePosition[LE];
-
-	Eigen::MatrixXd *hPoint = kinematics.get6D_HeadPosition(kinematics.Jlist);
-	Eigen::MatrixXd *rePoint = kinematics.get6D_RightEyePosition(kinematics.Jlist);
-	Eigen::MatrixXd *lePoint = kinematics.get6D_LeftEyePosition(kinematics.Jlist);
-
-	gazePosition[H] = hPoint[0].block<1,3>(0,0) * currentFocusLength[H] + hPoint[1].transpose();
-	gazePosition[RE] = rePoint[0].block<1,3>(0,0) * currentFocusLength[RE] + rePoint[1].transpose();
-	gazePosition[LE] = lePoint[0].block<1,3>(0,0) * currentFocusLength[LE] + lePoint[1].transpose();
-
-	delete [] hPoint;
-	delete [] rePoint;
-	delete [] lePoint;
-
-	gazeVelocity[H] = (gazePosition[H] - gazeOldPosition[H])/dt;
-	gazeVelocity[RE] = (gazePosition[RE] - gazeOldPosition[RE])/dt;
-	gazeVelocity[LE] = (gazePosition[LE] - gazeOldPosition[LE])/dt;
-}
 
 dreamerController::dreamerController(void){
 	H = "head";
@@ -97,7 +76,7 @@ dreamerController::dreamerController(void){
 	gazeVelocity[RE] = zero;
 	gazeVelocity[LE] = zero;
 
-	updateGazeFocus();
+	updateGazeFocus(1.0);
 
 	gazePublisher = n.advertise<std_msgs::Float32MultiArray>("setArrLength", 1);
 
@@ -106,6 +85,38 @@ dreamerController::dreamerController(void){
 dreamerController::~dreamerController(void){}
 
 
+/**
+ * Function: Updates gaze variables
+ * Inputs: time taken from last update (used for velocity calculations)
+ * Returns: None
+ */
+void dreamerController::updateGazeFocus(const double dt = 1.0){
+	gazeOldPosition[H] = gazePosition[H];
+	gazeOldPosition[RE] = gazePosition[RE];
+	gazeOldPosition[LE] = gazePosition[LE];
+
+	Eigen::MatrixXd *hPoint = kinematics.get6D_HeadPosition(kinematics.Jlist);
+	Eigen::MatrixXd *rePoint = kinematics.get6D_RightEyePosition(kinematics.Jlist);
+	Eigen::MatrixXd *lePoint = kinematics.get6D_LeftEyePosition(kinematics.Jlist);
+
+	gazePosition[H] = hPoint[0].block<1,3>(0,0) * currentFocusLength[H] + hPoint[1].transpose();
+	gazePosition[RE] = rePoint[0].block<1,3>(0,0) * currentFocusLength[RE] + rePoint[1].transpose();
+	gazePosition[LE] = lePoint[0].block<1,3>(0,0) * currentFocusLength[LE] + lePoint[1].transpose();
+
+	delete [] hPoint;
+	delete [] rePoint;
+	delete [] lePoint;
+
+	gazeVelocity[H] = (gazePosition[H] - gazeOldPosition[H])/dt;
+	gazeVelocity[RE] = (gazePosition[RE] - gazeOldPosition[RE])/dt;
+	gazeVelocity[LE] = (gazePosition[LE] - gazeOldPosition[LE])/dt;
+}
+
+/**
+ * Function: Published focus length to RVIZ
+ * Inputs: None
+ * Returns: None
+ */
 void dreamerController::publishFocusLength(void){
 	std_msgs::Float32MultiArray msg;
 	msg.data.push_back(currentFocusLength[LE]);
@@ -115,12 +126,20 @@ void dreamerController::publishFocusLength(void){
 
 }
 
-
+/**
+ * Function: Helper function to focus eyes
+ * Inputs: None - uses class variables
+ * Returns: Boolean of True(focused) or False(not focused)
+ */
 bool dreamerController::gazeAreEyesFocused(void){
 	return ( (gazePosition[RE] - gazePosition[LE]).norm() < FOCUS_THRESH);
 }
 
-
+/**
+ * Function: Provides a minimum jerk scaling from start time to end time
+ * Inputs: current time, total time of motion
+ * Returns: min_jerk scaling from 0.0-1.0 based on minimum jerk curve
+ */
 double dreamerController::minJerkTimeScaling(const double t, const double dt){
 	if(t < 0)
 		return 0.0;
@@ -130,7 +149,11 @@ double dreamerController::minJerkTimeScaling(const double t, const double dt){
 		return 10*std::pow(t/dt, 3) - 15*std::pow(t/dt, 4) + 6*std::pow(t/dt, 5); 
 }
 
-
+/**
+ * Function: Sets initial parameters for gaze focus length
+ * Inputs: operational space head point, operational space eye point
+ * Returns: None
+ */
 void dreamerController::initializeHeadEyeFocusPoint(const Eigen::Vector3d& xyzHead, const Eigen::Vector3d& xyzEye){
 	Eigen::MatrixXd *head = kinematics.get6D_HeadPosition(kinematics.Jlist);
 	Eigen::MatrixXd *re = kinematics.get6D_RightEyePosition(kinematics.Jlist);
@@ -323,8 +346,7 @@ Eigen::VectorXd dreamerController::headPriorityEyeTrajectoryLookAtPoint(const Ei
 	
 
 	// Calculate secondary joint movement
-	// TODO this may not work anymore
-	//Eigen::MatrixXd J1_Bar = J1.completeOrthogonalDecomposition().pseudoInverse();
+	// Eigen::MatrixXd J1_Bar = J1.completeOrthogonalDecomposition().pseudoInverse();
 	Eigen::JacobiSVD<Eigen::MatrixXd> J1_Bar(J1, Eigen::ComputeThinU | Eigen::ComputeThinV);
 	Eigen::MatrixXd pJ1_J1 = J1_Bar.solve(J1);
 	Eigen::MatrixXd Identity = Eigen::MatrixXd::Identity(pJ1_J1.rows(), pJ1_J1.cols());
@@ -362,44 +384,10 @@ Eigen::VectorXd dreamerController::headPriorityEyeTrajectoryLookAtPoint(const Ei
 }
 
 
-/*
-int main(void){
-	// ros::Time::init();
-	std::cout << "Beginning ROS" << std::endl;
-	
-	// double initTime = ros::Time::now().toSec();
-	double initTime = 0;
-	Eigen::Vector3d xyzHead(1,1,1);
-	Eigen::Vector3d xyzEye(1,1,1);
-	double endTime = 5.0;
 
-	dreamerController ctrl;
-		
-	
-	Eigen::RowVectorXd J(7);
-	J << 1,2,3,4,5,6,7;
-
-	Eigen::VectorXd ret = ctrl.headPriorityEyeTrajectoryLookAtPoint(xyzHead, xyzEye, J, initTime, endTime);
-	// std::cout << ret << std::endl;
-	// std::cout << "Time Taken: " << (ros::Time::now().toSec() - init_time) << " ms" << std::endl;
-
-	// double time = 0;
-	// for(int i = 0; i < 1000; i++) {
-	// 	std::clock_t start;
-	//    	start = std::clock();
-	// 	ctrl.headPriorityEyeTrajectoryLookAtPoint(xyzHead, xyzEye, ctrl.kinematics.Jlist, initTime, endTime);
-	// 	time += (std::clock() - start) / (double)(CLOCKS_PER_SEC/1000);
-	// }
-	// std::cout << "Time: " << (time/1000) << " ms" << std::endl;
-	
-
-	return -1;
-}
-*/
-		// Eigen::JacobiSVD<Eigen::MatrixXd> svd(J1, Eigen::ComputeThinU | Eigen::ComputeThinV);
-		// Eigen::MatrixXd pJ1_J1 = svd.solve(J1);
-		// Eigen::MatrixXd J1_Bar = J1.completeOrthogonalDecomposition().pseudoInverse();
-		// Eigen::MatrixXd pJ1_J1 = J1_Bar*J1;
+//Pseudoinverse stuff
+// Eigen::MatrixXd J1_Bar = J1.completeOrthogonalDecomposition().pseudoInverse();
+// Eigen::MatrixXd pJ1_J1 = J1_Bar*J1;
 
 //Pseudoinverse stuff
 // Eigen::JacobiSVD<Eigen::MatrixXd> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);

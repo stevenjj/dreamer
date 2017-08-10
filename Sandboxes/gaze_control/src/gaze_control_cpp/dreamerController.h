@@ -31,6 +31,7 @@ class dreamerController{
 
 		ros::NodeHandle n;
 		ros::Publisher gazePublisher;
+		
 		dreamerController(void);
 		~dreamerController(void);
 
