@@ -1,6 +1,7 @@
 // Must add Eigen to /usr/local/include
 #include <Eigen/Dense>
 #include <cmath>
+#include <vector>
 
 /*TODO:
 	- Don't use eigen dense if not needed
@@ -100,19 +101,18 @@ Eigen::MatrixXd RpToTrans(const Eigen::Matrix3d& R, const Eigen::Vector3d& p){
 /* Function: Separates the rotation matrix and position vector from 
  *				the transfomation matrix representation
  * Inputs: Homogeneous transformation matrix
- * Returns: Pointer to an array of [rotation matrix, position vector]
- * Note: The returned array must be freed externally
+ * Returns: std::vector of [rotation matrix, position vector]
  */
-Eigen::MatrixXd* TransToRp(const Eigen::MatrixXd& T){
-	Eigen::MatrixXd *Rp_ret = new Eigen::MatrixXd[2];
+std::vector<Eigen::MatrixXd> TransToRp(const Eigen::MatrixXd& T){
+	std::vector<Eigen::MatrixXd> Rp_ret;
 	Eigen::Matrix3d R_ret;
 	// Get top left 3x3 corner
 	R_ret = T.block<3,3>(0,0);
 
 	Eigen::Vector3d p_ret( T(0,3), T(1,3), T(2,3) );
     
-    Rp_ret[0] = R_ret;
-    Rp_ret[1] = p_ret;
+    Rp_ret.push_back(R_ret);
+    Rp_ret.push_back(p_ret);
 
     return Rp_ret;
 }
@@ -142,13 +142,11 @@ Eigen::MatrixXd VecTose3(const Eigen::VectorXd& V){
  * Returns: 6x6 Adjoint Representation of the matrix
  */
 Eigen::MatrixXd Adjoint(const Eigen::MatrixXd& T){
-	Eigen::MatrixXd *R = TransToRp(T);
+	std::vector<Eigen::MatrixXd> R = TransToRp(T);
 	Eigen::MatrixXd ad_ret(6,6);
 	Eigen::MatrixXd zeroes = Eigen::MatrixXd::Zero(3,3);
 	ad_ret << R[0], zeroes,
 			VecToso3(R[1]) * R[0], R[0];
-	// Be sure to free the array from TransToRp
-	delete [] R;
 	return ad_ret;
 }
 

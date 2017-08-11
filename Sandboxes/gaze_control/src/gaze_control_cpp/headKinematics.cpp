@@ -1,5 +1,6 @@
 #include <Eigen/Dense>
 #include <iostream>
+#include <vector>
 
 #include "modernRobotics.h"
 #include "headKinematics.h"
@@ -167,9 +168,8 @@ Eigen::MatrixXd headKinematics::get6D_LeftEyeJacobianYawPitch(const Eigen::Vecto
 /* Function: Gives the spatial position of Dreamer's Head
  * Inputs: Joint configuration
  * Returns: Spatial position of the head
- * Note: Returned array must be externally freed
  */
-Eigen::MatrixXd* headKinematics::get6D_HeadPosition(const Eigen::VectorXd& JList){
+std::vector<Eigen::MatrixXd> headKinematics::get6D_HeadPosition(const Eigen::VectorXd& JList){
 	const int screwAxisEnd = 3;
 	const int numJoints = screwAxisEnd + 1;
 	Eigen::MatrixXd Slist = screwAxisTables.block<numJoints, 6>(0,0);
@@ -186,9 +186,8 @@ Eigen::MatrixXd* headKinematics::get6D_HeadPosition(const Eigen::VectorXd& JList
 /* Function: Gives the spatial position of Dreamer's Right Eye
  * Inputs: Joint configuration
  * Returns: Spatial position of the right eye
- * Note: Returned array must be externally freed
  */
-Eigen::MatrixXd* headKinematics::get6D_RightEyePosition(const Eigen::VectorXd& JList){
+std::vector<Eigen::MatrixXd> headKinematics::get6D_RightEyePosition(const Eigen::VectorXd& JList){
 	const int screwAxisEnd = 5;
 	const int numJoints = screwAxisEnd + 1;
 	Eigen::MatrixXd Slist = screwAxisTables.block<numJoints, 6>(0,0);
@@ -205,9 +204,8 @@ Eigen::MatrixXd* headKinematics::get6D_RightEyePosition(const Eigen::VectorXd& J
 /* Function: Gives the spatial position of Dreamer's Left Eye
  * Inputs: Joint configuration
  * Returns: Spatial position of the left eye
- * Note: Returned array must be externally freed
  */
-Eigen::MatrixXd* headKinematics::get6D_LeftEyePosition(const Eigen::VectorXd& JList){
+std::vector<Eigen::MatrixXd> headKinematics::get6D_LeftEyePosition(const Eigen::VectorXd& JList){
 	const int screwAxisEnd = 6;
 	const int numJoints = screwAxisEnd;
 

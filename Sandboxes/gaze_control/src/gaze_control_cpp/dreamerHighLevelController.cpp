@@ -3,6 +3,8 @@
 #include <cstring>
 #include "dreamerJointPublisher.h"
 #include "dreamerController.h"
+#include <visualization_msgs/Marker.h>
+
 
 // Max nodeRate on my Acer laptop = ~300Hz
 const double nodeRate = 100.0;
@@ -68,16 +70,25 @@ int main(int argc, char** argv){
 	// Declare parameters for movement function
 	double initTime = ros::Time::now().toSec();
 	Eigen::Vector3d xyzHead(1, 0, ctrl.kinematics.l1);
-	Eigen::Vector3d xyzEye(1, 0, ctrl.kinematics.l1 + .3);
-	double endTime = 10;
+	Eigen::Vector3d xyzEye(1, 0, ctrl.kinematics.l1+.02);
+	double endTime = 5;
 	ctrl.initializeHeadEyeFocusPoint(xyzHead, xyzEye);
 	// Save initial joint configuration
 	Eigen::VectorXd initJ = ctrl.kinematics.Jlist;
 
+
+	// Debugging Markers
+	ros::init(argc, argv, "basic_shapes");
+	ros::NodeHandle handler;
+	ros::Publisher marker_pub = handler.advertise<visualization_msgs::Marker>("visualization_marker", 1);
+	int shape = visualization_msgs::Marker::CUBE;
+
+
+
 	/**
 	 * Main Loop
 	 * While(ROS is online AND the movement is not completed)
-	 * 	
+	 * 	Find the interval between loops(used for velocity calculation and timing the loop)
 	 */
 	
 	std::cout << "Beginning loop" << std::endl;
@@ -85,6 +96,8 @@ int main(int argc, char** argv){
 	double loopLast = loopCurrent;
 	// double loopSum = 0;
 	// int loopCounter = 0;
+
+	// Specify the loop rate
 	ros::Rate r(nodeRate);
 	
 	while(ros::ok() && !ctrl.movement_complete){
@@ -97,13 +110,34 @@ int main(int argc, char** argv){
 		// loopSum += interval;
 		// loopCounter++;
 		
-		// Movement isn't completely correct
+		// Movement isn't completely correct, Eyes do not work correctly
 		Eigen::VectorXd ret = ctrl.headPriorityEyeTrajectoryLookAtPoint(xyzHead, xyzEye, initJ, initTime, endTime);
 		updateHeadJoints(ctrl, pub, ret, interval);
 
 		pub.publishJoints();
 		// Almost working
 		ctrl.publishFocusLength();
+
+		// Debugging Marker
+		visualization_msgs::Marker marker;
+		marker.header.frame_id = "/my_world_neck";
+		marker.header.stamp = ros::Time::now();
+		marker.ns = "basic_shapes";
+	    marker.id = 0;
+		marker.type = shape;
+		marker.action = visualization_msgs::Marker::ADD;
+	    marker.pose.position.x = 1;
+	    marker.pose.position.y = 0;
+	    marker.pose.position.z = ctrl.kinematics.l1 + .02;
+        marker.scale.x = .01;
+	    marker.scale.y = .01;
+	    marker.scale.z = .01;
+	    marker.color.r = 0.0f;
+	    marker.color.g = 1.0f;
+	    marker.color.b = 1.0f;
+	    marker.color.a = 1.0;
+	    marker.lifetime = ros::Duration();
+		marker_pub.publish(marker);
 
 		r.sleep();
 	}

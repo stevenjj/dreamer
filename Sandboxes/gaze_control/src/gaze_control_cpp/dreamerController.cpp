@@ -4,6 +4,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <cmath>
+#include <vector>
 
 #include "ros/ros.h"
 #include "std_msgs/Float32MultiArray.h"
@@ -95,17 +96,14 @@ void dreamerController::updateGazeFocus(const double dt = 1.0){
 	gazeOldPosition[RE] = gazePosition[RE];
 	gazeOldPosition[LE] = gazePosition[LE];
 
-	Eigen::MatrixXd *hPoint = kinematics.get6D_HeadPosition(kinematics.Jlist);
-	Eigen::MatrixXd *rePoint = kinematics.get6D_RightEyePosition(kinematics.Jlist);
-	Eigen::MatrixXd *lePoint = kinematics.get6D_LeftEyePosition(kinematics.Jlist);
+	std::vector<Eigen::MatrixXd> hPoint = kinematics.get6D_HeadPosition(kinematics.Jlist);
+	std::vector<Eigen::MatrixXd> rePoint = kinematics.get6D_RightEyePosition(kinematics.Jlist);
+	std::vector<Eigen::MatrixXd> lePoint = kinematics.get6D_LeftEyePosition(kinematics.Jlist);
 
 	gazePosition[H] = hPoint[0].block<1,3>(0,0) * currentFocusLength[H] + hPoint[1].transpose();
 	gazePosition[RE] = rePoint[0].block<1,3>(0,0) * currentFocusLength[RE] + rePoint[1].transpose();
 	gazePosition[LE] = lePoint[0].block<1,3>(0,0) * currentFocusLength[LE] + lePoint[1].transpose();
 
-	delete [] hPoint;
-	delete [] rePoint;
-	delete [] lePoint;
 
 	gazeVelocity[H] = (gazePosition[H] - gazeOldPosition[H])/dt;
 	gazeVelocity[RE] = (gazePosition[RE] - gazeOldPosition[RE])/dt;
@@ -132,7 +130,7 @@ void dreamerController::publishFocusLength(void){
  * Returns: Boolean of True(focused) or False(not focused)
  */
 bool dreamerController::gazeAreEyesFocused(void){
-	return ( (gazePosition[RE] - gazePosition[LE]).norm() < FOCUS_THRESH);
+	return ( (gazePosition[RE] - gazePosition[LE]).norm() < FOCUS_THRESH );
 }
 
 /**
@@ -155,9 +153,9 @@ double dreamerController::minJerkTimeScaling(const double t, const double dt){
  * Returns: None
  */
 void dreamerController::initializeHeadEyeFocusPoint(const Eigen::Vector3d& xyzHead, const Eigen::Vector3d& xyzEye){
-	Eigen::MatrixXd *head = kinematics.get6D_HeadPosition(kinematics.Jlist);
-	Eigen::MatrixXd *re = kinematics.get6D_RightEyePosition(kinematics.Jlist);
-	Eigen::MatrixXd *le = kinematics.get6D_LeftEyePosition(kinematics.Jlist);
+	std::vector<Eigen::MatrixXd> head = kinematics.get6D_HeadPosition(kinematics.Jlist);
+	std::vector<Eigen::MatrixXd> re = kinematics.get6D_RightEyePosition(kinematics.Jlist);
+	std::vector<Eigen::MatrixXd> le = kinematics.get6D_LeftEyePosition(kinematics.Jlist);
 
 	Eigen::Vector3d xhead = head[0].block<3,1>(0, 0);
 	Eigen::Vector3d xre = re[0].block<3,1>(0, 0);
@@ -189,7 +187,7 @@ Eigen::Matrix3d dreamerController::calcSmoothDesiredOrientation(const Eigen::Vec
 	// std::cout << pCur << std::endl;
 
 	// Get Rotation and position of the component
-	Eigen::MatrixXd *pos;
+	std::vector<Eigen::MatrixXd> pos;
 	if(orientationType == "head")
 		pos = kinematics.get6D_HeadPosition(Q_init);
 	else if(orientationType == "right_eye")
@@ -230,7 +228,7 @@ Eigen::Matrix3d dreamerController::calcSmoothDesiredOrientation(const Eigen::Vec
 	// Assemble the desired rotation matrix
 	Eigen::Matrix3d RDesired;
 	RDesired << xHatD, yHatD, zHatD;
-	delete [] pos;
+
 	return RDesired; 
 }
 
@@ -240,7 +238,7 @@ Eigen::Matrix3d dreamerController::calcSmoothDesiredOrientation(const Eigen::Vec
  * Returns: Error in angle * angular velocities as an array
  */
 Eigen::Vector3d dreamerController::smoothOrientationError(const Eigen::Vector3d& xGazeLoc, const Eigen::VectorXd& Q_des, const Eigen::VectorXd& Q_init, const double scaling, const std::string orientationType = "head", const double tilt = 0){
-	Eigen::MatrixXd *pos;
+	std::vector<Eigen::MatrixXd> pos;
 	if(orientationType == "head")
 		pos = kinematics.get6D_HeadPosition(Q_des);
 	else if(orientationType == "right_eye")
@@ -256,7 +254,7 @@ Eigen::Vector3d dreamerController::smoothOrientationError(const Eigen::Vector3d&
 	Eigen::RowVector4d qDes = RToQuat(R_des);
 
 	Eigen::RowVector4d qError = quatMultiply(qDes, conj(qCur));
-	delete [] pos;
+
 	return quatToWth(qError);
 }
 
@@ -353,32 +351,31 @@ Eigen::VectorXd dreamerController::headPriorityEyeTrajectoryLookAtPoint(const Ei
 	Eigen::MatrixXd N1 = Identity - pJ1_J1;
 
 	// Eigen::MatrixXd pinv_J2_N1 = (J2*N1).completeOrthogonalDecomposition().pseudoInverse();	
-	// Eigen::JacobiSVD<Eigen::MatrixXd> pinv_J2_N1(J2*N1, Eigen::ComputeThinU | Eigen::ComputeThinV);
+	Eigen::JacobiSVD<Eigen::MatrixXd> pinv_J2_N1(J2*N1, Eigen::ComputeThinU | Eigen::ComputeThinV);
 	// Eigen::MatrixXd J2_pinv_J1 = J2*J1_Bar;
 	// Eigen::MatrixXd J2_pinv_J1_x1dot = (J2*J1_Bar)*dx1;
-	Eigen::VectorXd dq2 = N1 * calculate_dQ(J2, dx2);
+	
+	Eigen::VectorXd dq2 = pinv_J2_N1.solve(dx2 - J2 * dq1);
+
 
 	Eigen::VectorXd dq_tot = dq1 + dq2;
 	Eigen::VectorXd Q_des = Q_cur + dq_tot;
 
 	
 
-	Eigen::MatrixXd *hPoint = kinematics.get6D_HeadPosition(kinematics.Jlist);
-	Eigen::MatrixXd *rePoint = kinematics.get6D_RightEyePosition(kinematics.Jlist);
-	Eigen::MatrixXd *lePoint = kinematics.get6D_LeftEyePosition(kinematics.Jlist);
+	std::vector<Eigen::MatrixXd> hPoint = kinematics.get6D_HeadPosition(kinematics.Jlist);
+	std::vector<Eigen::MatrixXd> rePoint = kinematics.get6D_RightEyePosition(kinematics.Jlist);
+	std::vector<Eigen::MatrixXd> lePoint = kinematics.get6D_LeftEyePosition(kinematics.Jlist);
 
 
-	currentFocusLength[H] = (pHeadDesired - hPoint[1]).norm();
-	currentFocusLength[RE] = (pRightEyeDesired - rePoint[1]).norm();
-	currentFocusLength[LE] = (pLeftEyeDesired - lePoint[1]).norm();
+	currentFocusLength[H] = (hPoint[1] - pHeadDesired).norm();
+	currentFocusLength[RE] = (rePoint[1] - pRightEyeDesired).norm();
+	currentFocusLength[LE] = (lePoint[1] - pLeftEyeDesired).norm();
 
 
 	if (currentTrajectoryTime > tTime)
 		movement_complete = true;
 
-	delete [] hPoint;
-	delete [] rePoint;
-	delete [] lePoint;
 
 	return Q_des;
 }

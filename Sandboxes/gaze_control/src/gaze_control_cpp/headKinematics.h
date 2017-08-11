@@ -2,6 +2,7 @@
 #define headKinematics_h
 #include <Eigen/Dense>
 #include <map>
+#include <vector>
 #include <string>
 class headKinematics{
 	public:
@@ -51,11 +52,11 @@ class headKinematics{
 		Eigen::MatrixXd get6D_LeftEyeJacobianYawPitch(const Eigen::VectorXd&);
 
 
-		Eigen::MatrixXd* get6D_HeadPosition(const Eigen::VectorXd&);
+		std::vector<Eigen::MatrixXd> get6D_HeadPosition(const Eigen::VectorXd&);
 
-		Eigen::MatrixXd* get6D_RightEyePosition(const Eigen::VectorXd&);
+		std::vector<Eigen::MatrixXd> get6D_RightEyePosition(const Eigen::VectorXd&);
 
-		Eigen::MatrixXd* get6D_LeftEyePosition(const Eigen::VectorXd&);
+		std::vector<Eigen::MatrixXd> get6D_LeftEyePosition(const Eigen::VectorXd&);
 
 };
 #endif
