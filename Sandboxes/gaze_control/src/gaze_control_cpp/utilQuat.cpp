@@ -1,5 +1,4 @@
 #include <Eigen/Dense>
-#include <iostream>
 #include <cmath>
 #include "modernRobotics.h"
 

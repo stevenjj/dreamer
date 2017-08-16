@@ -15,8 +15,10 @@ public:
 
 	ros::NodeHandle n;
 	ros::Publisher jointPublisher;
+
 	dreamerJointPublisher(void);
 	~dreamerJointPublisher(void);
+	
 	void loadJointInformation(ros::NodeHandle);
 	void printDebug(void);
 	void publishJoints(void);

@@ -10,17 +10,22 @@
 
 #include "dreamerJointPublisher.h"
 
-
+// Generic Constructor: Initializes publishing node
 dreamerJointPublisher::dreamerJointPublisher(){
 	loadJointInformation(n);
 	// jointPublisher = n.advertise<std_msgs::String>("joint_states", 5);
 	jointPublisher = n.advertise<sensor_msgs::JointState>("joint_states", 5);
 }
 
-
+// Generic Destructor
 dreamerJointPublisher::~dreamerJointPublisher(void){}
 
 
+/**
+ * Function: Load joint information from dreamer's URDF model
+ * Inputs: ROS Node handle class
+ * Returns: None
+ */
 void dreamerJointPublisher::loadJointInformation(ros::NodeHandle n){
 	std::string retrieve;
 	// Query for "robot_description" parameter
@@ -112,6 +117,11 @@ void dreamerJointPublisher::loadJointInformation(ros::NodeHandle n){
 }
 
 
+/**
+ * Function: Send joint positions to RVIZ
+ * Inputs: None
+ * Returns: None
+ */
 void dreamerJointPublisher::publishJoints(void){	
 	// std::cout << "Publishing joints" << std::endl;
 	sensor_msgs::JointState msg;
@@ -138,6 +148,11 @@ void dreamerJointPublisher::publishJoints(void){
 }
 
 
+/**
+ * Function: Prints out each free joint and it corresponding values
+ * Inputs: None
+ * Returns: None
+ */
 void dreamerJointPublisher::printDebug(void){
 	std::map < std::string, std::map<std::string, double> >::iterator it;
 	for(it = freeJoints.begin(); it != freeJoints.end(); it++){

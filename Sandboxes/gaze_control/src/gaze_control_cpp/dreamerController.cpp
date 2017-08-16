@@ -1,6 +1,5 @@
 #include <Eigen/Dense>
 #include <iostream>
-#include <ctime>
 #include <cstring>
 #include <stdexcept>
 #include <cmath>
@@ -37,8 +36,8 @@ Eigen::Matrix3d Rot(const Eigen::Vector3d& w_hat, const double theta){
 
 
 /* Function: Find the change in joint configuration
- * Input: Jacobian matrix for joint, change in operational space
- * Return: Joint change
+ * Inputs: Jacobian matrix for joint, change in operational space
+ * Returns: Joint change
  * Note: Uses singular value decomposition for a pseudoinverse
  */
 Eigen::MatrixXd calculate_dQ(const Eigen::MatrixXd& J, const Eigen::MatrixXd& dx){
@@ -46,14 +45,16 @@ Eigen::MatrixXd calculate_dQ(const Eigen::MatrixXd& J, const Eigen::MatrixXd& dx
 }
 
 
-
+// Generic Constructor
 dreamerController::dreamerController(void){
 	H = "head";
 	RE = "right_eye";
 	LE = "left_eye";
 
-	movement_complete = false;
+	movement_complete = false; // Variable becomes true when current task is completed
 
+
+	// Focus states
 	focusPointInit[H] << 1, 0, 0;
 	focusPointInit[RE] << 1, 0, 0;
 	focusPointInit[LE] << 1, 0, 0;
@@ -63,7 +64,8 @@ dreamerController::dreamerController(void){
 	currentFocusLength[LE] = INIT_FOCUS_LENGTH;
 
 
-	// Gaze Focus States
+	// Gaze motion variables
+	// Initialize variables to zero in each std::map
 	Eigen::RowVector3d zero = Eigen::VectorXd::Zero(3);
 
 	gazePosition[H] = zero;
@@ -78,12 +80,17 @@ dreamerController::dreamerController(void){
 	gazeVelocity[RE] = zero;
 	gazeVelocity[LE] = zero;
 
+	// Actually fill in correct gaze positions based on current position
 	updateGazeFocus(1.0);
 
+	// Initialize gaze publisher
+	// "gazePublisher" and "n" are defined in dreamerController.h
 	gazePublisher = n.advertise<std_msgs::Float32MultiArray>("setArrLength", 1);
 
 }
 
+
+// Generic destructor
 dreamerController::~dreamerController(void){}
 
 
@@ -268,12 +275,13 @@ Eigen::Vector3d dreamerController::smoothOrientationError(const Eigen::Vector3d&
 /**
  * Function: Calculate desired joint positions for go to point with head priority
  * Inputs: xyz head gaze, xyz eye gaze, joint configuration, motion start time, total motion run time
- * Outputs: Desired joint configuation
+ * Returns: Desired joint configuation
  */
 Eigen::VectorXd dreamerController::headPriorityEyeTrajectoryLookAtPoint(const Eigen::Vector3d& xyzHeadGaze, const Eigen::Vector3d& xyzEyeGaze, const Eigen::VectorXd& initQ, const double sTime, const double tTime){
 	double currentTrajectoryTime = ros::Time::now().toSec();
 	currentTrajectoryTime -= sTime;
-	// double currentTrajectoryTime = 3;
+	
+
 	/************************** Head Calculations **************************/
 	// Get only the joints that affect the head orientation
 	Eigen::VectorXd Q_cur = kinematics.Jlist;
@@ -290,17 +298,19 @@ Eigen::VectorXd dreamerController::headPriorityEyeTrajectoryLookAtPoint(const Ei
 	// If the difference between the two vectors is small, do nothing
 	if(NearZero(lHead))
 		error = Normalize(headFocus).transpose();
-		// std::cout << Normalize(headFocus) << std::endl;
-	
+		
+
 	// Move towards the desired point along a minimum jerk
 	Eigen::Vector3d pHeadDesired = headFocus.transpose() + error * lHead * minJerkTimeScaling(currentTrajectoryTime, tTime);
 
 	// Find the operational space change
 	Eigen::Vector3d dxHead = smoothOrientationError(pHeadDesired, Q_cur, initQ, minJerkTimeScaling(currentTrajectoryTime, tTime));
-	// std::cout << dxHead << std::endl;
-
+	
 
 	/************************** Eyes Calculations **************************/
+	// Similar to head calculations
+	// We can append Jacobian matrices and operation space motions of the eyes
+	// 		together because they are of the same priority
 	Eigen::MatrixXd J1 = kinematics.get6D_RightEyeJacobian(Q_cur);
 	Eigen::MatrixXd J2 = kinematics.get6D_LeftEyeJacobian(Q_cur);
 
@@ -344,11 +354,11 @@ Eigen::VectorXd dreamerController::headPriorityEyeTrajectoryLookAtPoint(const Ei
 	
 
 
-	// Calculate joint movement
+	// Calculate primary joint task
 	Eigen::VectorXd dq1 = calculate_dQ(J1, dx1);
 	
 
-	// Calculate secondary joint movement
+	// Calculate secondary joint task
 	// Eigen::MatrixXd J1_Bar = J1.completeOrthogonalDecomposition().pseudoInverse();
 	Eigen::JacobiSVD<Eigen::MatrixXd> J1_Bar(J1, Eigen::ComputeThinU | Eigen::ComputeThinV);
 	Eigen::MatrixXd pJ1_J1 = J1_Bar.solve(J1);
@@ -364,12 +374,12 @@ Eigen::VectorXd dreamerController::headPriorityEyeTrajectoryLookAtPoint(const Ei
 	Eigen::VectorXd dq2 = N1 * pinv_J2_N1.solve(dx2 - J2_pinv_J1_x1dot);
 	// Eigen::VectorXd dq2 = N1 * calculate_dQ(J2, dx2);
 
-
+	// Add desired joint changes to current configuration
 	Eigen::VectorXd dq_tot = dq1 + dq2;
 	Eigen::VectorXd Q_des = Q_cur + dq_tot;
 
 	
-
+	// Find current end effector positions and update the RVIZ gaze length
 	std::vector<Eigen::MatrixXd> hPoint = kinematics.get6D_HeadPosition(kinematics.Jlist);
 	std::vector<Eigen::MatrixXd> rePoint = kinematics.get6D_RightEyePosition(kinematics.Jlist);
 	std::vector<Eigen::MatrixXd> lePoint = kinematics.get6D_LeftEyePosition(kinematics.Jlist);
@@ -379,11 +389,12 @@ Eigen::VectorXd dreamerController::headPriorityEyeTrajectoryLookAtPoint(const Ei
 	currentFocusLength[RE] = (rePoint[1] - pRightEyeDesired).norm();
 	currentFocusLength[LE] = (lePoint[1] - pLeftEyeDesired).norm();
 
-
+	// Note if the task is completed
 	if (currentTrajectoryTime > tTime)
 		movement_complete = true;
+	else
+		movement_complete = false;
 
-	// std::cout << J2 << std::endl;
 	return Q_des;
 }
 

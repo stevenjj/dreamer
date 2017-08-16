@@ -3,7 +3,7 @@
 #include <Eigen/Dense>
 #include <map>
 #include <vector>
-#include <string>
+#include <cstring>
 class headKinematics{
 	public:
 		double l0;

@@ -17,16 +17,18 @@ public:
 	double printInterval;
 	double relativeTime;
 
-	std::string currentTask;
 	std::string currentBehavior;
+	std::string currentTask;
+
 	bool behaviorCommanded;
 	bool taskCommanded;
+
+	double taskIndex;
 	double taskInitTime;
+	Eigen::VectorXd initTaskQ;
 
 	std::vector<std::string> taskList;
 	std::vector< std::vector<Waypoint> > taskParams;
-	double taskIndex;
-	Eigen::VectorXd initTaskQ;
 
 
 	dreamerHighLevelController(void);
@@ -38,12 +40,16 @@ public:
 	double jointCmdBound(const double, const std::string, const double, const double);
 	void updateHeadJoints(const Eigen::VectorXd&, const double);
 
-
+	void executeBehavior(void);
 	void behaviorLogic(void);
+
 	void taskLogic(void);
+
+	void nextTask(void);
 	void jointLogic(void);
 
 	void printDebug(void);
+	
 	void loop(void);
 
 };

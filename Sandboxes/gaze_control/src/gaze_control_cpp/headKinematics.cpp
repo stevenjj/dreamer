@@ -6,11 +6,13 @@
 #include "headKinematics.h"
 
 headKinematics::headKinematics(void){
+	// Dreamer Joint links
 	l0 = 0.3115;
 	l1 = 0.13849;
 	l2 = 0.12508;
 	l3 = 0.053;
 	
+	// Screw axis for each joint
 	S0 = Eigen::VectorXd::Zero(6);
 	S0 << 0, -1, 0, 0, 0, 0; 
 	S1 = Eigen::VectorXd::Zero(6);

@@ -3,9 +3,6 @@
 #include <cmath>
 #include <vector>
 
-/*TODO:
-	- Don't use eigen dense if not needed
-*/
 
 /* Function: Find if the value is negligible enough to consider 0
  * Inputs: value to be checked as a double
@@ -149,7 +146,6 @@ Eigen::MatrixXd Adjoint(const Eigen::MatrixXd& T){
 			VecToso3(R[1]) * R[0], R[0];
 	return ad_ret;
 }
-
 
 
 /* Function: Rotation expanded for screw axis
