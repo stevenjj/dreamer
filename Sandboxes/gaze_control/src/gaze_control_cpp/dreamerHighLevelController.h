@@ -1,6 +1,7 @@
 #ifndef dreamerHighLevelController_h
 #define dreamerHighLevelController_h
 #include <cstring>
+#include "ros/ros.h"
 #include "dreamerJointPublisher.h"
 #include "dreamerController.h"
 #include "Waypoint.h"
@@ -17,6 +18,7 @@ public:
 	double printInterval;
 	double relativeTime;
 
+	std::string GUICommanded;
 	std::string currentBehavior;
 	std::string currentTask;
 
@@ -30,9 +32,16 @@ public:
 	std::vector<std::string> taskList;
 	std::vector< std::vector<Waypoint> > taskParams;
 
+	ros::NodeHandle handlerHigh;
+	ros::ServiceClient ctrldeqClient;
+	ros::ServiceClient runPrgClient;
+
 
 	dreamerHighLevelController(void);
 	~dreamerHighLevelController(void);
+
+
+	void GUICallback(const std_msgs::Int8);
 
 	void sendCommand(void);
 	void resetAll(void);

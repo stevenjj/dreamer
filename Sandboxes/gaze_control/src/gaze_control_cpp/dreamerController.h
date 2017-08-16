@@ -45,6 +45,7 @@ class dreamerController{
 		Eigen::Matrix3d calcSmoothDesiredOrientation(const Eigen::Vector3d&, const Eigen::Vector3d&, const Eigen::VectorXd&, const Eigen::VectorXd&, const double, const std::string, const double);
 		Eigen::Vector3d smoothOrientationError(const Eigen::Vector3d&, const Eigen::VectorXd&, const Eigen::VectorXd&, const double, const std::string, const double);
 		Eigen::VectorXd headPriorityEyeTrajectoryLookAtPoint(const Eigen::Vector3d&, const Eigen::Vector3d&, const Eigen::VectorXd&, const double, const double);
+		Eigen::VectorXd eyePriorityHeadTrajectoryLookAtPoint(const Eigen::Vector3d&, const Eigen::Vector3d&, const Eigen::VectorXd&, const double, const double);
 };
 
 #endif
