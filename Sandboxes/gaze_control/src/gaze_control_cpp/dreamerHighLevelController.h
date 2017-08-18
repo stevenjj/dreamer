@@ -43,6 +43,7 @@ public:
 
 	void GUICallback(const std_msgs::Int8);
 
+	void sendLowLevelCommand(void);
 	void sendCommand(void);
 	void resetAll(void);
 

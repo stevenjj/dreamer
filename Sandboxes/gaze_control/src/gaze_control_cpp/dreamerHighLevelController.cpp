@@ -45,12 +45,14 @@ const std::string EYE_PRIORITY_TEST = "EYE_PRIORITY_TEST";
 
 
 // Max nodeRate on my Acer laptop = ~300Hz
-const double nodeRate = 50.0;
+const double nodeRate = 25.0;
 const double JOINT_LIM_BOUND = .9;
 // Print rate should be a multiple of the node rate so it will actually print correctly
-const double printRate = nodeRate/10.0;
+const double printRate = nodeRate/5.0;
 // Global GUI param variable
 
+// Low Level frequency
+const int LOW_LEVEL_FREQ = 550;
 
 
 
@@ -81,7 +83,7 @@ dreamerHighLevelController::dreamerHighLevelController(void){
 
 	taskIndex = 0; // Save the index of the current task
 	taskInitTime = 0; // Save the start time of each task
-	initTaskQ = lowCtrl.Jlist; // Save initial joint position of each task
+	initTaskQ = lowCtrl.kinematics.Jlist; // Save initial joint position of each task
 }
 
 
@@ -135,6 +137,27 @@ void dreamerHighLevelController::GUICallback(const std_msgs::Int8 msg){
 }	
 
 
+void dreamerHighLevelController::sendLowLevelCommand(void){
+	gaze_control::HeadJointCmd hjc;
+	std::vector<short> jointMap;
+	std::vector<float> joint_val;
+	for(int i=0; i<7; i++){
+		jointMap.push_back(i);
+		joint_val.push_back(lowCtrl.kinematics.Jlist(i));
+	}
+
+	hjc.request.numCtrlSteps.data = (short)(LOW_LEVEL_FREQ * (1/nodeRate));
+	hjc.request.joint_mapping.data = jointMap;
+	hjc.request.q_cmd_radians.data = joint_val;
+
+	if(ctrldeqClient.call(hjc)) {
+		ROS_INFO("Called ctrldeq: %d", hjc.response.success.data);
+	}
+	else {
+		ROS_ERROR("Failed to call ctrl_deq_append");
+	}
+}
+
 
 /**
  * Function: Published to RVIZ and low level
@@ -144,7 +167,7 @@ void dreamerHighLevelController::GUICallback(const std_msgs::Int8 msg){
 void dreamerHighLevelController::sendCommand(void){
 	// Send to Low Level if there is a behavior running AND low level is ON
 	if(lowLevelControl && (currentBehavior != BEHAVIOR_NO_BEHAVIOR) && (currentBehavior != BEHAVIOR_GO_HOME)){
-		// std::cout << "Sending Low Level Commands" << std::endl;	
+			sendLowLevelCommand();
 	}
 
 	// Visualize the new joints in RVIZ
@@ -269,6 +292,17 @@ void dreamerHighLevelController::behaviorLogic(void){
 				taskParams.push_back(tempVec);
 			}
 
+			// More Testing code
+			// taskList.push_back(TASK_GO_TO_POINT_HEAD_PRIORITY);
+			// double duration = 10.0;
+			// Eigen::Vector3d pointTest(2, 0, lowCtrl.kinematics.l1+.05);
+			// Waypoint wayTest(pointTest, duration);
+			// std::vector<Waypoint> tempVec;
+			// tempVec.push_back(wayTest);
+			// tempVec.push_back(wayTest);
+			// taskParams.push_back(tempVec);
+
+
 			// Initialize behavior tracking
 			executeBehavior();
 	}
@@ -278,9 +312,9 @@ void dreamerHighLevelController::behaviorLogic(void){
 			for (int i=0; i<7; i++)
 				taskList.push_back(TASK_GO_TO_POINT_HEAD_PRIORITY);
 
-			double duration = 2;
+			double duration = 5;
 			for (int i=0; i<7; i++){
-				double scale = .4;
+				double scale = .2;
 				// Declare Eigen class for points
 				Eigen::Vector3d tempHead(1.0, scale * std::sin(2*M_PI*i / 6.0), lowCtrl.kinematics.l1 + scale * std::cos(2*M_PI*i / 6.0));
 				Eigen::Vector3d tempEyes(.75, 0, lowCtrl.kinematics.l1);
@@ -492,7 +526,7 @@ void dreamerHighLevelController::loop(void){
 		if( (loopCurrent - printLast) > (1/printRate) ){
 			printInterval = loopCurrent - printLast;
 			printLast = loopCurrent;
-			printDebug();
+			// printDebug();
 		}
 		
 
@@ -519,8 +553,9 @@ void dreamerHighLevelController::loop(void){
 
 
 		// Sleep until next interval
-		ros::spinOnce();
 		r.sleep();
+		// Check for GUI input
+		ros::spinOnce();
 
 
 	}
