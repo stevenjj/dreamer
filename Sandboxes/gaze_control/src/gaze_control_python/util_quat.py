@@ -30,11 +30,11 @@ True
 # Input theta = np.pi/2.0
 # Output = np.array([sqrt(2)/2, sqrt(2)/2, 0, 0])
 def wth_to_quat(w_hat, theta):
-	w = np.array(Normalize(w_hat))*(np.sin(theta/2.0))
-	return np.array([np.cos(theta/2.0), w[0], w[1], w[2]])
+    w = np.array(Normalize(w_hat))*(np.sin(theta/2.0))
+    return np.array([np.cos(theta/2.0), w[0], w[1], w[2]])
 
 
-def quat_to_wth(q):
+def quat_to_wth_prior(q):
     theta = 2*np.arccos(q[0])
     #print theta, q_error[0], q_error
     if (NearZero(1.0 - q[0])):
@@ -58,11 +58,11 @@ Output:
 array([ 0.70710678,  0.70710678,  0.        ,  0.        ])
 '''
 def R_to_quat(R):
-	q0 = 0.5 * np.sqrt(1 + R[0][0] + R[1][1] + R[2][2])
-	q123 = (1/(4.0*q0)) * np.array( [(R[2][1] - R[1][2]), \
-									 (R[0][2] - R[2][0]), \
-									 (R[1][0] - R[0][1]) ] ) 
-	return np.array([q0, q123[0], q123[1], q123[2]])
+    q0 = 0.5 * np.sqrt(1 + R[0][0] + R[1][1] + R[2][2])
+    q123 = (1/(4.0*q0)) * np.array( [(R[2][1] - R[1][2]), \
+                                     (R[0][2] - R[2][0]), \
+                                     (R[1][0] - R[0][1]) ] ) 
+    return np.array([q0, q123[0], q123[1], q123[2]])
 
 
 # Accepts a unit quaternion
@@ -75,11 +75,11 @@ R = [[1, 0,  0],
      [0, 1,  0]]
 '''
 def quat_to_R(q):
-	q0, q1, q2, q3 = q[0], q[1], q[2], q[3]
-	R = [ [(q0*q0 + q1*q1 - q2*q2 - q3*q3) ,       2*(q1*q2 - q0*q3)         ,           2*(q0*q2 + q1*q3)], \
-		  [          2*(q0*q3 + q1*q2)     , (q0*q0 - q1*q1 + q2*q2 - q3*q3) ,           2*(q2*q3 - q0*q1)], \
-		  [          2*(q1*q3 - q0*q2)     ,       2*(q0*q1 + q2*q3)         ,    (q0*q0 - q1*q1 - q2*q2 + q3*q3)] ]
-	return R
+    q0, q1, q2, q3 = q[0], q[1], q[2], q[3]
+    R = [ [(q0*q0 + q1*q1 - q2*q2 - q3*q3) ,       2*(q1*q2 - q0*q3)         ,           2*(q0*q2 + q1*q3)], \
+          [          2*(q0*q3 + q1*q2)     , (q0*q0 - q1*q1 + q2*q2 - q3*q3) ,           2*(q2*q3 - q0*q1)], \
+          [          2*(q1*q3 - q0*q2)     ,       2*(q0*q1 + q2*q3)         ,    (q0*q0 - q1*q1 - q2*q2 + q3*q3)] ]
+    return R
 
 # Accepts unit quaternions q and p and performs the unit quaternion product:
 # n = q*p
@@ -95,19 +95,19 @@ p = R_to_quat(Rp)
 Output
 quat_to_R(n)
 R = [[1,0,0],
-	[0,1,0],
-	[0,0,1]]
+    [0,1,0],
+    [0,0,1]]
 '''
 def quat_multiply(q, p):
-	q = Normalize(q)
-	p = Normalize(p)
-	q0, q1, q2, q3 = q[0], q[1], q[2], q[3]
-	p0, p1, p2, p3 = p[0], p[1], p[2], p[3]	
-	n0 = q0*p0 - q1*p1 - q2*p2 - q3*p3
-	n1 = q0*p1 + p0*q1 + q2*p3 - q3*p2
-	n2 = q0*p2 + p0*q2 - q1*p3 + q3*p1
-	n3 = q0*p3 + p0*q3 + q1*p2 - q2*p1
-	return np.array([n0, n1, n2, n3])
+    q = Normalize(q)
+    p = Normalize(p)
+    q0, q1, q2, q3 = q[0], q[1], q[2], q[3]
+    p0, p1, p2, p3 = p[0], p[1], p[2], p[3] 
+    n0 = q0*p0 - q1*p1 - q2*p2 - q3*p3
+    n1 = q0*p1 + p0*q1 + q2*p3 - q3*p2
+    n2 = q0*p2 + p0*q2 - q1*p3 + q3*p1
+    n3 = q0*p3 + p0*q3 + q1*p2 - q2*p1
+    return np.array([n0, n1, n2, n3])
 
 # Accepts a unit quaternion and returns its inverse / conjugate
 '''
@@ -118,9 +118,17 @@ Output:
 
 '''
 def conj(q):
-	q = Normalize(q)
-	return np.array( [q[0], -q[1], -q[2], -q[3]] )
+    q = Normalize(q)
+    return np.array( [q[0], -q[1], -q[2], -q[3]] )
 
+# Accepts a q
+# Returns an axis angle representation such that ||w|| = 1 and theta \in [0,pi]
+# Solves the \pm q representation for each R.
+def quat_to_wth(q):
+    # 1) Convert q to its Rotation matrix equivalent
+    # 2) Then the R -> quat ensures that the real part of the quaternion is positive
+    # 3) Then extract entries of quat
+    return quat_to_wth_prior(R_to_quat( quat_to_R(q) ))
 
 
 R = [[1, 0,  0], 
@@ -144,3 +152,6 @@ print quat_to_R(n) #expect Identity matrix
 
 print "quaternion conjugate test. We expect identity matrix:"
 print quat_to_R( quat_multiply(q, conj(q)) ) #expect identity matrix
+
+print "We expect that q and -q gives the same axis angle representation:"
+print quat_to_wth(q), quat_to_wth(-q)
