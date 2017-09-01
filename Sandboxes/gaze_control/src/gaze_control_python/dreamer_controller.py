@@ -614,6 +614,7 @@ class Controller():
         # Calculate current orientation error for each eye and find desired change based on that
         d_theta_error_re, angular_vel_hat_re = smooth_orientation_error(p_des_cur_re, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'right_eye') 
         d_theta_error_le, angular_vel_hat_le = smooth_orientation_error(p_des_cur_le, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'left_eye')         
+
         dx_re = d_theta_error_re * angular_vel_hat_re
         dx_le = d_theta_error_le * angular_vel_hat_le
 
@@ -621,7 +622,7 @@ class Controller():
        
         HEAD = 1
         EYES = 2
-        PRIORITY = EYES
+        PRIORITY = HEAD
 
         if (PRIORITY == HEAD):
             # Adding an array of linear translations now makes this a body twist representation of how the head should move
@@ -691,7 +692,7 @@ class Controller():
 
         # Magic Continues
         # This is based on a research paper HCRL published on secondary tasks
-        pinv_J2_N1 = np.linalg.pinv( np.around(J2.dot(N1), decimals = 6) )
+        pinv_J2_N1 = np.linalg.pinv( (J2.dot(N1).round(decimals = 6)) )
         J2_pinv_J1 = J2.dot(J1_bar)
         J2_pinv_J1_x1dot = (J2.dot(J1_bar)).dot(dx1)
 
@@ -747,12 +748,16 @@ class Controller():
                         
 
             # Method 2, Take into account new joint limits task
-            dq1_wj = np.linalg.pinv( (J1.dot(N0_wj)) ).dot(dx1*0.5 - J1.dot(dq0_wj)) #np.linalg.pinv(   np.around(J1.dot(N0_wj), decimals = 6)    ).dot(dx1 - J1.dot(dq0_wj))
-            dq2_wj = np.linalg.pinv( np.around( J2.dot(N0_wj.dot(N1_0_wj)), decimals = 6 ) ).dot(dx2*0.5 - J2.dot(dq1_wj + dq0_wj)) 
+            # dq1_wj = np.linalg.pinv( (J1.dot(N0_wj)) ).dot(dx1*0.5 - J1.dot(dq0_wj)) #np.linalg.pinv(   np.around(J1.dot(N0_wj), decimals = 6)    ).dot(dx1 - J1.dot(dq0_wj))
+            # dq2_wj = np.linalg.pinv( np.around( J2.dot(N0_wj.dot(N1_0_wj)), decimals = 6 ) ).dot(dx2*0.5 - J2.dot(dq1_wj + dq0_wj)) 
 
-            if (PRIORITY == EYES):
-                dq1_wj = np.linalg.pinv(J1).dot(dx1*1.0)
-                dq2_wj = np.linalg.pinv( J2.dot(N1) ).dot(dx2*0.5 - J2.dot(dq1_wj) )
+            dq1_wj = np.linalg.pinv( (J1.dot(N0_wj)).round(decimals=6) ).dot(dx1*0.1 - J1.dot(dq0_wj))
+            dq2_wj = (np.linalg.pinv( (J2.dot(N0_wj.dot(N1_0_wj))).round(decimals=6) )).round(decimals=6).dot(dx2*0.1 - J2.dot(dq1_wj + dq0_wj) )
+
+            
+            #if (PRIORITY == EYES):
+            #    dq1_wj = np.linalg.pinv(J1).dot(dx1*1.0)
+            #    dq2_wj = np.linalg.pinv( (J2.dot(N1)).round(decimals=6) ).dot(dx2*1.0 - J2.dot(dq1_wj) )
 
 
             dq_wj = dq1_wj+ dq2_wj + dq0_wj   
@@ -790,11 +795,11 @@ class Controller():
         J1_N0 = J1.dot(N0)
         pinv_J1_N0_J1_N0 = pinv_J1_N0.dot(J1_N0)
         N1_0 = np.eye(np.shape(pinv_J1_N0_J1_N0)[0]) - pinv_J1_N0_J1_N0
-        pinv_J2_N0_N1_0 = np.linalg.pinv( np.around(J2.dot(N0.dot(N1_0)), decimals=6 ) )
+        pinv_J2_N0_N1_0 = np.linalg.pinv( (J2.dot(N0.dot(N1_0))).round(decimals=6) )
         dq2 = pinv_J2_N0_N1_0.dot(dx2 - J2.dot(dq0 + dq1))
         
         # Add joint changes to the current configuration to get desired configuration
-        dq_tot = dq0 #+ dq1 + dq2 #dq1_proposed + dq2_proposed # dq0 + dq1 + dq2 
+        dq_tot = dq1_proposed + dq2_proposed #dq0 + dq1 + dq2 #dq1_proposed + dq2_proposed # dq0 + dq1 + dq2 
         Q_des = Q_cur + dq_tot
 
 
