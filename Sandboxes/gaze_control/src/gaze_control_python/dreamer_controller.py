@@ -633,27 +633,38 @@ class Controller():
             xyz_head_gaze_loc_prev = self.piecewise_func_head.get_position(t-dt)
             xyz_loc_dif = xyz_head_gaze_loc - xyz_head_gaze_loc_prev
             # TODO This does not work for eye priority stuff
-            if(self.piecewise_func_head.get_pull(t)[0]):
+            #if(self.piecewise_func_head.get_pull(t)[0]):
                 # The following line will translate the figure based on how the x point moves
-                dx_head = np.concatenate( (dx_head, np.array([xyz_loc_dif[0], 0, 0]) ),  axis=0)
-            else:
+            #    dx_head = np.concatenate( (dx_head, np.array([xyz_loc_dif[0], 0, 0]) ),  axis=0)
+            #else:
                 # The following line causes no head translation
-                dx_head = np.concatenate( (dx_head, np.array([0, 0, 0]) ),  axis=0)
+            #    dx_head = np.concatenate( (dx_head, np.array([0, 0, 0]) ),  axis=0)
  
             # Head parameters will remain the same
-            dx1 = dx_head
-            J1 = J_head
+            #dx1 = dx_head            
+#            J1 = J_head
+
+            dx1 = dx_head[0:3]
+            J1 = J_head[0:3,:] # Grab the first 3 joints that control the head            
             
             # We only care about the actuators controlling the eyes with head priority
             J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
-            J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)                    
+            J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
+            J_1 = J_1[1:3,:] #Grab the  rows 2 and 3      
+            J_2 = J_2[1:3,:] #Grab the  rows 2 and 3                                
 #            J_1 = self.kinematics.get_6D_Right_Eye_Jacobian_yaw_pitch(Q_cur)
 #            J_2 = self.kinematics.get_6D_Left_Eye_Jacobian_yaw_pitch(Q_cur)        
             J_eyes = np.concatenate((J_1,J_2) ,axis=0) 
 
             # The eyes will have no xyz translation (mentioned above for the head)
-            dx_re = np.concatenate( (dx_re, np.array([0,0,0])),  axis=0)
-            dx_le = np.concatenate( (dx_le, np.array([0,0,0])),  axis=0)
+#            dx_re = np.concatenate( (dx_re, np.array([0,0,0])),  axis=0)
+#            dx_le = np.concatenate( (dx_le, np.array([0,0,0])),  axis=0)
+            # Same priority tasks can be concatenated
+#            dx_eyes = np.concatenate( (dx_re, dx_le),  axis=0)
+
+            # We don't have the ability to do rotations about the x axis with the eyes
+            dx_re = np.array([dx_re[1]*1, dx_re[2]*1])
+            dx_le = np.array([dx_le[1]*1, dx_le[2]*1])
             # Same priority tasks can be concatenated
             dx_eyes = np.concatenate( (dx_re, dx_le),  axis=0)
 
@@ -751,8 +762,11 @@ class Controller():
             # dq1_wj = np.linalg.pinv( (J1.dot(N0_wj)) ).dot(dx1*0.5 - J1.dot(dq0_wj)) #np.linalg.pinv(   np.around(J1.dot(N0_wj), decimals = 6)    ).dot(dx1 - J1.dot(dq0_wj))
             # dq2_wj = np.linalg.pinv( np.around( J2.dot(N0_wj.dot(N1_0_wj)), decimals = 6 ) ).dot(dx2*0.5 - J2.dot(dq1_wj + dq0_wj)) 
 
-            dq1_wj = np.linalg.pinv( (J1.dot(N0_wj)).round(decimals=6) ).dot(dx1*0.1 - J1.dot(dq0_wj))
-            dq2_wj = (np.linalg.pinv( (J2.dot(N0_wj.dot(N1_0_wj))).round(decimals=6) )).round(decimals=6).dot(dx2*0.1 - J2.dot(dq1_wj + dq0_wj) )
+#            dq1_wj = np.linalg.pinv( (J1.dot(N0_wj)).round(decimals=6) ).dot(dx1*0.1 - J1.dot(dq0_wj))
+#            dq2_wj = (np.linalg.pinv( (J2.dot(N0_wj.dot(N1_0_wj))).round(decimals=6) )).round(decimals=6).dot(dx2*0.1 - J2.dot(dq1_wj + dq0_wj) )
+
+            dq1_wj = np.linalg.pinv( (J1.dot(N0_wj)).round(decimals=6) ).dot(dx1 - J1.dot(dq0_wj))
+            dq2_wj = (np.linalg.pinv( (J2.dot(N0_wj.dot(N1_0_wj))).round(decimals=6) )).round(decimals=6).dot(dx2 - J2.dot(dq1_wj + dq0_wj) )
 
             
             #if (PRIORITY == EYES):
@@ -775,7 +789,7 @@ class Controller():
                             h_eye_max = h_candidate
                     h_j = h_eye_max            
 
-            # print 'joint', j, 'h_j', h_j
+            print 'joint', j, 'h_j', h_j
 
             dx0_i_j = h_j*(x0_d[j]) + (1 - h_j)*(J0_j).dot(dq_wj)
         

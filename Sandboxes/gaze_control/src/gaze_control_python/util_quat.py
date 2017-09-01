@@ -30,19 +30,15 @@ True
 # Input theta = np.pi/2.0
 # Output = np.array([sqrt(2)/2, sqrt(2)/2, 0, 0])
 def wth_to_quat(w_hat, theta):
-    # Handle non rotation case:
-    if NearZero(theta):
-        return np.array([1, 0, 0, 0])
-
     w = np.array(Normalize(w_hat))*(np.sin(theta/2.0))
     return np.array([np.cos(theta/2.0), w[0], w[1], w[2]])
 
-# Accepts a Unit Quaternion 
+
 def quat_to_wth(q):
     theta = 2*np.arccos(q[0])
-    # Handle no rotation case
-    if (NearZero(theta)):
-        return 0, q[1:] # Return no theta rotation and same axes
+    #print theta, q_error[0], q_error
+    if (NearZero(1.0 - q[0])):
+        return 0, q[1:]
 
     # Normalize
     q = Normalize(q)
@@ -63,17 +59,8 @@ def quat_to_wth(q):
     angular_vel_hat = np.array([w_hat_x, w_hat_y, w_hat_z])
     return theta, angular_vel_hat    
 
-# Solves the +q, -q  representation for each R.
-# Accepts a unit quaternion q
-# Returns an axis angle representation such that ||w|| = 1 and theta \in [0,pi]
-#def quat_to_wth(q):
-    # 1) Convert q to its Rotation matrix equivalent
-    # 2) Then the R -> quat ensures that the theta part of the quaternion is positive
-    # 3) Then extract entries of quat
-#    return quat_to_wth_prior(R_to_quat( quat_to_R(q) ))
 
-
-# Accepts a rotation matrix R and converts it to a unit quaternion
+# Accepts a rotation matrix R and converts it to a quaternion
 ''' Input:
 R = [[1, 0,  0], 
      [0, 0, -1], 
@@ -99,7 +86,6 @@ R = [[1, 0,  0],
      [0, 1,  0]]
 '''
 def quat_to_R(q):
-    q = Normalize(q) # Ensure that the quaternion is normalized
     q0, q1, q2, q3 = q[0], q[1], q[2], q[3]
     R = [ [(q0*q0 + q1*q1 - q2*q2 - q3*q3) ,       2*(q1*q2 - q0*q3)         ,           2*(q0*q2 + q1*q3)], \
           [          2*(q0*q3 + q1*q2)     , (q0*q0 - q1*q1 + q2*q2 - q3*q3) ,           2*(q2*q3 - q0*q1)], \
@@ -146,6 +132,8 @@ def conj(q):
     q = Normalize(q)
     return np.array( [q[0], -q[1], -q[2], -q[3]] )
 
+
+
 R = [[1, 0,  0], 
      [0, 0, -1], 
      [0, 1,  0]]
@@ -162,23 +150,8 @@ print "p = Rp, q = Rp^-1"
 print "Quaternion Multiply p*q"
 n = quat_multiply(q, p)
 print n
-print "We expect the Identity Matrix"
 print "n = R ="
 print quat_to_R(n) #expect Identity matrix
 
 print "quaternion conjugate test. We expect identity matrix:"
 print quat_to_R( quat_multiply(q, conj(q)) ) #expect identity matrix
-
-print "We expect that q and -q gives the same axis angle representation:"
-print quat_to_wth(q), quat_to_wth(-q)
-# Test Equivalence:
-print NearZero(quat_to_wth(q)[0] - quat_to_wth(-q)[0]) and NearZero(np.linalg.norm(quat_to_wth(q)[1] - quat_to_wth(-q)[1]))
-
-
-
-I_t = [[1, 0,  0], 
-     [0, 1, 0], 
-     [0, 0,  1]]
-
-print "Given Identity matrix, we expect that the resulting quaternion is q = [1, 0, 0, 0]"
-print R_to_quat(I_t)
