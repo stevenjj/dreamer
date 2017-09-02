@@ -1107,7 +1107,8 @@ class Controller():
         d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT)) 
         dx_head = d_theta_error * angular_vel_hat 
         dx_head = dx_head[0:3]        
-        dx_head = np.array([dth_error_bound(dx_head[i]) for i in range(len(dx_head))])
+        dx_head = np.array([ [dth_error_bound(dx_head[i])] for i in range(len(dx_head))])
+
         #dx_head = np.concatenate( (dx_head, np.array([0.0,0.,0.])),  axis=0)
 
         # ------------------- Get Jacobian Matrices for use later -------------------
@@ -1148,10 +1149,11 @@ class Controller():
         dx_re = d_theta_error_re * angular_vel_hat_re
         dx_le = d_theta_error_le * angular_vel_hat_le
 
-        dx_re = np.array([dx_re[1]*1, dx_re[2]*1])
-        dx_le = np.array([dx_le[1]*1, dx_le[2]*1])
+        dx_re = np.array([ [dx_re[1]], [dx_re[2]] ])
+        dx_le = np.array([ [dx_le[1]], [dx_le[2]] ])
  
         dx_eyes = np.concatenate( (dx_re, dx_le),  axis=0)
+
 
         HEAD = 1
         EYES = 2
@@ -1189,8 +1191,20 @@ class Controller():
 
         # Define Intermediate Task        
         # x0_d is an array that will give -1% of the current joint value if in a region
+
+        N_k_list = []
+        J_tasks = []
+        dx_tasks = []
+        dq_results = []
+
+        N_spaces_wj = []
+        dq_wj = []
+
         x0_d = np.zeros(self.kinematics.J_num)
-        for i in range(self.kinematics.J_num):
+
+        j_limit_num_test = 3 #range(self.kinematics.J_num)
+
+        for i in range(j_limit_num_test):#range(self.kinematics.J_num):
             q_i = Q_cur[i]
             k_i = self.joint_limit_buffer_gain[i]
             bar_q_i = self.joint_limit_max[i]
@@ -1205,6 +1219,10 @@ class Controller():
             else:
                 x0_d[i] = 0
 
+            x0_task_i = np.zeros((1,1))
+            x0_task_i = x0_d[i]
+            dx_tasks.append(x0_task_i)
+
             h_j = self.h_i(i) 
 
             if (PRIORITY == EYES):
@@ -1217,18 +1235,20 @@ class Controller():
                             h_eye_max = h_candidate
                     h_j = h_eye_max            
 
+
+
             print 'joint', i, 'h_j', h_j
 
             #dx0_i_j = h_j*(x0_d[j]) + (1 - h_j)*(J0_j).dot(dq_wj)        
 
 
-        N_k_list = []
-        J_tasks = []
-        dx_tasks = []
-        dq_results = []
 
-        N_spaces_wj = []
-        dq_wj = []
+
+        # Define Joint Limit Tasks
+        for j in range(j_limit_num_test):
+             J_joint_lim = np.zeros( (1, self.kinematics.J_num) ) 
+             J_joint_lim[0][j] = 1
+             J_tasks.append(J_joint_lim)
 
         J_tasks.append(J_eyes)
         dx_tasks.append(dx_eyes)
@@ -1236,11 +1256,6 @@ class Controller():
         J_tasks.append(J_head)        
         dx_tasks.append(dx_head)        
 
-        # Define Joint Limit Tasks
-        # for j in range(self.kinematics.J_num):
-        #     J_joint_lim = np.zeros( self.kinematics.J_num ) 
-        #     J_joint_lim[j] = 1
-        #     J_tasks.append(J_joint_lim)
 
         # Finds N_k|prec(k) = (I - (J_k-1*N_k-1|prec(k-1))^\dagger (J_k-1*N_k|prec(k)))
         # k >= 0
@@ -1248,8 +1263,8 @@ class Controller():
             if k == 0:
                 Jk = J_tasks[0]
                 Jk_bar = np.linalg.pinv(Jk)        
-                pJk_Jk = Jk_bar.dot(Jk)                
-                I = np.eye(np.shape(pJ1_J1)[0])
+                pJk_Jk = Jk_bar.dot(Jk)
+                I = np.eye(np.shape(pJk_Jk)[0])
                 N_k = (I - pJk_Jk)
                 return N_k
             else:
@@ -1269,7 +1284,7 @@ class Controller():
             k_index = k
             ans = N_k_given_km1(k_index)
             for i in range(k): #Do this k times
-                ans.dot(N_k_given_km1(k_index-1))
+                ans = ans.dot(N_k_given_km1(k_index-1))
                 k_index = k_index - 1
             return ans
 
@@ -1278,15 +1293,24 @@ class Controller():
         # Finds the prioritized dq solutions:
         # dq_k = dq_1 + dq_2 + ... + dq_k
         def get_dq_k_sum(k_tot, dq_running_results):
-            dq_prior_sums = np.zeros(self.kinematics.J_num)
+            dq_prior_sums = np.zeros( (self.kinematics.J_num, 1) )
             for k in range(k_tot):
                 if k == 0:
                     dq_0 = np.linalg.pinv(J_tasks[0]).dot(dx_tasks[0])
                     dq_running_results.append(dq_0)
                     dq_prior_sums = dq_0
                 else:
+                    print 'dq_k', k
+                    print 'dx shape:', dx_tasks[k].shape, 'dx size', dx_tasks[k].size
+                    print 'J_tasks shape:', J_tasks[k].shape
+                    print 'dq_prior_sums shape', dq_prior_sums.shape
+                    print 'J.dot(dq_priors) shape', (J_tasks[k].dot(dq_prior_sums)).shape
+                    print 'N_[k-1] rank:', np.linalg.matrix_rank(N_k_list[k-1])
+
                     dq_k = np.linalg.pinv((J_tasks[k].dot(N_k_list[k-1]))).dot( dx_tasks[k] - J_tasks[k].dot(dq_prior_sums))
                     dq_running_results.append(dq_k)
+                    print 'dq_k shape', dq_k.shape
+                    print ''
                     dq_prior_sums = dq_prior_sums + dq_k
             return dq_prior_sums
    
@@ -1294,8 +1318,15 @@ class Controller():
         get_dq_k_sum(len(J_tasks), dq_results)
         print 'Dq_results length:', len(dq_results)
 
+        dq_all = np.zeros(self.kinematics.J_num)
 
-        dq_tot = dq_results[0] + dq_results[1]
+        for dq_k in dq_results:
+            dq_all = dq_all + dq_k[:,0]
+
+        print dq_all
+        #dq_tot = dq_results[0] + dq_results[1]
+        dq_tot = dq_all
+
         print 'hello!'
         #dq_tot = dq1_proposed + dq2_proposed
 
