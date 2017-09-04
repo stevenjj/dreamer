@@ -1054,6 +1054,85 @@ class Controller():
         return Q_des, result
 
 
+    def get_dq_given_tasks(self, J_tasks, dx_tasks):
+        N_k_prec_k_memoize = {} # Create a table for faster computation
+        def N_k_prec_k(k):
+            if k in N_k_prec_k_memoize: # Look up table if this was previously calculated
+                return N_k_prec_k_memoize[k]
+            elif k == 0:
+                Jk = J_tasks[0]
+                Jk_bar = np.linalg.pinv(Jk)        
+                pJk_Jk = Jk_bar.dot(Jk)
+                I = np.eye(np.shape(pJk_Jk)[0])
+                N_k = (I - pJk_Jk)
+
+                # Memorize for future calls:
+                N_k_prec_k_memoize[k] = N_k
+                return N_k
+            else:
+                Jk_prev = J_tasks[k-1]
+                Jk_prev_N_prec_k = Jk_prev.dot(N_k_prec_k(k-1))
+
+                Jk_prev_N_prec_k_bar = np.linalg.pinv( Jk_prev_N_prec_k )    
+                pJk_Jk = Jk_prev_N_prec_k_bar.dot(Jk_prev_N_prec_k)                
+
+                I = np.eye(np.shape(pJk_Jk)[0])
+                N_k = (I - pJk_Jk)
+
+                # Memorize for future calls:
+                N_k_prec_k_memoize[k] = N_k
+                return N_k
+
+        # Finds N_[k] = N_k|k-1 * N_k-1|k-2 * ... * N_2|1 * N_1
+        # k >= 0
+        def N_k_set(k):                        
+            if ((k < 0) or k > (len(J_tasks) - 1)):
+                print "ERROR. k is out of bounds for given number of prioritized tasks"
+            k_index = k
+            ans = N_k_prec_k(k_index)
+            for i in range(k): #Do this k times
+                ans = ans.dot(N_k_prec_k(k_index-1))
+                k_index = k_index - 1
+            return ans
+
+            # #Calculate the N_0          
+            # ans = N_k_prec_k(0)
+            # # Calculate N_k-1|k-2 * N_k-2|k-3 * ... * N_2|1 * N_0
+            # for k_index in range(1, k+1): #Do the remaining k-1 tasks
+            #     ans = ans.dot(N_k_prec_k(k_index))
+            # return ans
+
+        N_k_list = [N_k_set(i) for i in range(len(J_tasks))]
+
+        # Finds the prioritized dq solutions:
+        # dq_k = dq_1 + dq_2 + ... + dq_k
+        def get_dq_k_sum(k_tot, dq_running_results, dx_task_list):
+            dq_prior_sums = np.zeros( (self.kinematics.J_num, 1) )
+            for k in range(k_tot):
+                if k == 0:
+                    dq_0 = np.linalg.pinv(J_tasks[0]).dot(dx_task_list[0])
+                    dq_running_results.append(dq_0)
+                    dq_prior_sums = dq_0
+                else:
+                    # print 'dq_k', k
+                    # print 'dx shape:', dx_tasks[k].shape, 'dx size', dx_tasks[k].size
+                    # print 'J_tasks shape:', J_tasks[k].shape
+                    # print 'dq_prior_sums shape', dq_prior_sums.shape
+                    # print 'J.dot(dq_priors) shape', (J_tasks[k].dot(dq_prior_sums)).shape
+                    #print 'N_[k-1] rank:', np.linalg.matrix_rank(N_k_list[k-1])
+
+                    dq_k = np.linalg.pinv((J_tasks[k].dot(N_k_list[k-1]))).dot( dx_task_list[k] - J_tasks[k].dot(dq_prior_sums))
+                    dq_running_results.append(dq_k)
+                    # print 'dq_k shape', dq_k.shape
+                    # print ''
+                    dq_prior_sums = dq_prior_sums + dq_k
+            return dq_prior_sums
+   
+
+        dq_results = []
+        dq_all = get_dq_k_sum(len(J_tasks), dq_results, dx_tasks)[:,0]        
+        return dq_all
+
 
     # Function: Calculate desired joint positions if eyes have higher priority than the head
     #           Head moves while eyes try to stay focused
@@ -1192,17 +1271,17 @@ class Controller():
         # Define Intermediate Task        
         # x0_d is an array that will give -1% of the current joint value if in a region
 
-        N_k_list = []
+        #N_k_list = []
         J_tasks = []
         dx_tasks = []
-        dq_results = []
 
-        N_spaces_wj = []
-        dq_wj = []
+        h_j_list = []
+        dx_i_tasks = []
+
 
         x0_d = np.zeros(self.kinematics.J_num)
 
-        j_limit_num_test = 3 #range(self.kinematics.J_num)
+        j_limit_num_test = 4#self.kinematics.J_num
 
         for i in range(j_limit_num_test):#range(self.kinematics.J_num):
             q_i = Q_cur[i]
@@ -1220,114 +1299,75 @@ class Controller():
                 x0_d[i] = 0
 
             x0_task_i = np.zeros((1,1))
-            x0_task_i = x0_d[i]
+            x0_task_i[0] = x0_d[i]
             dx_tasks.append(x0_task_i)
+
 
             h_j = self.h_i(i) 
 
-            if (PRIORITY == EYES):
-                if (i < 4):
-                    h_eye_max = h_j
-                    # Find maximum activating variable of eye task
-                    for k in range(4, self.kinematics.J_num):
-                        h_candidate = self.h_i(k) 
-                        if  h_candidate >= h_eye_max:
-                            h_eye_max = h_candidate
-                    h_j = h_eye_max            
+            # if (PRIORITY == EYES):
+            #     if (i < 4):
+            #         h_eye_max = h_j
+            #         # Find maximum activating variable of eye task
+            #         for k in range(4, self.kinematics.J_num):
+            #             h_candidate = self.h_i(k) 
+            #             if  h_candidate >= h_eye_max:
+            #                 h_eye_max = h_candidate
+            #         h_j = h_eye_max            
 
-
+            h_j_list.append(h_j)
 
             print 'joint', i, 'h_j', h_j
 
             #dx0_i_j = h_j*(x0_d[j]) + (1 - h_j)*(J0_j).dot(dq_wj)        
 
-
-
-
         # Define Joint Limit Tasks
         for j in range(j_limit_num_test):
              J_joint_lim = np.zeros( (1, self.kinematics.J_num) ) 
              J_joint_lim[0][j] = 1
+             #print "Joint limit task:", j, J_joint_lim
              J_tasks.append(J_joint_lim)
 
         J_tasks.append(J_eyes)
         dx_tasks.append(dx_eyes)
+        h_j_list.append(1.0) # Task is always activated
 
         J_tasks.append(J_head)        
         dx_tasks.append(dx_head)        
+        h_j_list.append(1.0) # Task is always activated
 
 
-        # Finds N_k|prec(k) = (I - (J_k-1*N_k-1|prec(k-1))^\dagger (J_k-1*N_k|prec(k)))
-        # k >= 0
-        def N_k_given_km1(k):
-            if k == 0:
-                Jk = J_tasks[0]
-                Jk_bar = np.linalg.pinv(Jk)        
-                pJk_Jk = Jk_bar.dot(Jk)
-                I = np.eye(np.shape(pJk_Jk)[0])
-                N_k = (I - pJk_Jk)
-                return N_k
+        # Calculate the dq solution without the j-th task
+        dq_wj = [] # calculate dq[\j]
+        for j in range(j_limit_num_test):
+            J_tasks_wj = []
+            dx_tasks_wj = []
+            # Copy the same J_tasks and dx_tasks without the j-th joint task
+            for i in range(len(J_tasks)):
+                if (i != j): # Add task i if it's not j
+                    J_tasks_wj.append(J_tasks[i])
+                    dx_tasks_wj.append(dx_tasks[i])                    
+
+            # Store dq_wj result
+            dq_wj.append(self.get_dq_given_tasks(J_tasks_wj, dx_tasks_wj))
+
+
+        # Construct dx_i_tasks list
+        for i in range(len(J_tasks)):
+            if i in range(j_limit_num_test):
+                #print "dx_i Joint i ", i
+                h_i_joint = h_j_list[i]
+                dx_i_joint = h_i_joint*dx_tasks[i] + (1-h_i_joint)*(J_tasks[i]).dot(dq_wj[i])
+                dx_i_tasks.append(dx_i_joint)
             else:
-                Jk_prev = J_tasks[k-1]
-                Jk_prev_N_prec_k = Jk_prev.dot(N_k_given_km1(k-1))
+                #print "task i", i
+                h_i_joint = h_j_list[i] # Should be 1. Always activated
+                dx_i_joint = h_i_joint*dx_tasks[i]
+                dx_i_tasks.append(dx_i_joint)
 
-                Jk_prev_N_prec_k_bar = np.linalg.pinv( Jk_prev_N_prec_k )        
-                pJk_Jk = Jk_prev_N_prec_k_bar.dot(Jk_prev_N_prec_k)                
 
-                I = np.eye(np.shape(pJk_Jk)[0])
-                N_k = (I - pJk_Jk)
-                return N_k
+        dq_tot = self.get_dq_given_tasks(J_tasks, dx_i_tasks)
 
-        # Finds N_[k] = N_1 * N_2|1 * N_3|2 * ... N_k|k-1
-        # k >= 0
-        def N_k_set(k):                        
-            k_index = k
-            ans = N_k_given_km1(k_index)
-            for i in range(k): #Do this k times
-                ans = ans.dot(N_k_given_km1(k_index-1))
-                k_index = k_index - 1
-            return ans
-
-        N_k_list = [N_k_set(i) for i in range(len(J_tasks))]
-
-        # Finds the prioritized dq solutions:
-        # dq_k = dq_1 + dq_2 + ... + dq_k
-        def get_dq_k_sum(k_tot, dq_running_results):
-            dq_prior_sums = np.zeros( (self.kinematics.J_num, 1) )
-            for k in range(k_tot):
-                if k == 0:
-                    dq_0 = np.linalg.pinv(J_tasks[0]).dot(dx_tasks[0])
-                    dq_running_results.append(dq_0)
-                    dq_prior_sums = dq_0
-                else:
-                    print 'dq_k', k
-                    print 'dx shape:', dx_tasks[k].shape, 'dx size', dx_tasks[k].size
-                    print 'J_tasks shape:', J_tasks[k].shape
-                    print 'dq_prior_sums shape', dq_prior_sums.shape
-                    print 'J.dot(dq_priors) shape', (J_tasks[k].dot(dq_prior_sums)).shape
-                    print 'N_[k-1] rank:', np.linalg.matrix_rank(N_k_list[k-1])
-
-                    dq_k = np.linalg.pinv((J_tasks[k].dot(N_k_list[k-1]))).dot( dx_tasks[k] - J_tasks[k].dot(dq_prior_sums))
-                    dq_running_results.append(dq_k)
-                    print 'dq_k shape', dq_k.shape
-                    print ''
-                    dq_prior_sums = dq_prior_sums + dq_k
-            return dq_prior_sums
-   
-        
-        get_dq_k_sum(len(J_tasks), dq_results)
-        print 'Dq_results length:', len(dq_results)
-
-        dq_all = np.zeros(self.kinematics.J_num)
-
-        for dq_k in dq_results:
-            dq_all = dq_all + dq_k[:,0]
-
-        print dq_all
-        #dq_tot = dq_results[0] + dq_results[1]
-        dq_tot = dq_all
-
-        print 'hello!'
         #dq_tot = dq1_proposed + dq2_proposed
 
 
