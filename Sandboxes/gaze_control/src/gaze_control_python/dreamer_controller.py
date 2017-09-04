@@ -282,6 +282,9 @@ class Controller():
         self.joint_limit_buffer_gain = 0.01*np.ones(self.kinematics.J_num)
         #self.joint_limit_buffer_gain = 0.0*np.ones(self.kinematics.J_num)        
 
+        self.old_h_j = np.zeros((self.kinematics.J_num, 1))        
+
+
 
         self.init_intermediate_task_matrices()                            
 
@@ -1281,7 +1284,7 @@ class Controller():
 
         x0_d = np.zeros(self.kinematics.J_num)
 
-        j_limit_num_test = 4 #self.kinematics.J_num
+        j_limit_num_test = self.kinematics.J_num #4
 
         for i in range(j_limit_num_test):#range(self.kinematics.J_num):
             q_i = Q_cur[i]
@@ -1306,25 +1309,39 @@ class Controller():
             h_j = self.h_i(i) 
 
             if (PRIORITY == EYES):
+
+                def bound(val, max_val):
+                    MAX_VAL = max_val
+                    if val >= MAX_VAL:
+                        return MAX_VAL
+                    elif (val <= -MAX_VAL):
+                        return -MAX_VAL
+                    else:
+                        return val
+
                 if (i < 4):
                     h_eye_max = h_j
                     if i == 0 or i == 2: # Joints affecting eye pitch only
-                        for k in [4]:#range(4, self.kinematics.J_num):
+                        for k in [4]: # Eye Pitch joints
                             h_candidate = self.h_i(k) 
                             if  h_candidate >= h_eye_max:
-                                h_eye_max = h_candidate
-                            h_j = h_eye_max            
+                                h_eye_max = h_candidate 
+                        h_j = h_eye_max    
                     elif i == 1: # Joints affecting eye yaw
-                        for k in [5,6]:#range(4, self.kinematics.J_num):
+                        for k in [5,6]: # Eye Yaw joints
                             h_candidate = self.h_i(k) 
                             if  h_candidate >= h_eye_max:
+                                #print "new candidate max", "old:", h_eye_max, "new:", h_candidate
                                 h_eye_max = h_candidate
-                            h_j = h_eye_max            
+                        h_j = h_eye_max
                     elif i == 3: # Joints affecting pitch and yaw 
-                            h_candidate = self.h_i(k) 
-                            if  h_candidate >= h_eye_max:
+                        for k in [4,5,6]: # Eye Joints
+                           h_candidate = self.h_i(k) 
+                           if  h_candidate >= h_eye_max:
+                                #print "new candidate max", "old:", h_eye_max, "new:", h_candidate                            
                                 h_eye_max = h_candidate
-                            h_j = h_eye_max            
+                        h_j = h_eye_max
+
 
             h_j_list.append(h_j)
 
@@ -1340,11 +1357,14 @@ class Controller():
              J_tasks.append(J_joint_lim)
 
         J_tasks.append(J_eyes)
-        dx_tasks.append(dx_eyes)
+        dx_tasks.append(dx_eyes*1.5) 
         h_j_list.append(1.0) # Task is always activated
 
         J_tasks.append(J_head)        
-        dx_tasks.append(dx_head)        
+#        dx_tasks.append(dx_head*0.01)  # Eye Square Task  
+        dx_tasks.append(dx_head*0.05) # Eye Fixed Task
+
+        #print "dx_head val * 0.1", dx_head*0.08
         h_j_list.append(1.0) # Task is always activated
 
 

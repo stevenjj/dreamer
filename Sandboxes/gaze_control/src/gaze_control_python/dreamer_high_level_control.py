@@ -534,19 +534,34 @@ class Dreamer_Head():
 
             init_to_go_point = 3 # Take a longer time to go to the initial point
             duration = 5
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1+1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),      init_to_go_point) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 1.25, self.kinematics.l1-1.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -1.25, self.kinematics.l1-1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -1.25, self.kinematics.l1+1.3]), np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )                       
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 1.25, self.kinematics.l1+1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1-1.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1+1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),      init_to_go_point) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 1.25, self.kinematics.l1-1.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -1.25, self.kinematics.l1-1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -1.25, self.kinematics.l1+1.3]), np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )                       
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 1.25, self.kinematics.l1+1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1-1.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
 
-            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.2]),  np.array([0.75, 0.0, self.kinematics.l1+0.0]),      init_to_go_point) )
-            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.2]),   np.array([0.75, 0.0, self.kinematics.l1-0.0]),     duration) )
-            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1-0.2]),  np.array([0.75, -0.0, self.kinematics.l1-0.0]),     duration) )
-            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1+0.2]), np.array([0.75, -0.0, self.kinematics.l1+0.0]),      duration) )                       
-            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.2]),  np.array([0.75, 0.0, self.kinematics.l1+0.0]),      duration) )
-            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.2]),   np.array([0.75, 0.0, self.kinematics.l1-0.0]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.2]),  np.array([0.75, 0.0, self.kinematics.l1+0.0]),      init_to_go_point) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.2]),   np.array([0.75, 0.0, self.kinematics.l1-0.0]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1-0.2]),  np.array([0.75, -0.0, self.kinematics.l1-0.0]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1+0.2]), np.array([0.75, -0.0, self.kinematics.l1+0.0]),      duration) )                       
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.2]),  np.array([0.75, 0.0, self.kinematics.l1+0.0]),      duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.2]),   np.array([0.75, 0.0, self.kinematics.l1-0.0]),     duration) )
+
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.15, self.kinematics.l1+0.2]),  np.array([0.75, 0.0, self.kinematics.l1+0.0]),      init_to_go_point) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.15, self.kinematics.l1-0.2]),   np.array([0.75, 0.0, self.kinematics.l1-0.0]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.15, self.kinematics.l1-0.2]),  np.array([0.75, -0.0, self.kinematics.l1-0.0]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.15, self.kinematics.l1+0.2]), np.array([0.75, -0.0, self.kinematics.l1+0.0]),      duration) )                       
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.15, self.kinematics.l1+0.2]),  np.array([0.75, 0.0, self.kinematics.l1+0.0]),      duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.15, self.kinematics.l1-0.2]),   np.array([0.75, 0.0, self.kinematics.l1-0.0]),     duration) )
+
+
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.2]),  np.array([0.75, 0.05, self.kinematics.l1+0.05]),      init_to_go_point) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.2]),   np.array([0.75, -0.05, self.kinematics.l1+0.05]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1-0.2]),  np.array([0.75, -0.05, self.kinematics.l1-0.05]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1+0.2]), np.array([0.75, 0.05, self.kinematics.l1-0.05]),      duration) )                       
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.2]),  np.array([0.75, 0.05, self.kinematics.l1+0.05]),      duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.2]),   np.array([0.75, -0.05, self.kinematics.l1+0.05]),     duration) )
 
 
             # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.15, self.kinematics.l1+0.2]),  np.array([0.75, 0.05, self.kinematics.l1+0.05]),      init_to_go_point) )
