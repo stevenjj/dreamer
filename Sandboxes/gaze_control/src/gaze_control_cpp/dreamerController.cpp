@@ -11,11 +11,33 @@
 #include "headKinematics.h"
 #include "utilQuat.h"
 #include "dreamerController.h"
+#include "dreamerJointPublisher.h"
 
-const double pi = M_PI;
+const double PI = M_PI;
 const double FOCUS_THRESH = 0.08;
 const double INIT_FOCUS_LENGTH = 0.6;
+const double bufferRegionPercent = 0.05;
 
+const int POS = 1;
+const int NEG = -1;
+const int NA = 0;
+
+
+Eigen::MatrixXd deleteRow(const Eigen::MatrixXd& m, const int row){
+	Eigen::MatrixXd m_ret(m.rows()-1, m.cols());
+	std::vector<Eigen::RowVectorXd> vSlices;
+	for (int k=0; k<7; k++){
+		if(k != row)
+			vSlices.push_back(m.row(k));
+	}
+	m_ret << vSlices[0],
+			vSlices[1],
+			vSlices[2],
+			vSlices[3],
+			vSlices[4],
+			vSlices[5];
+	return m_ret;
+}
 
 /* Function: Rotation operator around a vector
  *           Used for head tilts, Taken from Modern Robotics book
@@ -42,6 +64,18 @@ Eigen::Matrix3d Rot(const Eigen::Vector3d& w_hat, const double theta){
  */
 Eigen::MatrixXd calculate_dQ(const Eigen::MatrixXd& J, const Eigen::MatrixXd& dx){
 	return J.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(dx);
+}
+
+
+Eigen::Vector3d cartToSphere(const Eigen::Vector3d& cartesian){
+	double x = cartesian(0);
+	double y = cartesian(1);
+	double z = cartesian(2);
+	double r = std::sqrt(x*x + y*y + z*z);
+	double theta = std::atan(y/x);
+	double phi = std::atan(std::sqrt(x*x+y*y)/z);
+	Eigen::Vector3d s_ret(r, theta, phi);
+	return s_ret;
 }
 
 
@@ -83,6 +117,17 @@ dreamerController::dreamerController(void){
 	// Actually fill in correct gaze positions based on current position
 	updateGazeFocus(1.0);
 
+	// Fill in intermediate task stuff	
+	jointLimitMax = Eigen::VectorXd::Zero(7);
+	jointLimitMin = Eigen::VectorXd::Zero(7);
+	beta = Eigen::VectorXd::Zero(7);
+	jointActivationPos = Eigen::VectorXd::Zero(7);
+	jointActivationNeg = Eigen::VectorXd::Zero(7);
+	
+	bufferRegionType = Eigen::VectorXi::Zero(7);
+	IntermediateHMatrix = Eigen::MatrixXd::Zero(7,7);
+	initIntermediateTaskMatrices();
+
 	// Initialize gaze publisher
 	// "gazePublisher" and "n" are defined in dreamerController.h
 	gazePublisher = n.advertise<std_msgs::Float32MultiArray>("setArrLength", 1);
@@ -92,6 +137,90 @@ dreamerController::dreamerController(void){
 
 // Generic destructor
 dreamerController::~dreamerController(void){}
+
+
+void dreamerController::initIntermediateTaskMatrices(void){
+	for(int i=0; i<kinematics.J_num; i++){
+		std::string jointName = kinematics.JIndexToNames[i];
+		jointLimitMax(i) = pub.freeJoints[jointName]["max"];
+		jointLimitMin(i) = pub.freeJoints[jointName]["min"];
+		
+		double qRange = std::abs(jointLimitMax(i) - jointLimitMin(i));
+		beta(i) = qRange * bufferRegionPercent;
+		jointActivationPos(i) =  jointLimitMax(i) - beta(i);
+		jointActivationNeg(i) =  jointLimitMin(i) - beta(i);
+	}
+}
+
+
+void dreamerController::updateIntermediateHMatrix(void){
+	for(int i=0; i<kinematics.J_num; i++){
+		double q_i = kinematics.Jlist(i);
+		double tilde_q_i = jointActivationPos(i);
+		double utilde_q_i = jointActivationNeg(i);
+		double bar_q_i = jointLimitMax(i);
+		double ubar_q_i = jointLimitMin(i);
+		double beta_i = beta(i);
+
+		if(q_i >= bar_q_i){
+			bufferRegionType(i) = POS;
+			IntermediateHMatrix(i,i) = 1.0;
+		}
+		else if((tilde_q_i < q_i) && (q_i < bar_q_i)){
+			bufferRegionType(i) = POS;
+			IntermediateHMatrix(i,i) = 0.5 + 0.5*std::sin( (PI/beta_i) * (q_i - tilde_q_i) - PI/2.0);
+		}
+		else if((utilde_q_i <= q_i) && (q_i <= tilde_q_i)){
+			bufferRegionType(i) = NA;
+			IntermediateHMatrix(i,i) = 0;
+		}
+		else if((ubar_q_i < q_i) && (q_i < utilde_q_i)){
+			bufferRegionType(i) = NEG;
+			IntermediateHMatrix(i,i) = 0.5 + 0.5*std::sin((PI/beta_i)*(q_i - ubar_q_i) + PI/2.0);
+		}
+		else if(q_i <= ubar_q_i){
+			bufferRegionType(i) = NEG;
+			IntermediateHMatrix(i,i) = 1.0;
+		}
+		else{
+			std::cout << "Error in IntermediateHMatrix" << std::endl;
+			ros::shutdown();
+		}
+	}
+}
+
+
+/**
+ * Function: Resets focus variables
+ * Inputs: None
+ * Returns: None
+ */
+void dreamerController::resetGazeFocus(void){
+	focusPointInit[H] << 1, 0, 0;
+	focusPointInit[RE] << 1, 0, 0;
+	focusPointInit[LE] << 1, 0, 0;
+
+	currentFocusLength[H] = INIT_FOCUS_LENGTH;
+	currentFocusLength[RE] = INIT_FOCUS_LENGTH;
+	currentFocusLength[LE] = INIT_FOCUS_LENGTH;
+
+	Eigen::RowVector3d zero = Eigen::VectorXd::Zero(3);
+
+	gazePosition[H] = zero;
+	gazePosition[RE] = zero;
+	gazePosition[LE] = zero;
+
+	gazeOldPosition[H] = zero;
+	gazeOldPosition[RE] = zero;
+	gazeOldPosition[LE] = zero;
+
+	gazeVelocity[H] = zero;
+	gazeVelocity[RE] = zero;
+	gazeVelocity[LE] = zero;
+
+	updateGazeFocus(1.0);
+}
+
 
 
 /**
@@ -216,7 +345,7 @@ Eigen::Matrix3d dreamerController::calcSmoothDesiredOrientation(const Eigen::Vec
 	// phi is the angle between the error vector and the z axis of the world
 	// Used to make a projection onto the world z axis/y axis for orientation
 	double phi = std::acos( (xHatD.dot(zWorldHat)) / (xHatD.norm()*zWorldHat.norm()));
-	double epsilon = .1 * pi/180.0;
+	double epsilon = .1 * PI/180.0;
 
 	// If the angle previously calculated is too small, we want to project onto the y axis
 	Eigen::Vector3d zHatO = zWorldHat;
@@ -400,6 +529,150 @@ Eigen::VectorXd dreamerController::headPriorityEyeTrajectoryLookAtPoint(const Ei
 
 
 
+/**
+ * Function: Calculate desired joint positions for go to point with head priority at a specifc velocity
+ * Inputs: xyz head gaze, xyz eye gaze, joint configuration, motion start time
+ * Returns: Desired joint configuation
+ * Done in Spherical coordinates
+ * Assumes a relatively far distance from the head
+ */
+Eigen::VectorXd dreamerController::constantVelocityLookAtPoint(const Eigen::Vector3d& xyzHeadGaze, const Eigen::Vector3d& xyzEyeGaze, const Eigen::VectorXd& initQ, const double sTime){
+	const double velocity = .25; // distance in cm/s
+	double currentTrajectoryTime = ros::Time::now().toSec();
+	currentTrajectoryTime -= sTime;
+	
+
+	/************************** Head Calculations **************************/
+	// Get only the joints that affect the head orientation
+	Eigen::VectorXd Q_cur = kinematics.Jlist;
+	Eigen::MatrixXd J_head = kinematics.get6D_HeadJacobian(Q_cur);
+	Eigen::MatrixXd J_head_block = J_head.block(0, 0, 3, J_head.cols());
+
+	// Find the head focus length
+	Eigen::RowVector3d headFocus = focusPointInit[H];
+
+	// Draw a line between the desired and final vectors
+	Eigen::Vector3d error = Normalize(xyzHeadGaze - headFocus.transpose());
+	double lHead = (xyzHeadGaze - headFocus.transpose()).norm();
+	
+	// If the difference between the two vectors is small, do nothing
+	if(NearZero(lHead))
+		error = Normalize(headFocus).transpose();
+
+	double moveScale = currentTrajectoryTime / (lHead / velocity);
+
+	// Move towards the desired point along a constant speed
+	Eigen::Vector3d pHeadDesired = headFocus.transpose() + error * lHead * moveScale;
+
+	// Find the operational space change
+	Eigen::Vector3d dxHead = smoothOrientationError(pHeadDesired, Q_cur, initQ, moveScale);
+	
+
+	/************************** Eyes Calculations **************************/
+	// Similar to head calculations
+	// We can append Jacobian matrices and operation space motions of the eyes
+	// 		together because they are of the same priority
+	Eigen::MatrixXd J1 = kinematics.get6D_RightEyeJacobian(Q_cur);
+	Eigen::MatrixXd J2 = kinematics.get6D_LeftEyeJacobian(Q_cur);
+
+	Eigen::MatrixXd J1_block = J1.block(0, 0, 3, J1.cols());
+	Eigen::MatrixXd J2_block = J2.block(0, 0, 3, J2.cols());
+
+	Eigen::MatrixXd J_eyes(J1_block.rows()+J2_block.rows(), J1_block.cols());
+	J_eyes << J1_block,
+			  J2_block;
+
+	Eigen::RowVector3d reFocus = focusPointInit[RE];
+	Eigen::RowVector3d leFocus = focusPointInit[LE];
+
+	Eigen::Vector3d errorRE = Normalize(xyzEyeGaze - reFocus.transpose());
+	Eigen::Vector3d errorLE = Normalize(xyzEyeGaze - leFocus.transpose());
+	double lRE = (xyzEyeGaze - reFocus.transpose()).norm();
+	double lLE = (xyzEyeGaze - leFocus.transpose()).norm();
+
+	if(NearZero(lRE))
+		errorRE = Normalize(reFocus).transpose();
+	if(NearZero(lLE))
+		errorLE = Normalize(leFocus).transpose();
+
+	Eigen::Vector3d pRightEyeDesired = reFocus.transpose() + errorRE * lRE * moveScale;
+	Eigen::Vector3d pLeftEyeDesired = leFocus.transpose() + errorLE * lLE * moveScale;
+
+
+	Eigen::Vector3d dxRE = smoothOrientationError(pRightEyeDesired, Q_cur, initQ, moveScale, "right_eye");
+	Eigen::Vector3d dxLE = smoothOrientationError(pLeftEyeDesired, Q_cur, initQ, moveScale, "left_eye");
+	Eigen::MatrixXd dxEyes(dxRE.rows() + dxLE.rows(), dxRE.cols());
+
+	dxEyes << dxRE,
+			  dxLE;
+
+
+	// Specify priority
+	J1 = J_head_block;
+	Eigen::MatrixXd dx1 = dxHead;
+	J2 = J_eyes;
+	Eigen::MatrixXd dx2 = dxEyes;
+	
+
+
+	// Calculate primary joint task
+	Eigen::VectorXd dq1 = calculate_dQ(J1, dx1);
+	
+
+	// Calculate secondary joint task
+	// Eigen::MatrixXd J1_Bar = J1.completeOrthogonalDecomposition().pseudoInverse();
+	Eigen::JacobiSVD<Eigen::MatrixXd> J1_Bar(J1, Eigen::ComputeThinU | Eigen::ComputeThinV);
+	Eigen::MatrixXd pJ1_J1 = J1_Bar.solve(J1);
+	// Eigen::MatrixXd pJ1_J1 = J1_Bar*J1;
+	Eigen::MatrixXd Identity = Eigen::MatrixXd::Identity(pJ1_J1.rows(), pJ1_J1.cols());
+	Eigen::MatrixXd N1 = Identity - pJ1_J1;
+
+	// Eigen::MatrixXd pinv_J2_N1 = (J2*N1).completeOrthogonalDecomposition().pseudoInverse();	
+	Eigen::JacobiSVD<Eigen::MatrixXd> pinv_J2_N1(J2*N1, Eigen::ComputeThinU | Eigen::ComputeThinV);
+	// Eigen::MatrixXd J2_pinv_J1 = J2*J1_Bar;
+	Eigen::MatrixXd J2_pinv_J1_x1dot = J2*J1_Bar.solve(dx1);
+	
+	Eigen::VectorXd dq2 = N1 * pinv_J2_N1.solve(dx2 - J2_pinv_J1_x1dot);
+	// Eigen::VectorXd dq2 = N1 * calculate_dQ(J2, dx2);
+
+	// Add desired joint changes to current configuration
+	Eigen::VectorXd dq_tot = dq1 + dq2;
+	Eigen::VectorXd Q_des = Q_cur + dq_tot;
+
+	
+	// Find current end effector positions and update the RVIZ gaze length
+	std::vector<Eigen::MatrixXd> hPoint = kinematics.get6D_HeadPosition(kinematics.Jlist);
+	std::vector<Eigen::MatrixXd> rePoint = kinematics.get6D_RightEyePosition(kinematics.Jlist);
+	std::vector<Eigen::MatrixXd> lePoint = kinematics.get6D_LeftEyePosition(kinematics.Jlist);
+
+
+	currentFocusLength[H] = (hPoint[1] - pHeadDesired).norm();
+	currentFocusLength[RE] = (rePoint[1] - pRightEyeDesired).norm();
+	currentFocusLength[LE] = (lePoint[1] - pLeftEyeDesired).norm();
+
+
+	std::vector<Eigen::MatrixXd> head = kinematics.get6D_HeadPosition(kinematics.Jlist);
+	std::vector<Eigen::MatrixXd> re = kinematics.get6D_RightEyePosition(kinematics.Jlist);
+	std::vector<Eigen::MatrixXd> le = kinematics.get6D_LeftEyePosition(kinematics.Jlist);
+
+	Eigen::Vector3d xhead = head[0].block<3,1>(0, 0);
+	Eigen::Vector3d xre = re[0].block<3,1>(0, 0);
+	Eigen::Vector3d xle = le[0].block<3,1>(0, 0);
+
+
+
+
+	// Note if the task is completed
+	if(currentTrajectoryTime > (lHead / velocity))
+		movement_complete = true;
+	else
+		movement_complete = false;
+
+	return Q_des;
+}
+
+
+
 Eigen::VectorXd dreamerController::eyePriorityHeadTrajectoryLookAtPoint(const Eigen::Vector3d& xyzHeadGaze, const Eigen::Vector3d& xyzEyeGaze, const Eigen::VectorXd& initQ, const double sTime, const double tTime){
 	double currentTrajectoryTime = ros::Time::now().toSec();
 	currentTrajectoryTime -= sTime;
@@ -468,8 +741,8 @@ Eigen::VectorXd dreamerController::eyePriorityHeadTrajectoryLookAtPoint(const Ei
 	Eigen::Vector2d dxLE_block(dxLE(1), dxLE(2));
 	Eigen::MatrixXd dxEyes(dxRE_block.rows() + dxLE_block.rows(), dxRE_block.cols());
 
-	dxEyes << dxRE,
-			  dxLE;
+	dxEyes << dxRE_block,
+			  dxLE_block;
 
 
 	// Specify priority
@@ -480,8 +753,8 @@ Eigen::VectorXd dreamerController::eyePriorityHeadTrajectoryLookAtPoint(const Ei
 	
 
 
-	// Calculate primary joint task
-	Eigen::VectorXd dq1 = calculate_dQ(J1, dx1);
+	/***************** Calculate joint task *****************/
+	Eigen::VectorXd dq1_proposed = calculate_dQ(J1, dx1);
 	
 
 	// Calculate secondary joint task
@@ -497,11 +770,79 @@ Eigen::VectorXd dreamerController::eyePriorityHeadTrajectoryLookAtPoint(const Ei
 	// Eigen::MatrixXd J2_pinv_J1 = J2*J1_Bar;
 	Eigen::MatrixXd J2_pinv_J1_x1dot = J2*J1_Bar.solve(dx1);
 	
-	Eigen::VectorXd dq2 = N1 * pinv_J2_N1.solve(dx2 - J2_pinv_J1_x1dot);
+	Eigen::VectorXd dq2_proposed = N1 * pinv_J2_N1.solve(dx2 - J2_pinv_J1_x1dot);
 	// Eigen::VectorXd dq2 = N1 * calculate_dQ(J2, dx2);
 
+
+
+
+	// Intermediate task Calculations
+	updateIntermediateHMatrix();
+	// std::cout << "IntermediateHMatrix: \n" << IntermediateHMatrix << std::endl;
+	Eigen::VectorXd x0_d = Eigen::VectorXd::Zero(kinematics.J_num);
+	for(int i=0; i<kinematics.J_num; i++){
+		double q_i = Q_cur(i);
+		switch(bufferRegionType(i)){
+			case POS: x0_d(i) = .01 * (0-q_i); break;
+			case NEG: x0_d(i) = .01 * (0-q_i); break;
+			case NA: x0_d(i) = 0; break;
+			default: std::cout << "error in buffer region" << std::endl; ros::shutdown(); break;
+		}
+	}
+
+
+	Eigen::VectorXd dx0_i = Eigen::VectorXd::Zero(kinematics.J_num);
+	Eigen::MatrixXd J0_constraint = Eigen::MatrixXd::Identity(7,7);
+	for(int j=0; j< kinematics.J_num; j++){
+		Eigen::RowVectorXd J0_j = J0_constraint.block(j, 0, 1, J0_constraint.cols());
+		
+		// Remove the specific joint
+		Eigen::MatrixXd J0_wj = deleteRow(J0_constraint, j);
+		
+		// Null Space of constraints
+		Eigen::JacobiSVD<Eigen::MatrixXd> pinvJ0_wj(J0_wj, Eigen::ComputeThinU | Eigen::ComputeThinV);
+		Eigen::MatrixXd Ident = Eigen::MatrixXd::Identity(J0_constraint.rows(), J0_constraint.cols());
+		Eigen::MatrixXd N0_wj = Ident - pinvJ0_wj.solve(J0_wj);
+	
+		Eigen::JacobiSVD<Eigen::MatrixXd> pinvJ1_N0_wj(J1 * N0_wj, Eigen::ComputeThinU | Eigen::ComputeThinV);
+		Eigen::MatrixXd N1_0_wj = Ident - pinvJ1_N0_wj.solve(J1 * N0_wj);
+
+		Eigen::VectorXd x0_d_wj = deleteRow(x0_d, j);
+
+		Eigen::VectorXd dq0_wj = pinvJ0_wj.solve(x0_d_wj);
+		// Method 1
+		// Eigen::VectorXd dq1_wj = J1_Bar.solve(dx1);
+		// Eigen::VectorXd dq2_wj = pinv_J2_N1.solve(dx2*.05 - J2*dq1_wj);
+		Eigen::VectorXd dq1_wj = (J1 * N0_wj).transpose() * (dx1 - (J1 * dq0_wj));
+		std::cout << dq1_wj << std::endl;
+		Eigen::JacobiSVD<Eigen::MatrixXd> pinvJ2_N0_wj_N1_0_wj(J2 * N0_wj * N1_0_wj, Eigen::ComputeThinU | Eigen::ComputeThinV);
+		
+		Eigen::VectorXd dq2_wj = pinvJ2_N0_wj_N1_0_wj.solve(dx2 - (J2 * (dq1_wj + dq0_wj)));
+		
+		Eigen::VectorXd dq_wj = dq0_wj + dq1_wj + dq2_wj;
+		// std::cout << "dq0wj: \n" << dq0_wj << std::endl;
+		// std::cout << "dq1wj: \n" << dq1_wj << std::endl;
+		// std::cout << "dq2wj: \n" << dq2_wj << std::endl;
+		double h_j = IntermediateHMatrix(j, j);
+
+		if(j<4){
+			double hEyeMax = h_j;
+			for(int k=4; k<kinematics.J_num; j++){
+				double hCandidate = IntermediateHMatrix(k, k);
+				if( hCandidate >= hEyeMax)
+					hEyeMax = hCandidate;
+			}
+			h_j = hEyeMax;
+		}
+
+		dx0_i(j) = h_j*(x0_d(j)) + (1 - h_j) * (J0_j) * dq_wj;
+	}
+
+	Eigen::JacobiSVD<Eigen::MatrixXd> pinvJConstraint(J0_constraint, Eigen::ComputeThinU | Eigen::ComputeThinV);
+	Eigen::VectorXd dq0 = pinvJConstraint.solve(dx0_i);
+
 	// Add desired joint changes to current configuration
-	Eigen::VectorXd dq_tot = dq1 + dq2;
+	Eigen::VectorXd dq_tot = dq1_proposed + dq2_proposed;
 	Eigen::VectorXd Q_des = Q_cur + dq_tot;
 
 	

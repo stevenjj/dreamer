@@ -2,7 +2,6 @@
 #define dreamerHighLevelController_h
 #include <cstring>
 #include "ros/ros.h"
-#include "dreamerJointPublisher.h"
 #include "dreamerController.h"
 #include "Waypoint.h"
 
@@ -11,7 +10,6 @@ class dreamerHighLevelController{
 public:
 
 	dreamerController lowCtrl;
-	dreamerJointPublisher pub;
 	
 	bool lowLevelControl;
 	double nodeInterval;
@@ -44,8 +42,11 @@ public:
 	void GUICallback(const std_msgs::Int8);
 
 	void sendLowLevelCommand(void);
+	void sendGoHomeCommand(void);
 	void sendCommand(void);
+	
 	void resetAll(void);
+	void resetAllJoints(void);
 
 	double jointCmdBound(const double, const std::string, const double, const double);
 	void updateHeadJoints(const Eigen::VectorXd&, const double);

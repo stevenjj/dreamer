@@ -41,21 +41,14 @@ class headKinematics{
 		~headKinematics(void);
 
 		Eigen::MatrixXd get6D_HeadJacobian(const Eigen::VectorXd&);
-
 		Eigen::MatrixXd get6D_RightEyeJacobian(const Eigen::VectorXd&);
-
 		Eigen::MatrixXd get6D_LeftEyeJacobian(const Eigen::VectorXd&);
 
-
 		Eigen::MatrixXd get6D_RightEyeJacobianYawPitch(const Eigen::VectorXd&);
-
 		Eigen::MatrixXd get6D_LeftEyeJacobianYawPitch(const Eigen::VectorXd&);
 
-
 		std::vector<Eigen::MatrixXd> get6D_HeadPosition(const Eigen::VectorXd&);
-
 		std::vector<Eigen::MatrixXd> get6D_RightEyePosition(const Eigen::VectorXd&);
-
 		std::vector<Eigen::MatrixXd> get6D_LeftEyePosition(const Eigen::VectorXd&);
 
 };

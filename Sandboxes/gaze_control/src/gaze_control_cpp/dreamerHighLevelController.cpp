@@ -23,7 +23,7 @@ const std::string TASK_NO_TASK 						= "TASK_NO_TASK";
 const std::string TASK_GO_TO_POINT_HEAD_PRIORITY    = "TASK_GO_TO_POINT_HEAD_PRIORITY";
 const std::string TASK_GO_TO_POINT_EYE_PRIORITY     = "TASK_GO_TO_POINT_EYE_PRIORITY";
 const std::string TASK_FOLLOW_WAYPOINTS 			= "TASK_FOLLOW_WAYPOINTS";
-
+const std::string TASK_GO_TO_POINT_CONSTANT_VELOCITY = "TASK_GO_TO_POINT_CONSTANT_VELOCITY";
 
 // Behavior List
 const std::string BEHAVIOR_NO_BEHAVIOR = "BEHAVIOR_NO_BEHAVIOR";
@@ -32,6 +32,7 @@ const std::string BEHAVIOR_EYE_PRIORITY_TEST = "BEHAVIOR_EYE_PRIORITY_TEST";
 const std::string BEHAVIOR_FOLLOW_WAYPOINTS = "BEHAVIOR_FOLLOW_WAYPOINTS";
 const std::string BEHAVIOR_FOLLOW_CIRCLE = "BEHAVIOR_FOLLOW_CIRCLE";
 const std::string BEHAVIOR_GO_HOME = "BEHAVIOR_GO_HOME";
+const std::string BEHAVIOR_POINT_CONSTANT_VELOCITY = "BEHAVIOR_POINT_CONSTANT_VELOCITY";
 
 // GUI List
 const std::string INVALID_CMD = "INVALID_CMD";
@@ -42,6 +43,7 @@ const std::string STATE_TO_IDLE = "STATE_TO_IDLE";
 const std::string GO_HOME = "GO_HOME";
 const std::string HEAD_PRIORITY_TEST = "HEAD_PRIORITY_TEST";
 const std::string EYE_PRIORITY_TEST = "EYE_PRIORITY_TEST";
+const std::string CONSTANT_VELOCITY_TEST = "CONSTANT_VELOCITY_TEST";
 
 
 // Max nodeRate on my Acer laptop = ~300Hz
@@ -51,8 +53,9 @@ const double JOINT_LIM_BOUND = .9;
 const double printRate = nodeRate/5.0;
 // Global GUI param variable
 
-// Low Level frequency
+// Low Level stuff
 const int LOW_LEVEL_FREQ = 550;
+const short WAIT_TIME_GO_HOME = 3;
 
 
 
@@ -93,6 +96,8 @@ dreamerHighLevelController::~dreamerHighLevelController(void){}
 
 
 
+/********************************* GUI Callback *********************************/
+
 /**
  * Function: Handler for GUI interrupt/button press
  * 			 Utilizes the python GUI with some changes to naming
@@ -131,12 +136,53 @@ void dreamerHighLevelController::GUICallback(const std_msgs::Int8 msg){
 				currentBehavior = BEHAVIOR_HEAD_PRIORITY_TEST; 
 				break;
 
+		case 6: resetAll();
+				GUICommanded = CONSTANT_VELOCITY_TEST; 
+				currentBehavior = BEHAVIOR_POINT_CONSTANT_VELOCITY;
+				break; 
+
 		default: GUICommanded = INVALID_CMD; break;
 	}
 
 }	
 
 
+
+
+/***************************** Low Level Functions *****************************/
+
+/**
+ * Function: Sends home command to low level controller
+ * Inputs: None
+ * Returns: None
+ */
+void dreamerHighLevelController::sendGoHomeCommand(void){
+	gaze_control::HeadJointCmd hjc;
+	std::vector<short> jointMap;
+	std::vector<float> joint_val;
+	for(int i=0; i<7; i++){
+		jointMap.push_back(i);
+		joint_val.push_back(0);
+	}
+
+	hjc.request.numCtrlSteps.data = (short)(LOW_LEVEL_FREQ * WAIT_TIME_GO_HOME);
+	hjc.request.joint_mapping.data = jointMap;
+	hjc.request.q_cmd_radians.data = joint_val;
+
+	if(ctrldeqClient.call(hjc)) {
+		ROS_INFO("Called ctrldeq with GO_HOME: %d", hjc.response.success.data);
+	}
+	else {
+		ROS_ERROR("Failed to call ctrl_deq_append");
+	}
+}
+
+
+/**
+ * Function: Send commands to low level controller
+ * Inputs: None
+ * Returns: None
+ */
 void dreamerHighLevelController::sendLowLevelCommand(void){
 	gaze_control::HeadJointCmd hjc;
 	std::vector<short> jointMap;
@@ -166,15 +212,21 @@ void dreamerHighLevelController::sendLowLevelCommand(void){
  */
 void dreamerHighLevelController::sendCommand(void){
 	// Send to Low Level if there is a behavior running AND low level is ON
-	if(lowLevelControl && (currentBehavior != BEHAVIOR_NO_BEHAVIOR) && (currentBehavior != BEHAVIOR_GO_HOME)){
+	if(lowLevelControl && 
+		(currentBehavior != BEHAVIOR_NO_BEHAVIOR) && 
+		(currentBehavior != BEHAVIOR_GO_HOME)){
 			sendLowLevelCommand();
 	}
 
 	// Visualize the new joints in RVIZ
-	pub.publishJoints();
+	lowCtrl.pub.publishJoints();
 }
 
 
+
+
+
+/********************** Helper functions: Resetting things **********************/
 
 /**
  * Function: Resets behavior and task variables
@@ -192,6 +244,21 @@ void dreamerHighLevelController::resetAll(void){
 }
 
 
+/**
+ * Function: Resets joints and gaze focuses to home positions
+ * Inputs: None
+ * Returns: None
+ */
+void dreamerHighLevelController::resetAllJoints(void){
+	lowCtrl.kinematics.Jlist = Eigen::VectorXd::Zero(7);
+	updateHeadJoints(lowCtrl.kinematics.Jlist, 1);
+	lowCtrl.resetGazeFocus();
+}
+
+
+
+
+/******************** Helper functions: Updating robot joints ********************/
 
 /**
  * Function: Bounds the joint value so we don't go over physical joint limits
@@ -223,14 +290,14 @@ void dreamerHighLevelController::updateHeadJoints(const Eigen::VectorXd& headJoi
 	for(int i = 0; i<headJoints.size(); i++){
 		// Load all joint information/bounds
 		std::string jointName = lowCtrl.kinematics.JIndexToNames[i]; 
-		double jointMax = pub.freeJoints[jointName]["max"];
-		double jointMin = pub.freeJoints[jointName]["min"];
+		double jointMax = lowCtrl.pub.freeJoints[jointName]["max"];
+		double jointMin = lowCtrl.pub.freeJoints[jointName]["min"];
 		
 		// Bound the joint
 		double jointVal = jointCmdBound(headJoints(i), jointName, jointMax, jointMin);
 		
 		// Save to joint publisher
-		pub.freeJoints[jointName]["position"] = jointVal;
+		lowCtrl.pub.freeJoints[jointName]["position"] = jointVal;
 		
 		// Save to headKinematics Joint list
 		lowCtrl.kinematics.Jlist(i) = jointVal;
@@ -268,13 +335,21 @@ void dreamerHighLevelController::behaviorLogic(void){
 		return;
 	}
 
+	else if(currentBehavior == BEHAVIOR_GO_HOME){
+		currentBehavior = BEHAVIOR_NO_BEHAVIOR;
+		currentTask = TASK_NO_TASK;
+		sendGoHomeCommand();
+		ros::Duration(3.5).sleep();
+		resetAllJoints();
+	}
+
 	else if(currentBehavior == BEHAVIOR_HEAD_PRIORITY_TEST){
 			for (int i=0; i<7; i++)
 				taskList.push_back(TASK_GO_TO_POINT_HEAD_PRIORITY);
 
-			double duration = 2;
+			double duration = 4;
 			for (int i=0; i<7; i++){
-				double scale = .4;
+				double scale = .1;
 				// Declare Eigen class for points
 				Eigen::Vector3d tempHead(.75, 0, lowCtrl.kinematics.l1);
 				Eigen::Vector3d tempEyes(1.0, scale * std::sin(2*M_PI*i / 6.0), lowCtrl.kinematics.l1 + scale * std::cos(2*M_PI*i / 6.0));
@@ -310,14 +385,43 @@ void dreamerHighLevelController::behaviorLogic(void){
 
 	else if(currentBehavior == BEHAVIOR_EYE_PRIORITY_TEST){
 			for (int i=0; i<7; i++)
-				taskList.push_back(TASK_GO_TO_POINT_HEAD_PRIORITY);
+				taskList.push_back(TASK_GO_TO_POINT_EYE_PRIORITY);
 
-			double duration = 5;
+			double duration = 3;
 			for (int i=0; i<7; i++){
-				double scale = .2;
+				double scale = .6;
 				// Declare Eigen class for points
 				Eigen::Vector3d tempHead(1.0, scale * std::sin(2*M_PI*i / 6.0), lowCtrl.kinematics.l1 + scale * std::cos(2*M_PI*i / 6.0));
-				Eigen::Vector3d tempEyes(.75, 0, lowCtrl.kinematics.l1);
+				Eigen::Vector3d tempEyes(1.0, scale * std::sin(2*M_PI*i / 6.0), lowCtrl.kinematics.l1 + scale * std::cos(2*M_PI*i / 6.0));
+				// Eigen::Vector3d tempEyes(2.0, 0, lowCtrl.kinematics.l1);
+				
+				// Create Waypoint with Eigen points
+				Waypoint wHead(tempHead, duration);
+				Waypoint wEyes(tempEyes, duration);
+				
+				// Make Vector specifying eye and head gaze locations and times
+				std::vector<Waypoint> tempVec;
+				tempVec.push_back(wHead);
+				tempVec.push_back(wEyes);
+
+				// Add Waypoint to taskParams
+				taskParams.push_back(tempVec);
+			}
+
+			// Initialize behavior tracking
+			executeBehavior();
+	}		
+	else if(currentBehavior == BEHAVIOR_POINT_CONSTANT_VELOCITY){
+			for (int i=0; i<7; i++)
+				taskList.push_back(TASK_GO_TO_POINT_CONSTANT_VELOCITY);
+
+			double duration = 1337;
+			for (int i=0; i<7; i++){
+				double scale = .5;
+				// Declare Eigen class for points
+				Eigen::Vector3d tempHead(1.0, scale * std::sin(2*M_PI*i / 6.0), lowCtrl.kinematics.l1 + scale * std::cos(2*M_PI*i / 6.0));
+				Eigen::Vector3d tempEyes(1.0, scale * std::sin(2*M_PI*i / 6.0), lowCtrl.kinematics.l1 + scale * std::cos(2*M_PI*i / 6.0));
+				// Eigen::Vector3d tempEyes(2.0, 0, lowCtrl.kinematics.l1);
 				
 				// Create Waypoint with Eigen points
 				Waypoint wHead(tempHead, duration);
@@ -366,6 +470,16 @@ void dreamerHighLevelController::taskLogic(void){
 		initTaskQ = lowCtrl.kinematics.Jlist;
 	}
 	else if(currentTask == TASK_GO_TO_POINT_EYE_PRIORITY){
+		// Get task variables
+		Eigen::Vector3d xyzHead = taskParams[taskIndex][0].point;
+		Eigen::Vector3d xyzEyes = taskParams[taskIndex][1].point;
+		// Initialize focus point
+		lowCtrl.initializeHeadEyeFocusPoint(xyzHead, xyzEyes);	
+		taskCommanded = true;
+		// Save current joint configuration
+		initTaskQ = lowCtrl.kinematics.Jlist;
+	}
+	else if(currentTask == TASK_GO_TO_POINT_CONSTANT_VELOCITY){
 		// Get task variables
 		Eigen::Vector3d xyzHead = taskParams[taskIndex][0].point;
 		Eigen::Vector3d xyzEyes = taskParams[taskIndex][1].point;
@@ -430,6 +544,17 @@ void dreamerHighLevelController::jointLogic(void){
 			// Update and limit joint variables
 			updateHeadJoints(ret, nodeInterval);
 	}
+	else if(currentTask == TASK_GO_TO_POINT_CONSTANT_VELOCITY){
+			// Load desired points and time
+			Eigen::Vector3d xyzHead = taskParams[taskIndex][0].point;
+			Eigen::Vector3d xyzEyes = taskParams[taskIndex][1].point;
+			
+			// Calculate new joint position
+			Eigen::VectorXd ret = lowCtrl.constantVelocityLookAtPoint(xyzHead, xyzEyes, initTaskQ, taskInitTime);
+
+			// Update and limit joint variables
+			updateHeadJoints(ret, nodeInterval);
+	}
 
 
 	if(lowCtrl.movement_complete == true)
@@ -472,9 +597,9 @@ void dreamerHighLevelController::loop(void){
 
 
 	// Debugging Markers
-	// ros::NodeHandle handler;
-	// ros::Publisher marker_pub = handler.advertise<visualization_msgs::Marker>("visualization_marker", 1);
-	// int shape = visualization_msgs::Marker::CUBE;
+	ros::NodeHandle handler;
+	ros::Publisher marker_pub = handler.advertise<visualization_msgs::Marker>("visualization_marker", 1);
+	int shape = visualization_msgs::Marker::CUBE;
 	
 	std::cout << "Beginning loop" << std::endl;
 	double loopCurrent = ros::Time::now().toSec();
@@ -526,30 +651,30 @@ void dreamerHighLevelController::loop(void){
 		if( (loopCurrent - printLast) > (1/printRate) ){
 			printInterval = loopCurrent - printLast;
 			printLast = loopCurrent;
-			// printDebug();
+			printDebug();
 		}
 		
 
 		// Debugging Marker
-		// visualization_msgs::Marker marker;
-		// marker.header.frame_id = "/my_world_neck";
-		// marker.header.stamp = ros::Time::now();
-		// marker.ns = "basic_shapes";
-	 //    marker.id = 0;
-		// marker.type = shape;
-		// marker.action = visualization_msgs::Marker::ADD;
-	 //    marker.pose.position.x = 1;
-	 //    marker.pose.position.y = 0;
-	 //    marker.pose.position.z = lowCtrl.kinematics.l1+.3;
-  //       marker.scale.x = .01;
-	 //    marker.scale.y = .01;
-	 //    marker.scale.z = .01;
-	 //    marker.color.r = 0.0f;
-	 //    marker.color.g = 1.0f;
-	 //    marker.color.b = 1.0f;
-	 //    marker.color.a = 1.0;
-	 //    marker.lifetime = ros::Duration();
-		// marker_pub.publish(marker);
+		visualization_msgs::Marker marker;
+		marker.header.frame_id = "/my_world_neck";
+		marker.header.stamp = ros::Time::now();
+		marker.ns = "basic_shapes";
+	    marker.id = 0;
+		marker.type = shape;
+		marker.action = visualization_msgs::Marker::ADD;
+	    marker.pose.position.x = 1;
+	    marker.pose.position.y = 0;
+	    marker.pose.position.z = lowCtrl.kinematics.l1+.7;
+        marker.scale.x = .01;
+	    marker.scale.y = .01;
+	    marker.scale.z = .01;
+	    marker.color.r = 0.0f;
+	    marker.color.g = 1.0f;
+	    marker.color.b = 1.0f;
+	    marker.color.a = 1.0;
+	    marker.lifetime = ros::Duration();
+		marker_pub.publish(marker);
 
 
 		// Sleep until next interval
@@ -586,7 +711,7 @@ int main(int argc, char** argv){
 	ros::Subscriber GUI_sub = handlerMain.subscribe("GUI_cmd_int", 8, &dreamerHighLevelController::GUICallback, &highCtrl);
 	
 	// Debugging marker
-	// ros::init(argc, argv, "basic_shapes");
+	ros::init(argc, argv, "basic_shapes");
 
 	// Begin loop
 	highCtrl.loop();
