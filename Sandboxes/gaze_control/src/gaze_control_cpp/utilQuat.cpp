@@ -18,11 +18,18 @@ Eigen::RowVector4d wthToQuat(const Eigen::RowVector3d& wHat, double theta){
  */
 Eigen::RowVector3d quatToWth(const Eigen::RowVector4d& q){
 	Eigen::RowVector3d v_ret(0,0,0);
-	if(NearZero(1 - q(0))){
+	if(NearZero(1.0 - q(0))){
 		return v_ret;
 	}
 
+	q = Normalize(q);
+	// Select whether unit quaternion q or -q is to be used
 	double theta = 2*std::acos(q(0));
+	if(theta > M_PI) {
+		q << -q(0), -q(1), -q(2), -q(3);
+		theta = 2*std::acos(q(0));
+	}
+
 	double factor = std::sin(theta/2);
 	v_ret << (q(1)/factor), (q(2)/factor), (q(3)/factor);
 	return v_ret * theta;
