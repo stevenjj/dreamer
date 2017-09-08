@@ -1120,12 +1120,13 @@ class Controller():
             dq_prior_sums = np.zeros( (self.kinematics.J_num, 1) )
             for k in range(k_tot):
                 if k == 0:
-                    dq_0 = np.linalg.pinv(J_tasks[0]).dot(dx_task_list[0])
+                    dq_0 = np.linalg.pinv(J_tasks[0].round(decimals=12), 0.001).dot(dx_task_list[0])
                     dq_running_results.append(dq_0)
                     dq_prior_sums = dq_0
                 else:
-                    # print 'dq_k', k
-                    # print 'dx shape:', dx_tasks[k].shape, 'dx size', dx_tasks[k].size
+                    #print 'dq_k', k
+                    # print 'dx shape:', dx_task_list[k].shape, 'dx size', dx_task_list[k].size
+                    #print "dx_task_list[k]", dx_task_list[k]
                     # print 'J_tasks shape:', J_tasks[k].shape
                     # print 'dq_prior_sums shape', dq_prior_sums.shape
                     # print 'J.dot(dq_priors) shape', (J_tasks[k].dot(dq_prior_sums)).shape
@@ -1327,79 +1328,81 @@ class Controller():
 
         x0_d = np.zeros(self.kinematics.J_num)
 
-#        j_limit_num_test = 1#self.kinematics.J_num #4
 
-        joint_limits = [4,6]
-
-#        for i in range(j_limit_num_test):#range(self.kinematics.J_num):
+        #joint_limits = [3,4,5]
+        joint_limits = [4,5]
+        #joint_limits = []        
         for i in joint_limits:#range(self.kinematics.J_num):
-            q_i = Q_cur[i]
-            k_i = self.joint_limit_buffer_gain[i]
-            bar_q_i = self.joint_limit_max[i]
-            ubar_q_i = self.joint_limit_min[i]
-            tilde_q_i = self.joint_limit_activation_pos[i]
-            utilde_q_i = self.joint_limit_activation_neg[i]
+            if i == 5:
+                k_i = self.joint_limit_buffer_gain[5]  
+                q_i = Q_cur[5]              
+                if self.buffer_region_type[5] == POS:                    
+                    x0_d[5] = k_i*(0 - q_i) #k_i*(tilde_q_i - q_i)
+                elif self.buffer_region_type[i] == NEG:
+                    x0_d[5] = k_i*(0 - q_i) #k_i*(utilde_q_i - q_i) 
+                else:
+                    x0_d[5] = 0
 
-            if self.buffer_region_type[i] == POS:
-                x0_d[i] = k_i*(0 - q_i) #k_i*(tilde_q_i - q_i)
-            elif self.buffer_region_type[i] == NEG:
-                x0_d[i] = k_i*(0 - q_i) #k_i*(utilde_q_i - q_i) 
+                k_i = self.joint_limit_buffer_gain[6]
+                q_i = Q_cur[5]                
+                if self.buffer_region_type[6] == POS:
+                    x0_d[6] = k_i*(0 - q_i) #k_i*(tilde_q_i - q_i)
+                elif self.buffer_region_type[i] == NEG:
+                    x0_d[6] = k_i*(0 - q_i) #k_i*(utilde_q_i - q_i) 
+                else:
+                    x0_d[6] = 0                    
+
+                x0_task_i = np.zeros((2,1))
+                x0_task_i[0][0] = x0_d[5]
+                x0_task_i[1][0] = x0_d[6]                
+
+                dx_tasks.append(x0_task_i)
+
+
+                h_j = self.h_i(5) 
+                h_6 = self.h_i(6) 
+                if h_6 >= h_j:
+                    h_j = h_6
+                h_j_list.append(h_j)
+                
+            elif i == 6:
+                continue
             else:
-                x0_d[i] = 0
 
-            x0_task_i = np.zeros((1,1))
-            x0_task_i[0] = x0_d[i]
-            dx_tasks.append(x0_task_i)
+                q_i = Q_cur[i]
+                k_i = self.joint_limit_buffer_gain[i]
 
-            h_j = self.h_i(i) 
-            h_j_list.append(h_j)
-            if (PRIORITY == EYES):
+                if self.buffer_region_type[i] == POS:
+                    x0_d[i] = k_i*(0 - q_i) #k_i*(tilde_q_i - q_i)
+                elif self.buffer_region_type[i] == NEG:
+                    x0_d[i] = k_i*(0 - q_i) #k_i*(utilde_q_i - q_i) 
+                else:
+                    x0_d[i] = 0
 
-                def bound(val, max_val):
-                    MAX_VAL = max_val
-                    if val >= MAX_VAL:
-                        return MAX_VAL
-                    elif (val <= -MAX_VAL):
-                        return -MAX_VAL
-                    else:
-                        return val
+                x0_task_i = np.zeros((1,1))
+                x0_task_i[0] = x0_d[i]
+                dx_tasks.append(x0_task_i)
 
-                # if (i < 4):
-                #     h_eye_max = h_j
-                #     if i == 0 or i == 2: # Joints affecting eye pitch only
-                #         for k in [4]: # Eye Pitch joints
-                #             h_candidate = self.h_i(k) 
-                #             if  h_candidate >= h_eye_max:
-                #                 h_eye_max = h_candidate 
-                #         h_j = h_eye_max    
-                #     elif i == 1: # Joints affecting eye yaw
-                #         for k in [5,6]: # Eye Yaw joints
-                #             h_candidate = self.h_i(k) 
-                #             if  h_candidate >= h_eye_max:
-                #                 #print "new candidate max", "old:", h_eye_max, "new:", h_candidate
-                #                 h_eye_max = h_candidate
-                #         h_j = h_eye_max
-                #     elif i == 3: # Joints affecting pitch and yaw 
-                #         for k in [4,5,6]: # Eye Joints
-                #            h_candidate = self.h_i(k) 
-                #            if  h_candidate >= h_eye_max:
-                #                 #print "new candidate max", "old:", h_eye_max, "new:", h_candidate                            
-                #                 h_eye_max = h_candidate
-                #         h_j = h_eye_max
+                h_j = self.h_i(i) 
+                h_j_list.append(h_j)
 
 
-
-
-            print 'joint', i, 'h_j', h_j
+                print 'joint', i, 'h_j', h_j
 
             #dx0_i_j = h_j*(x0_d[j]) + (1 - h_j)*(J0_j).dot(dq_wj)        
 
         # Define Joint Limit Tasks
         #for j in range(j_limit_num_test):
         for j in joint_limits:            
-             J_joint_lim = np.zeros( (1, self.kinematics.J_num) ) 
-             J_joint_lim[0][j] = 1
-             J_tasks.append(J_joint_lim)
+            if j == 5:
+                J_joint_lim = np.array([[0,0,0,0,0,1,0], [0,0,0,0,0,0,1]])
+                J_tasks.append(J_joint_lim)
+            elif j == 6:
+                continue
+            else:
+                J_joint_lim = np.zeros( (1, self.kinematics.J_num) ) 
+                J_joint_lim[0][j] = 1
+                J_tasks.append(J_joint_lim)
 
  #       Jlim = np.array([[0,0,0,0,0,0,1.0]])
  #       dx_lim = np.array([[0]])
@@ -1415,7 +1418,7 @@ class Controller():
         #dx_tasks.append(dx_head*0.01)  # Eye Square Task          
         #dx_tasks.append(dx_head*0.05) # Eye Fixed Task
         J_tasks.append(J_head)        
-        dx_tasks.append(dx_head*1.0)  # Eye Square Task  
+        dx_tasks.append(dx_head*0.1)  # Eye Square Task  
         h_j_list.append(1.0) # Task is always activated
 
 
@@ -1432,14 +1435,23 @@ class Controller():
                     dx_tasks_wj.append(dx_tasks[i])                    
 
             # Store dq_wj result
-            dq_wj.append(self.get_dq_given_tasks(J_tasks_wj, dx_tasks_wj))
+            dq_wj.append(self.get_dq_given_tasks(J_tasks_wj, dx_tasks_wj).reshape(self.kinematics.J_num,1))
 
+
+        # for i in range(len(J_tasks)):
+        #     print "dx_i Task i ", i
+        #     h_i_joint = h_j_list[i]
+        #     print "h_i", h_i_joint
+        #     print h_i_joint*dx_tasks[i]
+        #     print "this", (1-h_i_joint)*(J_tasks[i]).dot(dq_wj[i])
+        #     print dq_wj[i].shape
+        #     dx_i_joint = h_i_joint*(dx_tasks[i]) + (1-h_i_joint)*((J_tasks[i]).dot(dq_wj[i]))
+        #     print "dx_i", dx_i_joint
+        #     dx_i_tasks.append(dx_i_joint)
 
         # Construct dx_i_tasks list
         for i in range(len(joint_limits)):
-            print "Joint Task index", i
             h_i_joint = h_j_list[i]
-            print "JOINT:", joint_limits[i], h_i_joint
             dx_i_joint = h_i_joint*dx_tasks[i] + (1-h_i_joint)*(J_tasks[i]).dot(dq_wj[i])
             dx_i_tasks.append(dx_i_joint)            
 
@@ -1447,7 +1459,6 @@ class Controller():
         operational_task_index_list = operational_task_index_list[len(joint_limits):]
 
         for i in operational_task_index_list:
-            print "Operational Task index", i
             h_i_task = h_j_list[i] # Should be 1. Always activated
             dx_i_task = h_i_task*dx_tasks[i]
             dx_i_tasks.append(dx_i_task)
@@ -1465,8 +1476,8 @@ class Controller():
         #         dx_i_tasks.append(dx_i_joint)
 
 
-#        print dx_i_tasks
 
+        print "hello?"
         dq_tot = self.get_dq_given_tasks(J_tasks, dx_i_tasks)
 
         #dq_tot = dq1_proposed + dq2_proposed
