@@ -70,10 +70,12 @@ set(${DREAMER_CONTROLLER}_SOURCES
 	src/gaze_control_cpp/modernRobotics.cpp 
 	src/gaze_control_cpp/utilQuat.cpp
 	src/gaze_control_cpp/dreamerJointPublisher.cpp
+	src/gaze_control_cpp/Waypoint.cpp
 	)
 
 
 add_executable(dreamerHighLevelController ${${DREAMER_CONTROLLER}_SOURCES})
+# add_executable(UART_com src/gaze_control_cpp/UART_com.cpp)
 
 
 target_link_libraries(dreamerHighLevelController ${catkin_LIBRARIES} ${TinyXML_LIBRARIES})
