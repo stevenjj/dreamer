@@ -558,12 +558,22 @@ class Dreamer_Head():
 
 
             # Square Eye Big Head Motion
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.2]),  np.array([0.75, 0.05, self.kinematics.l1+0.05]),      init_to_go_point) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.2]),   np.array([0.75, -0.05, self.kinematics.l1+0.05]),     duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1-0.2]),  np.array([0.75, -0.05, self.kinematics.l1-0.05]),     duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1+0.2]), np.array([0.75, 0.05, self.kinematics.l1-0.05]),      duration) )                       
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.2]),  np.array([0.75, 0.05, self.kinematics.l1+0.05]),      duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.2]),   np.array([0.75, -0.05, self.kinematics.l1+0.05]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.2]),  np.array([0.75, 0.05, self.kinematics.l1+0.05]),      init_to_go_point) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.2]),   np.array([0.75, -0.05, self.kinematics.l1+0.05]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1-0.2]),  np.array([0.75, -0.05, self.kinematics.l1-0.05]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1+0.2]), np.array([0.75, 0.05, self.kinematics.l1-0.05]),      duration) )                       
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.2]),  np.array([0.75, 0.05, self.kinematics.l1+0.05]),      duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.2]),   np.array([0.75, -0.05, self.kinematics.l1+0.05]),     duration) )
+
+
+            # Square Eye Bigger Head Motion
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.3]),  np.array([0.75, 0.05, self.kinematics.l1+0.05]),      init_to_go_point) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.3]),   np.array([0.75, -0.05, self.kinematics.l1+0.05]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1-0.3]),  np.array([0.75, -0.05, self.kinematics.l1-0.05]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1+0.3]), np.array([0.75, 0.05, self.kinematics.l1-0.05]),      duration) )                       
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.3]),  np.array([0.75, 0.05, self.kinematics.l1+0.05]),      duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.3]),   np.array([0.75, -0.05, self.kinematics.l1+0.05]),     duration) )
+
 
 
             # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.15, self.kinematics.l1+0.2]),  np.array([0.75, 0.05, self.kinematics.l1+0.05]),      init_to_go_point) )
