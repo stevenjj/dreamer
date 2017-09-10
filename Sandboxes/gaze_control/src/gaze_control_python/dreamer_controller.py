@@ -1145,11 +1145,371 @@ class Controller():
         return dq_all
 
 
+
+#-------------------------------------------------------------------------------------
+# dq Intermediate task
+#-------------------------------------------------------------------------------------
+
+    def get_dq_i_given_tasks(self, J_tasks, dx_tasks, h_tasks):
+        T = len(J_tasks)
+        rcond = 0.0001 # Singular Value cut-off
+
+        N_k_prec_k_memoize = {} # Create a table for faster computation
+        # Helper Functions
+        def N_k_prec_k(k):
+            if k in N_k_prec_k_memoize: # Look up table if this was previously calculated
+                return N_k_prec_k_memoize[k]
+            elif k == 0:
+                Jk = J_tasks[0]
+                Jk_bar = np.linalg.pinv(Jk)        
+                pJk_Jk = Jk_bar.dot(Jk)
+                I = np.eye(np.shape(pJk_Jk)[0])
+                N_k = (I - pJk_Jk)
+
+                # Memorize for future calls:
+                N_k_prec_k_memoize[k] = N_k
+                return N_k
+            else:
+                Jk = J_tasks[k]
+                Jk_N_prec_k = Jk.dot(N_k_prec_k(k-1))
+
+                Jk_N_prec_k_bar = np.linalg.pinv( Jk_N_prec_k )    
+                pJk_Jk = Jk_N_prec_k_bar.dot(Jk_N_prec_k)                
+
+
+                I = np.eye(np.shape(Jk)[1])
+                N_k = (I - pJk_Jk)
+
+                # Memorize for future calls:
+                N_k_prec_k_memoize[k] = N_k
+                return N_k
+
+        # Finds N_[k] = N_k|k-1 * N_k-1|k-2 * ... * N_2|1 * N_1
+        # k >= 0
+        def N_k_set(k):                        
+            # #Calculate the N_0          
+            ans = N_k_prec_k(0)
+            for k_index in range(1, k+1): #Do the remaining k-1 tasks
+                ans = ans.dot(N_k_prec_k(k_index))
+            return ans
+
+        # The solution set without task j:
+        def dq_wj(j):
+            J_tasks_wj = J_tasks[:j] + J_tasks[j+1:]
+            dx_tasks_wj = dx_tasks[:j] + dx_tasks[j+1:]
+            h_tasks_wj = h_tasks[:j] + h_tasks[j+1:]                        
+            return self.get_dq_i_given_tasks(J_tasks_wj, dx_tasks_wj, h_tasks_wj)
+
+        # End Helper Functions
+
+
+        if T == 1:
+            return np.linalg.pinv(J_tasks[0], rcond).dot(dx_tasks[0]) # Return (J0^\dagger)dx^d_0
+        else:
+            N_k_list = [N_k_set(i) for i in range(len(J_tasks))]
+
+            # Finds the prioritized dq solutions:
+            # dq_k = dq_1 + dq_2 + ... + dq_k
+            dq_prior_sums = np.zeros( (self.kinematics.J_num, 1) )
+
+            print "len(dx_tasks)", len(dx_tasks)
+            print "len(J_tasks)", len(J_tasks)
+            print "len(h_tasks)", len(h_tasks)                        
+
+
+            for k in range(T):
+                dx_i_k = h_tasks[k]*dx_tasks[k] + (1-h_tasks[k])*(J_tasks[k]).dot(dq_wj(k))
+                if k == 0:
+                    dq_0 = np.linalg.pinv(J_tasks[0].round(decimals=12), rcond).dot(dx_tasks[0])
+                    dq_prior_sums = dq_0
+                else:
+                    #print 'dq_k', k
+                    # print 'dx shape:', dx_tasks[k].shape, 'dx size', dx_tasks[k].size
+                    #print "dx_tasks[k]", dx_tasks[k]
+                    # print 'J_tasks shape:', J_tasks[k].shape
+                    # print 'dq_prior_sums shape', dq_prior_sums.shape
+                    # print 'J.dot(dq_priors) shape', (J_tasks[k].dot(dq_prior_sums)).shape
+                    #print 'N_[k-1] rank:', np.linalg.matrix_rank(N_k_list[k-1])
+                    dq_k = np.linalg.pinv((J_tasks[k].dot(N_k_list[k-1])).round(decimals=12), rcond).dot( dx_i_k - J_tasks[k].dot(dq_prior_sums))
+                    dq_prior_sums = dq_prior_sums + dq_k
+
+            dq_sum = dq_prior_sums
+            #print "dq_sum shape", dq_sum.shape, dq_sum
+            
+            return dq_sum
+
+
+
     # Function: Calculate desired joint positions if eyes have higher priority than the head
     #           Head moves while eyes try to stay focused
     # Inputs: None
     # Returns: Desired Joint Configuration, Completion of task
     def eye_priority_head_trajectory_look_at_point(self):
+        # Calculate Time
+        t, t_prev = self.calculate_t_t_prev()
+        dt = t - t_prev
+        DT = self.movement_duration
+
+        # Specify current (x,y,z) gaze location
+        xyz_eye_gaze_loc = self.xyz_eye_gaze_loc
+        xyz_head_gaze_loc = self.xyz_head_gaze_loc
+
+        # Specify joint config and jacobian
+        Q_cur = self.kinematics.Jlist
+        J_head = self.kinematics.get_6D_Head_Jacobian(Q_cur)
+        J_head = J_head[0:3,:] # Grab the first 3 joint jacobians (first 3 rows)     
+        
+        # ------------------- Calculate FeedForward for Head -------------------
+        # Calculate new Q_des (desired configuration)
+
+        # Calculate Current Desired Gaze Point
+        # Get initial head focus point
+        x_i_head = self.gaze_focus_states.focus_point_init[self.H]
+
+        #print '         Focus Point', x_i
+
+        # Find vector from initial focus point to final focus point
+        e_hat_head, L_head = self.xi_to_xf_vec(t, x_i_head, xyz_head_gaze_loc)
+        # Current desired gaze point
+        p_head_des_cur = x_i_head + e_hat_head*L_head*(self.min_jerk_time_scaling(t, DT))
+
+
+        def dth_error_bound(dth):
+            MAX_DTH = 0.5
+            if dth >= MAX_DTH:
+                return MAX_DTH
+            elif (dth <= -MAX_DTH):
+                return -MAX_DTH
+            else:
+                return dth
+
+
+#        print '  Trajectory Length:       ', self.trajectory_length[self.H]
+#        print '  Initial Focus Location:  ', x_i_head        
+#        print '  Final Focus Location:    ', p_head_des_cur        
+
+        # Calculate and bound orientation error (also represents how much to move by)
+        d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT)) 
+        dx_head = d_theta_error * angular_vel_hat 
+        dx_head = dx_head[0:3]        
+        dx_head = np.array([ [dth_error_bound(dx_head[i])] for i in range(len(dx_head))])
+        #dx_head = np.array([ [dx_head[i]] for i in range(len(dx_head))])        
+
+        #dx_head = np.concatenate( (dx_head, np.array([0.0,0.,0.])),  axis=0)
+
+        # ------------------- Get Jacobian Matrices for use later -------------------
+        Q_cur = self.kinematics.Jlist
+        J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
+        J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
+        #J_1 = self.kinematics.get_6D_Right_Eye_Jacobian_yaw_pitch(Q_cur)
+        #J_2 = self.kinematics.get_6D_Left_Eye_Jacobian_yaw_pitch(Q_cur)
+
+        J_1 = J_1[1:3,:] #Grab the  rows 2 and 3      
+        J_2 = J_2[1:3,:] #Grab the  rows 2 and 3 
+
+        J_eyes = np.concatenate((J_1, J_2) ,axis=0)        
+
+ 
+        # ------------------- Calculate FeedForward for Eyes -------------------
+        # Calculate new Q_des (desired configuration)
+
+        # Calculate Current Desired Gaze Point
+        # Get initial focus point for each eye
+        x_i_right_eye = self.gaze_focus_states.focus_point_init[self.RE]
+        x_i_left_eye = self.gaze_focus_states.focus_point_init[self.LE]
+
+        # Find vector from initial focus point to final focus point
+        e_hat_re, L_re = self.xi_to_xf_vec(t, x_i_right_eye, xyz_eye_gaze_loc)
+        e_hat_le, L_le = self.xi_to_xf_vec(t, x_i_left_eye, xyz_eye_gaze_loc)        
+
+        # Current desired gaze point
+        p_des_cur_re = x_i_right_eye + e_hat_re*L_re*(self.min_jerk_time_scaling(t, DT))
+        p_des_cur_le = x_i_left_eye + e_hat_le*L_le*(self.min_jerk_time_scaling(t, DT))        
+
+
+        # Calculate current orientation error for each eye
+        #d_theta_error_re, angular_vel_hat_re = orientation_error(xyz_eye_gaze_loc, Q_cur, 'right_eye')
+        #d_theta_error_le, angular_vel_hat_le = orientation_error(xyz_eye_gaze_loc, Q_cur, 'left_eye')
+        d_theta_error_re, angular_vel_hat_re = smooth_orientation_error(p_des_cur_re, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'right_eye') 
+        d_theta_error_le, angular_vel_hat_le = smooth_orientation_error(p_des_cur_le, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'left_eye')         
+        dx_re = d_theta_error_re * angular_vel_hat_re
+        dx_le = d_theta_error_le * angular_vel_hat_le
+
+        dx_re = np.array([ [dx_re[1]], [dx_re[2]] ])
+        dx_le = np.array([ [dx_le[1]], [dx_le[2]] ])
+
+        dx_eyes = np.concatenate( (dx_re, dx_le),  axis=0)
+
+
+
+        HEAD = 1
+        EYES = 2
+        PRIORITY = EYES
+
+        if (PRIORITY == HEAD): 
+            dx1 = dx_head
+            J1 = J_head
+
+            dx2 = dx_eyes
+            J2 = J_eyes
+        elif (PRIORITY == EYES):
+            dx1 = dx_eyes
+            J1 = J_eyes
+
+            dx2 = dx_head
+            J2 = J_head
+
+        # Caclulating secondary tasks
+        J1_bar = np.linalg.pinv(J1)        
+        pJ1_J1 = J1_bar.dot(J1)
+        I_1 = np.eye(np.shape(pJ1_J1)[0])
+        N1 = I_1 - pJ1_J1
+
+
+        pinv_J2_N1 = np.linalg.pinv( (J2.dot(N1).round(decimals = 10) ) )
+        #pinv_J2_N1 = np.linalg.pinv( J2.dot(N1) )        
+        J2_pinv_J1 = J2.dot(J1_bar)
+        J2_pinv_J1_x1dot = (J2.dot(J1_bar)).dot(dx1)
+
+
+        dq1_proposed = calculate_dQ(J1, dx1)
+        dq2_proposed = (pinv_J2_N1.dot(dx2 -J2.dot(dq1_proposed)))
+
+        J_tasks = []
+        dx_tasks = []
+
+        h_j_list = []
+        dx_i_tasks = []
+
+
+        x0_d = np.zeros(self.kinematics.J_num)
+
+
+        joint_limits = [4,5,6]
+        #joint_limits = []        
+        for i in joint_limits:#range(self.kinematics.J_num):
+            q_i = Q_cur[i]
+            k_i = self.joint_limit_buffer_gain[i]
+
+            if self.buffer_region_type[i] == POS:
+                x0_d[i] = k_i*(0 - q_i) #k_i*(tilde_q_i - q_i)
+            elif self.buffer_region_type[i] == NEG:
+                x0_d[i] = k_i*(0 - q_i) #k_i*(utilde_q_i - q_i) 
+            else:
+                x0_d[i] = 0
+
+            x0_task_i = np.zeros((1,1))
+            x0_task_i[0] = x0_d[i]
+            dx_tasks.append(x0_task_i)
+
+            h_j = self.h_i(i) 
+            h_j_list.append(h_j)
+
+
+            print 'joint', i, 'h_j', h_j
+
+
+        # Define Joint Limit Tasks
+        for j in joint_limits:            
+                J_joint_lim = np.zeros( (1, self.kinematics.J_num) ) 
+                J_joint_lim[0][j] = 1
+                J_tasks.append(J_joint_lim)
+
+        J_tasks.append(J_eyes)
+        dx_tasks.append(dx_eyes*1.0) 
+        h_j_list.append(1.0) # Task is always activated
+
+        J_tasks.append(J_head)        
+        dx_tasks.append(dx_head*1.0)  # Eye Square Task  
+        h_j_list.append(1.0) # Task is always activated
+
+
+        # # Calculate the dq solution without the j-th task
+        # dq_wj = [] # calculate dq[\j]
+        # #for j in range(j_limit_num_test):
+        # for j in range(len(J_tasks)):
+        #     J_tasks_wj = []
+        #     dx_tasks_wj = []
+        #     # Copy the same J_tasks and dx_tasks without the j-th joint
+        #     for i in range(len(J_tasks)):
+        #         if (i != j): # Add task if it's not joint j
+        #             J_tasks_wj.append(J_tasks[i])
+        #             dx_tasks_wj.append(dx_tasks[i])                    
+
+        #     # Store dq_wj result
+        #     dq_wj.append(self.get_dq_i_given_tasks(J_tasks_wj, dx_tasks_wj, h_j_list))
+
+
+        # # Construct dx_i_tasks list
+        # for i in range(len(joint_limits)):
+        #     h_i_joint = h_j_list[i]
+        #     dx_i_joint = h_i_joint*dx_tasks[i] + (1-h_i_joint)*(J_tasks[i]).dot(dq_wj[i])
+        #     dx_i_tasks.append(dx_i_joint)            
+
+        # operational_task_index_list = range(len(J_tasks))
+        # operational_task_index_list = operational_task_index_list[len(joint_limits):]
+
+        # for i in operational_task_index_list:
+        #     h_i_task = h_j_list[i] # Should be 1. Always activated
+        #     dx_i_task = h_i_task*dx_tasks[i]
+        #     dx_i_tasks.append(dx_i_task)
+
+
+        print "hello?"
+        dq_tot = self.get_dq_i_given_tasks(J_tasks, dx_tasks, h_j_list)[:,0] 
+
+        #dq_tot = dq1_proposed + dq2_proposed
+
+
+        Q_des = Q_cur + dq_tot
+
+        # dq_try = dq1 + dq2 + dq3
+        # Q_des = Q_cur + dq_try[:,0]
+
+        self.prev_traj_time = t
+        # Loop Done
+
+        theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'right_eye')
+        theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'left_eye')
+
+        #print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
+        #print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
+
+        R_cur_head, p_cur_head = self.kinematics.get_6D_Head_Position(Q_cur)
+        R_cur, p_cur_right_eye = self.kinematics.get_6D_Right_Eye_Position(Q_cur)
+        R_cur, p_cur_left_eye = self.kinematics.get_6D_Left_Eye_Position(Q_cur)
+
+
+        self.gaze_focus_states.current_focus_length[self.H] =   np.linalg.norm(p_cur_head - p_head_des_cur)  
+        self.gaze_focus_states.current_focus_length[self.RE] =  np.linalg.norm(p_cur_right_eye - p_des_cur_re)         
+        self.gaze_focus_states.current_focus_length[self.LE] =  np.linalg.norm(p_cur_left_eye -p_des_cur_le) 
+
+
+        # Prepare result of command
+        result = False
+        if (t > DT):
+            result = True
+
+        return Q_des, result
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # Function: Calculate desired joint positions if eyes have higher priority than the head
+    #           Head moves while eyes try to stay focused
+    # Inputs: None
+    # Returns: Desired Joint Configuration, Completion of task
+    def eye_priority_head_trajectory_look_at_point2(self):
         # Calculate Time
         t, t_prev = self.calculate_t_t_prev()
         dt = t - t_prev
@@ -1517,155 +1877,7 @@ class Controller():
 
 
 
-    # Eye has higher priority than head
-    def eye_priority_head_trajectory_look_at_point2(self):
-        # Calculate Time
-        t, t_prev = self.calculate_t_t_prev()
-        dt = t - t_prev
-        DT = self.movement_duration
 
-        # Specify current (x,y,z) gaze location, joint config and jacobian
-        xyz_eye_gaze_loc = self.xyz_eye_gaze_loc
-        xyz_head_gaze_loc = self.xyz_head_gaze_loc
-
-        Q_cur = self.kinematics.Jlist
-        J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
-        J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
-
-
-        #J_1 = J_1[0:3,:] #Grab the first 3 rows      
-        #J_2 = J_2[0:3,:] #Grab the first 3 rows  
-
-        J_head = self.kinematics.get_6D_Head_Jacobian(Q_cur)
-        J_head = J_head[0:3,:]        
-    
-        J1 = np.concatenate((J_1,J_2) ,axis=0)
-
-        # Calculate FeedForward ---------------------------------
-        # Calculate new Q_des (desired configuration)
-
-        # Calculate Current Desired Gaze Point
-        # Get initial focus point for each eye
-        x_i_right_eye = self.gaze_focus_states.focus_point_init[self.RE]
-        x_i_left_eye = self.gaze_focus_states.focus_point_init[self.LE]
-
-        # Find vector from initial focus point to final focus point
-        e_hat_re, L_re = self.xi_to_xf_vec(t, x_i_right_eye, xyz_eye_gaze_loc)
-        e_hat_le, L_le = self.xi_to_xf_vec(t, x_i_left_eye, xyz_eye_gaze_loc)        
-
-        # Current desired gaze point
-        p_des_cur_re = x_i_right_eye + e_hat_re*L_re*(self.min_jerk_time_scaling(t, DT))
-        p_des_cur_le = x_i_left_eye + e_hat_le*L_le*(self.min_jerk_time_scaling(t, DT))        
-
-        # Calculate current orientation error for each eye
-        d_theta_error_re, angular_vel_hat_re = smooth_orientation_error(p_des_cur_re, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'right_eye') 
-        d_theta_error_le, angular_vel_hat_le = smooth_orientation_error(p_des_cur_le, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'left_eye')         
-        dx_re = d_theta_error_re * angular_vel_hat_re
-        dx_le = d_theta_error_le * angular_vel_hat_le
-
-        dx_re = np.concatenate( (dx_re, np.array([0,0,0])),  axis=0)
-        dx_le = np.concatenate( (dx_le, np.array([0,0,0])),  axis=0)
-
- 
-        dx1 = np.concatenate( (dx_re, dx_le),  axis=0)
- 
- 
-        dq1 = calculate_dQ(J1, dx1)
-
-        Q_des = Q_cur + dq1 
-
-        theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'right_eye')
-        theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'left_eye')
-
-        #print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
-        #print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
-
-
-        J1_bar = np.linalg.pinv(J1)        
-        pJ1_J1 = J1_bar.dot(J1)
-
-        # print np.shape(np.linalg.pinv(J1.T))
-        # print np.shape(np.linalg.pinv(J1.T).dot(J1.T))
-        # print np.shape(J1_bar), np.shape(pJ1_J1)
-
-        I_1 = np.eye(np.shape(pJ1_J1)[0])
-        N1 = I_1 - pJ1_J1
-
-        J2 = J_head
-        pinv_J2_N1 = np.linalg.pinv(J2.dot(N1))
-        J2_pinv_J1 = J2.dot(J1_bar)
-        J2_pinv_J1_x1dot = (J2.dot(J1_bar)).dot(dx1)
-
-        # Head task second
-
-        # Calculate FeedForward ---------------------------------
-        # Calculate new Q_des (desired configuration)
-
-        # Calculate Current Desired Gaze Point
-        # Get initial focus point
-        x_i_head = self.gaze_focus_states.focus_point_init[self.H]
-
-        #print '         Focus Point', x_i
-
-        # Find vector from initial focus point to final focus point
-        e_hat_head, L_head = self.xi_to_xf_vec(t, x_i_head, xyz_head_gaze_loc)
-        # Current desired gaze point
-        p_head_des_cur = x_i_head + e_hat_head*L_head*(self.min_jerk_time_scaling(t, DT))
-
-        # Calculate current orientation error
-        #d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT))
-        d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT)) 
-        dx2 = d_theta_error * angular_vel_hat
-        #dx2 = np.concatenate( (dx2, np.array([0,0,0])),  axis=0)
-        
-        
-
-        #dq2 = N1.dot(pinv_J2_N1.dot(dx2 -J2_pinv_J1_x1dot))
-        #dq2 = (pinv_J2_N1.dot(dx2 -J2_pinv_J1_x1dot))        
-
-        dq2 = calculate_dQ(J_head, dx2)
-        dq2 = np.dot(N1, dq2)
-        
-
-        #Q_des = Q_cur + dq2
-        Q_des = Q_des + dq2
-
-
-        # J2_bar = np.linalg.pinv(J2)        
-        # pJ2_J2 = J2_bar.dot(J2)
-
-        # # print np.shape(np.linalg.pinv(J1.T))
-        # # print np.shape(np.linalg.pinv(J1.T).dot(J1.T))
-        # # print np.shape(J1_bar), np.shape(pJ1_J1)
-
-        # I_2 = np.eye(np.shape(pJ2_J2)[0])
-        # N2 = I_2 - pJ2_J2
-
-        #print N1.dot(N2)
-        #print dt
-
-        #Q_des = Q_des + N1.dot(N2.dot(-0.01*(Q_des-Q_cur)/dt))
-        #Q_des = Q_des + N1.dot(N2.dot(1.0*(Q_cur-Q_des)))        
-
-        self.prev_traj_time = t
-        # Loop Done
-
-        R_cur_head, p_cur_head = self.kinematics.get_6D_Head_Position(Q_cur)
-        R_cur, p_cur_right_eye = self.kinematics.get_6D_Right_Eye_Position(Q_cur)
-        R_cur, p_cur_left_eye = self.kinematics.get_6D_Left_Eye_Position(Q_cur)
-
-
-        self.gaze_focus_states.current_focus_length[self.H] =   np.linalg.norm(p_cur_head - p_head_des_cur)  
-        self.gaze_focus_states.current_focus_length[self.RE] =  np.linalg.norm(p_cur_right_eye - p_des_cur_re)         
-        self.gaze_focus_states.current_focus_length[self.LE] =  np.linalg.norm(p_cur_left_eye -p_des_cur_le)
- 
-
-        # Prepare result of command
-        result = False
-        if (t > DT):
-            result = True
-
-        return Q_des, result        
 
 
 
