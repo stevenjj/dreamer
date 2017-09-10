@@ -1212,11 +1212,6 @@ class Controller():
             # dq_k = dq_1 + dq_2 + ... + dq_k
             dq_prior_sums = np.zeros( (self.kinematics.J_num, 1) )
 
-            print "len(dx_tasks)", len(dx_tasks)
-            print "len(J_tasks)", len(J_tasks)
-            print "len(h_tasks)", len(h_tasks)                        
-
-
             for k in range(T):
                 dx_i_k = h_tasks[k]*dx_tasks[k] + (1-h_tasks[k])*(J_tasks[k]).dot(dq_wj(k))
                 if k == 0:
@@ -1305,8 +1300,7 @@ class Controller():
         #J_2 = self.kinematics.get_6D_Left_Eye_Jacobian_yaw_pitch(Q_cur)
 
         J_1 = J_1[1:3,:] #Grab the  rows 2 and 3      
-        J_2 = J_2[1:3,:] #Grab the  rows 2 and 3 
-
+        J_2 = J_2[2:3,:] #Grab row 3
         J_eyes = np.concatenate((J_1, J_2) ,axis=0)        
 
  
@@ -1335,8 +1329,9 @@ class Controller():
         dx_re = d_theta_error_re * angular_vel_hat_re
         dx_le = d_theta_error_le * angular_vel_hat_le
 
-        dx_re = np.array([ [dx_re[1]], [dx_re[2]] ])
-        dx_le = np.array([ [dx_le[1]], [dx_le[2]] ])
+        dx_re = np.array([ [dx_re[1]], [dx_re[2]] ]) # Right Eye Yaw and Pitch
+#        dx_le = np.array([ [dx_le[1]], [dx_le[2]] ])
+        dx_le = np.array([ [dx_le[2]] ]) #Left Eye Yaw Only
 
         dx_eyes = np.concatenate( (dx_re, dx_le),  axis=0)
 
@@ -1385,7 +1380,7 @@ class Controller():
         x0_d = np.zeros(self.kinematics.J_num)
 
 
-        joint_limits = [4,5,6]
+        joint_limits = [4,5,6]#range(self.kinematics.J_num) #[0,1,2,3,4,5,6]
         #joint_limits = []        
         for i in joint_limits:#range(self.kinematics.J_num):
             q_i = Q_cur[i]
@@ -1420,42 +1415,11 @@ class Controller():
         h_j_list.append(1.0) # Task is always activated
 
         J_tasks.append(J_head)        
-        dx_tasks.append(dx_head*1.0)  # Eye Square Task  
+        dx_tasks.append(dx_head*0.5)  # Eye Square Task  
         h_j_list.append(1.0) # Task is always activated
 
 
-        # # Calculate the dq solution without the j-th task
-        # dq_wj = [] # calculate dq[\j]
-        # #for j in range(j_limit_num_test):
-        # for j in range(len(J_tasks)):
-        #     J_tasks_wj = []
-        #     dx_tasks_wj = []
-        #     # Copy the same J_tasks and dx_tasks without the j-th joint
-        #     for i in range(len(J_tasks)):
-        #         if (i != j): # Add task if it's not joint j
-        #             J_tasks_wj.append(J_tasks[i])
-        #             dx_tasks_wj.append(dx_tasks[i])                    
-
-        #     # Store dq_wj result
-        #     dq_wj.append(self.get_dq_i_given_tasks(J_tasks_wj, dx_tasks_wj, h_j_list))
-
-
-        # # Construct dx_i_tasks list
-        # for i in range(len(joint_limits)):
-        #     h_i_joint = h_j_list[i]
-        #     dx_i_joint = h_i_joint*dx_tasks[i] + (1-h_i_joint)*(J_tasks[i]).dot(dq_wj[i])
-        #     dx_i_tasks.append(dx_i_joint)            
-
-        # operational_task_index_list = range(len(J_tasks))
-        # operational_task_index_list = operational_task_index_list[len(joint_limits):]
-
-        # for i in operational_task_index_list:
-        #     h_i_task = h_j_list[i] # Should be 1. Always activated
-        #     dx_i_task = h_i_task*dx_tasks[i]
-        #     dx_i_tasks.append(dx_i_task)
-
-
-        print "hello?"
+        print "calc dq_tot"
         dq_tot = self.get_dq_i_given_tasks(J_tasks, dx_tasks, h_j_list)[:,0] 
 
         #dq_tot = dq1_proposed + dq2_proposed

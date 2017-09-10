@@ -29,7 +29,7 @@ from GUI_params import *
 JOINT_LIM_BOUND = 0.9 #between 0 to 1.0
 
 # Rate Constants
-NODE_RATE = 100#10 # Update rate of this node in Hz
+NODE_RATE = 20#10 # Update rate of this node in Hz
 
 LOW_LEVEL_FREQ = 550
 
