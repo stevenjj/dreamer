@@ -1195,43 +1195,74 @@ class Controller():
 
         # The solution set without task j:
         def dq_wj(j):
-            J_tasks_wj = J_tasks[:j] + J_tasks[j+1:]
-            dx_tasks_wj = dx_tasks[:j] + dx_tasks[j+1:]
-            h_tasks_wj = h_tasks[:j] + h_tasks[j+1:]                        
-            return self.get_dq_i_given_tasks(J_tasks_wj, dx_tasks_wj, h_tasks_wj)
+            if T == 1:
+                return np.zeros((self.kinematics.J_num, 1))
+            else:
+                J_tasks_wj = J_tasks[:j] + J_tasks[j+1:]
+                dx_tasks_wj = dx_tasks[:j] + dx_tasks[j+1:]
+                h_tasks_wj = h_tasks[:j] + h_tasks[j+1:]                        
+                return self.get_dq_i_given_tasks(J_tasks_wj, dx_tasks_wj, h_tasks_wj)
 
         # End Helper Functions
 
 
-        if T == 1:
-            return np.linalg.pinv(J_tasks[0], rcond).dot(dx_tasks[0]) # Return (J0^\dagger)dx^d_0
-        else:
-            N_k_list = [N_k_set(i) for i in range(len(J_tasks))]
+        N_k_list = [N_k_set(i) for i in range(len(J_tasks))]
 
-            # Finds the prioritized dq solutions:
-            # dq_k = dq_1 + dq_2 + ... + dq_k
-            dq_prior_sums = np.zeros( (self.kinematics.J_num, 1) )
+        # Finds the prioritized dq solutions:
+        # dq_k = dq_1 + dq_2 + ... + dq_k
+        dq_prior_sums = np.zeros( (self.kinematics.J_num, 1) )
 
-            for k in range(T):
-                dx_i_k = h_tasks[k]*dx_tasks[k] + (1-h_tasks[k])*(J_tasks[k]).dot(dq_wj(k))
-                if k == 0:
-                    dq_0 = np.linalg.pinv(J_tasks[0].round(decimals=12), rcond).dot(dx_tasks[0])
-                    dq_prior_sums = dq_0
-                else:
-                    #print 'dq_k', k
-                    # print 'dx shape:', dx_tasks[k].shape, 'dx size', dx_tasks[k].size
-                    #print "dx_tasks[k]", dx_tasks[k]
-                    # print 'J_tasks shape:', J_tasks[k].shape
-                    # print 'dq_prior_sums shape', dq_prior_sums.shape
-                    # print 'J.dot(dq_priors) shape', (J_tasks[k].dot(dq_prior_sums)).shape
-                    #print 'N_[k-1] rank:', np.linalg.matrix_rank(N_k_list[k-1])
-                    dq_k = np.linalg.pinv((J_tasks[k].dot(N_k_list[k-1])).round(decimals=12), rcond).dot( dx_i_k - J_tasks[k].dot(dq_prior_sums))
-                    dq_prior_sums = dq_prior_sums + dq_k
+        for k in range(T):
+            dx_i_k = h_tasks[k]*dx_tasks[k] + (1-h_tasks[k])*(J_tasks[k]).dot(dq_wj(k))
+            if k == 0:
+                dq_0 = np.linalg.pinv(J_tasks[0].round(decimals=12), rcond).dot(dx_tasks[0])
+                dq_prior_sums = dq_0
+            else:
+                #print 'dq_k', k
+                # print 'dx shape:', dx_tasks[k].shape, 'dx size', dx_tasks[k].size
+                #print "dx_tasks[k]", dx_tasks[k]
+                # print 'J_tasks shape:', J_tasks[k].shape
+                # print 'dq_prior_sums shape', dq_prior_sums.shape
+                # print 'J.dot(dq_priors) shape', (J_tasks[k].dot(dq_prior_sums)).shape
+                #print 'N_[k-1] rank:', np.linalg.matrix_rank(N_k_list[k-1])
+                dq_k = np.linalg.pinv((J_tasks[k].dot(N_k_list[k-1])).round(decimals=12), rcond).dot( dx_i_k - J_tasks[k].dot(dq_prior_sums))
+                dq_prior_sums = dq_prior_sums + dq_k
 
-            dq_sum = dq_prior_sums
-            #print "dq_sum shape", dq_sum.shape, dq_sum
+        dq_sum = dq_prior_sums
+        #print "dq_sum shape", dq_sum.shape, dq_sum
+        
+        return dq_sum
+
+
+        # if T == 1:
+        #     return np.linalg.pinv(J_tasks[0], rcond).dot(dx_tasks[0]) # Return (J0^\dagger)dx^d_0
+        # else:
+        #     N_k_list = [N_k_set(i) for i in range(len(J_tasks))]
+
+        #     # Finds the prioritized dq solutions:
+        #     # dq_k = dq_1 + dq_2 + ... + dq_k
+        #     dq_prior_sums = np.zeros( (self.kinematics.J_num, 1) )
+
+        #     for k in range(T):
+        #         dx_i_k = h_tasks[k]*dx_tasks[k] + (1-h_tasks[k])*(J_tasks[k]).dot(dq_wj(k))
+        #         if k == 0:
+        #             dq_0 = np.linalg.pinv(J_tasks[0].round(decimals=12), rcond).dot(dx_tasks[0])
+        #             dq_prior_sums = dq_0
+        #         else:
+        #             #print 'dq_k', k
+        #             # print 'dx shape:', dx_tasks[k].shape, 'dx size', dx_tasks[k].size
+        #             #print "dx_tasks[k]", dx_tasks[k]
+        #             # print 'J_tasks shape:', J_tasks[k].shape
+        #             # print 'dq_prior_sums shape', dq_prior_sums.shape
+        #             # print 'J.dot(dq_priors) shape', (J_tasks[k].dot(dq_prior_sums)).shape
+        #             #print 'N_[k-1] rank:', np.linalg.matrix_rank(N_k_list[k-1])
+        #             dq_k = np.linalg.pinv((J_tasks[k].dot(N_k_list[k-1])).round(decimals=12), rcond).dot( dx_i_k - J_tasks[k].dot(dq_prior_sums))
+        #             dq_prior_sums = dq_prior_sums + dq_k
+
+        #     dq_sum = dq_prior_sums
+        #     #print "dq_sum shape", dq_sum.shape, dq_sum
             
-            return dq_sum
+        #     return dq_sum
 
 
 
