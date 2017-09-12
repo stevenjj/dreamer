@@ -212,6 +212,62 @@ def test_script():
 #						 6. Shake Right
 #						 7. Return to center
 #						 8. Return to Initial gaze point
+
+def squares_task():
+	head_gaze_length = 0.7
+	head_square_size = 0.3
+
+	eye_gaze_length = 0.7
+	eye_square_size = 0.1	
+
+	traj_duration = 2.0
+
+	#x, dot_x, ddot_x, Dt
+
+	head_x = []
+	head_y = []
+	head_z = []
+
+	eyes_x = []
+	eyes_y = []
+	eyes_z = []
+
+	# Starting Point
+	head_x.append(single.Waypoint(head_gaze_length, 0,  0, 0))
+	head_y.append(single.Waypoint(head_square_size/2.0, 0, 0, 0))
+	head_z.append(single.Waypoint(head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, 0))
+
+	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, 0))
+	eyes_y.append(single.Waypoint(eye_square_size/2.0, 0, 0, 0))
+	eyes_z.append(single.Waypoint(eye_square_size/2.0 + + hk.Head_Kinematics().l1, 0, 0, 0))
+
+	# Waypoint 1
+	head_x.append(single.Waypoint(head_gaze_length, 0,  0, traj_duration))
+	head_y.append(single.Waypoint(head_square_size/2.0, 0, 0, traj_duration))
+	head_z.append(single.Waypoint(-head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, traj_duration))
+
+	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, traj_duration))
+	eyes_y.append(single.Waypoint(eye_square_size/2.0, 0, 0, traj_duration))
+	eyes_z.append(single.Waypoint(-eye_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, traj_duration))
+
+	# Waypoint 2
+	# Waypoint 3
+	# Waypoint 4
+
+	head_x_coord = single.MinimumJerk(head_x)
+	head_y_coord = single.MinimumJerk(head_y)
+	head_z_coord = single.MinimumJerk(head_z)
+
+	eyes_x_coord = single.MinimumJerk(eyes_x)
+	eyes_y_coord = single.MinimumJerk(eyes_y)
+	eyes_z_coord = single.MinimumJerk(eyes_z)
+
+	head_traj = Coordinates_3D(head_x_coord, head_y_coord, head_z_coord)
+	eye_traj = Coordinates_3D(eyes_x_coord, eyes_y_coord, eyes_z_coord)
+
+	return head_traj, eye_traj
+
+
 def surprised_no(gaze_length = 1.0):
 	head_min_jerk = None
 	eyes_min_jerk = None
