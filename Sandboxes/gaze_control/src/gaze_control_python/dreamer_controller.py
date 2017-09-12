@@ -517,6 +517,7 @@ class Controller():
         # Initialize Time parameters
         self.start_time = start_time
         self.current_traj_time = start_time
+        self.local_start_time = 0
         self.prev_traj_time = 0    
         self.piecewise_func_total_run_time = total_run_time
 
@@ -629,6 +630,307 @@ class Controller():
     # Inputs: None
     # Returns: Desired Joint Configuration, Completion of task
     def head_eye_trajectory_follow(self):
+        # Calculate Time
+        # t, t_prev = self.calculate_t_t_prev()
+        # dt = t - t_prev
+        # DT = self.piecewise_func_total_run_time
+        DT = self.piecewise_func_total_run_time
+        dt = 1/20.0 #t - t_prev
+        self.local_start_time += dt
+        t = self.local_start_time
+
+        
+        # Specify current (x,y,z) gaze location through the piecewise min_jerk
+        xyz_head_gaze_loc = self.piecewise_func_head.get_position(t)
+        xyz_eye_gaze_loc = self.piecewise_func_eyes.get_position(t)
+        # Update head-eye variables with desired locations
+        self.initialize_head_eye_focus_point(xyz_head_gaze_loc, xyz_eye_gaze_loc)   
+
+        # Get current joint configuration
+        Q_cur = self.kinematics.Jlist
+        
+        # ---------------------- Head Calculations ----------------------
+        # Get head Jacobian
+        J_head = self.kinematics.get_6D_Head_Jacobian(Q_cur)
+
+        # Current desired head gaze point
+        p_head_des_cur = xyz_head_gaze_loc
+
+        # Calculate FeedForward 
+        # Calculate new Q_des (desired configuration) and current orientation error
+        tilt = self.piecewise_func_head.get_special(t)
+        d_theta_error, angular_vel_hat = smooth_orientation_error(p_head_des_cur, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'head', tilt) 
+        dx_head = d_theta_error * angular_vel_hat
+        
+
+        # ---------------------- Eye Calculations ----------------------
+        # Get Jacobian for eyes, redundant Q_cur
+        Q_cur = self.kinematics.Jlist
+
+        # Current desired eye gaze point
+        p_des_cur_re = xyz_eye_gaze_loc
+        p_des_cur_le = xyz_eye_gaze_loc      
+
+        # Calculate current orientation error for each eye and find desired change based on that
+        d_theta_error_re, angular_vel_hat_re = smooth_orientation_error(p_des_cur_re, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'right_eye') 
+        d_theta_error_le, angular_vel_hat_le = smooth_orientation_error(p_des_cur_le, Q_cur, self.Q_o_at_start, self.min_jerk_time_scaling(t,DT), 'left_eye')         
+
+        dx_re = d_theta_error_re * angular_vel_hat_re
+        dx_le = d_theta_error_le * angular_vel_hat_le
+
+        # Remember previously that we concatenated the two Jacobian matrices because both eyes are the same priority
+       
+        HEAD = 1
+        EYES = 2
+        PRIORITY = HEAD
+
+        if (PRIORITY == HEAD):
+            # Adding an array of linear translations now makes this a body twist representation of how the head should move
+            # A variable within the min_jerk will tell whether or not to move the head with the point or just the gaze location
+            # Find a linear translation that will move the head with the specified points
+            # Caculate the previous point based on the change in time and find the difference between them to
+            #   specify how much to translate linearly. Keep in mind that this is an array of xyz
+            xyz_head_gaze_loc_prev = self.piecewise_func_head.get_position(t-dt)
+            xyz_loc_dif = xyz_head_gaze_loc - xyz_head_gaze_loc_prev
+            # TODO This does not work for eye priority stuff
+            #if(self.piecewise_func_head.get_pull(t)[0]):
+                # The following line will translate the figure based on how the x point moves
+            #    dx_head = np.concatenate( (dx_head, np.array([xyz_loc_dif[0], 0, 0]) ),  axis=0)
+            #else:
+                # The following line causes no head translation
+            #    dx_head = np.concatenate( (dx_head, np.array([0, 0, 0]) ),  axis=0)
+ 
+            # Head parameters will remain the same
+            #dx1 = dx_head            
+#            J1 = J_head
+
+            dx1 = dx_head[0:3]
+            J1 = J_head[0:3,:] # Grab the first 3 joints that control the head            
+            
+            # We only care about the actuators controlling the eyes with head priority
+            J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
+            J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
+            J_1 = J_1[1:3,:] #Grab the  rows 2 and 3      
+            J_2 = J_2[1:3,:] #Grab the  rows 2 and 3                                
+#            J_1 = self.kinematics.get_6D_Right_Eye_Jacobian_yaw_pitch(Q_cur)
+#            J_2 = self.kinematics.get_6D_Left_Eye_Jacobian_yaw_pitch(Q_cur)        
+            J_eyes = np.concatenate((J_1,J_2) ,axis=0) 
+
+            # The eyes will have no xyz translation (mentioned above for the head)
+#            dx_re = np.concatenate( (dx_re, np.array([0,0,0])),  axis=0)
+#            dx_le = np.concatenate( (dx_le, np.array([0,0,0])),  axis=0)
+            # Same priority tasks can be concatenated
+#            dx_eyes = np.concatenate( (dx_re, dx_le),  axis=0)
+
+            # We don't have the ability to do rotations about the x axis with the eyes
+            dx_re = np.array([dx_re[1]*1, dx_re[2]*1])
+            dx_le = np.array([dx_le[1]*1, dx_le[2]*1])
+            # Same priority tasks can be concatenated
+            dx_eyes = np.concatenate( (dx_re, dx_le),  axis=0)
+
+            dx2 = dx_eyes
+            J2 = J_eyes
+
+        elif (PRIORITY == EYES):
+
+            J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
+            J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
+            J_1 = J_1[1:3,:] #Grab the  rows 2 and 3      
+            J_2 = J_2[1:3,:] #Grab the  rows 2 and 3
+            J_eyes = np.concatenate((J_1,J_2) ,axis=0) 
+            
+            # We don't have the ability to do rotations about the x axis with the eyes
+            dx_re = np.array([dx_re[1]*1, dx_re[2]*1])
+            dx_le = np.array([dx_le[1]*1, dx_le[2]*1])
+            # Same priority tasks can be concatenated
+            dx_eyes = np.concatenate( (dx_re, dx_le),  axis=0)
+
+            dx1 = dx_eyes
+            J1 = J_eyes
+
+            dx_head = dx_head[0:3]
+            dx2 = dx_head
+            J_head = J_head[0:3,:] # Grab the first 3 joints that control the head
+            J2 = J_head
+
+
+        # Magic begins: Calculate the secondary tasks
+        # Equation: null space = identity matrix - pseudoinverse of Head_Jacobian 
+        J1_bar = np.linalg.pinv(J1)        
+        pJ1_J1 = J1_bar.dot(J1)
+        I_1 = np.eye(np.shape(pJ1_J1)[0])
+        N1 = I_1 - pJ1_J1
+
+        # Magic Continues
+        # This is based on a research paper HCRL published on secondary tasks
+        pinv_J2_N1 = np.linalg.pinv( (J2.dot(N1).round(decimals = 6)) )
+        J2_pinv_J1 = J2.dot(J1_bar)
+        J2_pinv_J1_x1dot = (J2.dot(J1_bar)).dot(dx1)
+
+        # Task 1  
+        dq1_proposed = calculate_dQ(J1, dx1)
+        # Task 2
+        # Part of the HCRL research mentioned previously for calculating secondary tasks
+        dq2_proposed = N1.dot(pinv_J2_N1.dot(dx2 -J2_pinv_J1_x1dot)) # Projection with least squares opt
+        
+
+
+        # ------------- Attempt to add joint limit fix -------------
+        self.update_intermediate_H_matrix()
+        x0_d = np.zeros(self.kinematics.J_num)
+
+        # x0_d = .01 * (-1 * current joint position) for all joints if in a limit region
+        for i in range(self.kinematics.J_num):
+            q_i = Q_cur[i]
+            k_i = self.joint_limit_buffer_gain[i]
+
+            if self.buffer_region_type[i] == POS:
+                x0_d[i] = k_i*(0 - q_i) #k_i*(tilde_q_i - q_i)
+            elif self.buffer_region_type[i] == NEG:
+                x0_d[i] = k_i*(0 - q_i) #k_i*(utilde_q_i - q_i) 
+            else:
+                x0_d[i] = 0
+        
+        J0_constraint = self.intermediate_jacobian_constraint
+
+        dx0_i = np.zeros( self.kinematics.J_num ) # Initialize intermediate task
+
+        for j in range(self.kinematics.J_num ):
+            J0_j = J0_constraint[j, :] # Joint j constraint task (7x1)
+            J0_wj = np.delete(J0_constraint, (j), axis=0) # Task 0 Task without Joint j # 6x7
+            
+            pinvJ0_wj_J0_wj = np.linalg.pinv(J0_wj).dot(J0_wj)
+            I0_wj = np.eye( np.shape(pinvJ0_wj_J0_wj)[0] )
+            N0_wj = I0_wj - pinvJ0_wj_J0_wj
+
+
+            # Define N1_0_wj Task 0 Nullspace without joint j limit task
+            pinv_J1_N0_wj = np.linalg.pinv( J1.dot(N0_wj) )            
+            I1_0_wj = np.eye(np.shape(pinv_J1_N0_wj)[0])
+            N1_0_wj = I1_0_wj - pinv_J1_N0_wj.dot(J1.dot(N0_wj))
+
+            
+            # Define x0_d_wj The desired Joint Limit Tasks without joint j
+            x0_d_wj = np.delete(x0_d, j) # Desired dx0_d without tjoint j
+            dx_0_d_wj = x0_d_wj
+
+            # Find dq_wj, the task solution without joint limit task j
+            dq0_wj = np.linalg.pinv( J0_wj).dot(dx_0_d_wj)
+                        
+
+            # Method 2, Take into account new joint limits task
+            # dq1_wj = np.linalg.pinv( (J1.dot(N0_wj)) ).dot(dx1*0.5 - J1.dot(dq0_wj)) #np.linalg.pinv(   np.around(J1.dot(N0_wj), decimals = 6)    ).dot(dx1 - J1.dot(dq0_wj))
+            # dq2_wj = np.linalg.pinv( np.around( J2.dot(N0_wj.dot(N1_0_wj)), decimals = 6 ) ).dot(dx2*0.5 - J2.dot(dq1_wj + dq0_wj)) 
+
+#            dq1_wj = np.linalg.pinv( (J1.dot(N0_wj)).round(decimals=6) ).dot(dx1*0.1 - J1.dot(dq0_wj))
+#            dq2_wj = (np.linalg.pinv( (J2.dot(N0_wj.dot(N1_0_wj))).round(decimals=6) )).round(decimals=6).dot(dx2*0.1 - J2.dot(dq1_wj + dq0_wj) )
+
+            dq1_wj = np.linalg.pinv( (J1.dot(N0_wj)).round(decimals=6) ).dot(dx1 - J1.dot(dq0_wj))
+            dq2_wj = (np.linalg.pinv( (J2.dot(N0_wj.dot(N1_0_wj))).round(decimals=6) )).round(decimals=6).dot(dx2 - J2.dot(dq1_wj + dq0_wj) )
+
+            
+            #if (PRIORITY == EYES):
+            #    dq1_wj = np.linalg.pinv(J1).dot(dx1*1.0)
+            #    dq2_wj = np.linalg.pinv( (J2.dot(N1)).round(decimals=6) ).dot(dx2*1.0 - J2.dot(dq1_wj) )
+
+
+            dq_wj = dq1_wj+ dq2_wj + dq0_wj   
+
+            # Define the intermediate task
+            h_j = self.intermediate_H_matrix[j][j]
+
+            if (PRIORITY == EYES):
+                if (j < 4):
+                    h_eye_max = h_j
+                    # Find maximum activating variable of eye task
+                    for i in range(4, self.kinematics.J_num):
+                        h_candidate = self.intermediate_H_matrix[i][i]
+                        if  h_candidate >= h_eye_max:
+                            h_eye_max = h_candidate
+                    h_j = h_eye_max            
+
+            print 'joint', j, 'h_j', h_j
+
+            dx0_i_j = h_j*(x0_d[j]) + (1 - h_j)*(J0_j).dot(dq_wj)
+        
+            dx0_i[j] = dx0_i_j
+
+
+        # Define constraint task as highest priority
+        dq0 = np.linalg.pinv(J0_constraint).dot(dx0_i)
+        
+        # Calculate the null space of task 0 and make dq1 work in that
+        I_0 = np.eye( np.shape(J0_constraint)[0] )
+        N0 = I_0 - np.linalg.pinv(J0_constraint).dot(J0_constraint)
+        pinv_J1_N0 = np.linalg.pinv( J1.dot(N0) )
+        dq1 = (pinv_J1_N0).dot(dx1 - J1.dot(dq0))
+        
+        # Same as above, dq2 works in null space of task 0 and task 1
+        J1_N0 = J1.dot(N0)
+        pinv_J1_N0_J1_N0 = pinv_J1_N0.dot(J1_N0)
+        N1_0 = np.eye(np.shape(pinv_J1_N0_J1_N0)[0]) - pinv_J1_N0_J1_N0
+        pinv_J2_N0_N1_0 = np.linalg.pinv( (J2.dot(N0.dot(N1_0))).round(decimals=6) )
+        dq2 = pinv_J2_N0_N1_0.dot(dx2 - J2.dot(dq0 + dq1))
+        
+        # Add joint changes to the current configuration to get desired configuration
+        dq_tot = dq1_proposed + dq2_proposed #dq0 + dq1 + dq2 #dq1_proposed + dq2_proposed # dq0 + dq1 + dq2 
+        Q_des = Q_cur + dq_tot
+
+
+        self.prev_traj_time = t
+       
+        # Get orientation error for eyes based on current joint configuration
+        theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'right_eye')
+        theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'left_eye')
+
+        # Get joint orientations and spatial positions
+        R_cur_head, p_cur_head = self.kinematics.get_6D_Head_Position(Q_cur)
+        R_cur, p_cur_right_eye = self.kinematics.get_6D_Right_Eye_Position(Q_cur)
+        R_cur, p_cur_left_eye = self.kinematics.get_6D_Left_Eye_Position(Q_cur)
+
+        # Get a unit vector of the difference between the current position and desired position
+        self.gaze_focus_states.current_focus_length[self.H] =   np.linalg.norm(p_cur_head - p_head_des_cur)  
+        self.gaze_focus_states.current_focus_length[self.RE] =  np.linalg.norm(p_cur_right_eye - p_des_cur_re)         
+        self.gaze_focus_states.current_focus_length[self.LE] =  np.linalg.norm(p_cur_left_eye -p_des_cur_le)
+
+
+        # Prepare result of command
+        result = False
+        if (t > DT):
+            result = True
+
+        # Variable to add blinking parameter
+        blink = self.piecewise_func_eyes.get_special(t)
+        return Q_des, result
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # Function: Calculates joint movement given a specific priority
+    #           Used for Minimum Jerk trajectories
+    #           
+    # Inputs: None
+    # Returns: Desired Joint Configuration, Completion of task
+    def head_eye_trajectory_follow_copy(self):
         # Calculate Time
         t, t_prev = self.calculate_t_t_prev()
         dt = t - t_prev
@@ -896,6 +1198,29 @@ class Controller():
         # Variable to add blinking parameter
         blink = self.piecewise_func_eyes.get_special(t)
         return Q_des, result
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
