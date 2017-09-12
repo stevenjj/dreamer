@@ -16,6 +16,12 @@ NA = 0
 
 from program_constants import *
 
+# World Time 
+from datetime import datetime
+
+
+EXPERIMENT_NAME = "kinematic_control"
+
 # Function: Rotation operator around a vector
 #           Used for head tilts, Taken from Modern Robotics book
 # Inputs: vector to rotate about, angle to rotate
@@ -265,10 +271,14 @@ class Controller():
         self.joint_attractor_active_negative_location =  np.zeros(self.kinematics.J_num)        
 
         self.joint_constraint_attractor_gain = 0.25
-        self.joint_range = 0.75 # 0 < range < 1.0
+        self.joint_range = 0.85 # 0 < range < 1.0
+
+        # Filewrite
+        self.file_to_write = None
+        self.init_file_to_write()
 
         # Intermediate task variables
-        self.buffer_region_percent = 0.05  # make each buffer region to be 5% of the full joint range  
+        self.buffer_region_percent = 0.05  # make each buffer region to be 10% of the full joint range  
         self.joint_limit_max = np.zeros(self.kinematics.J_num)
         self.joint_limit_min = np.zeros(self.kinematics.J_num)
         self.joint_limit_activation_pos = np.zeros(self.kinematics.J_num)
@@ -279,12 +289,10 @@ class Controller():
 
         self.intermediate_jacobian_constraint = np.eye(self.kinematics.J_num)
         self.intermediate_H_matrix = np.zeros((self.kinematics.J_num, self.kinematics.J_num))        
-        #self.joint_limit_buffer_gain = 0.01*np.ones(self.kinematics.J_num)
-        self.joint_limit_buffer_gain = 0.0001*np.ones(self.kinematics.J_num)        
+        self.joint_limit_buffer_gain = 0.01*np.ones(self.kinematics.J_num)
+        #self.joint_limit_buffer_gain = 0.0001*np.ones(self.kinematics.J_num)        
 
         self.old_h_j = np.zeros((self.kinematics.J_num, 1))        
-
-
 
         self.init_intermediate_task_matrices()                            
 
@@ -299,6 +307,9 @@ class Controller():
 
 
         self.start_time = 0
+
+        self.local_start_time = 0
+
         self.current_traj_time = 0
         self.prev_traj_time = 0
         self.movement_duration = 1
@@ -321,6 +332,40 @@ class Controller():
         self.piecewise_func_total_run_time = 0
         self.current_tilt = 0        
 
+
+    def init_file_to_write(self):
+        current_date = str(datetime.now())
+        current_date_no_space = ""
+
+        for string in current_date.split(' '):
+            current_date_no_space = current_date_no_space + "_" + string
+
+        savefile_name = EXPERIMENT_NAME + current_date_no_space
+        self.file_to_write = open(savefile_name + '.csv', 'a')
+
+        head_des_xyz = ["head_des_x", "head_des_y", "head_des_z"]
+        reye_des_xyz = ["reye_des_x", "reye_des_y", "reye_des_z"]        
+        leye_des_xyz = ["leye_des_x", "leye_des_y", "leye_des_z"]
+        head_cur_xyz = ["head_cur_x", "head_cur_y", "head_cur_z"]
+        reye_cur_xyz = ["reye_cur_x", "reye_cur_y", "reye_cur_z"]
+        leye_cur_xyz = ["leye_cur_x", "leye_cur_y", "leye_cur_z"]        
+        orientation_error = ["head_ori_error", "reye_orientation_error", "leye_orientation_error"]
+        h_vals = ["h1", "h2", "h3", "h4", "h5"]        
+        q_vals = ["q0", "q1", "q2", "q3", "q4", "q5", "q6"]
+        dq_vals = ["dq0", "dq1", "dq2", "dq3", "dq4", "dq5", "dq6"]        
+        rank_tasks = ["rank_t1", "rank_t2"]
+
+        top_labels = [head_des_xyz, reye_des_xyz, leye_des_xyz, head_cur_xyz, reye_cur_xyz, leye_cur_xyz, orientation_error, h_vals, q_vals, dq_vals, rank_tasks]
+
+        top_labels_string = EXPERIMENT_NAME + "\n" + "dt"
+        for category in top_labels:
+            for item in category:
+                top_labels_string = top_labels_string + "," + item
+
+        self.file_to_write.write(top_labels_string + "\n")
+
+        print "Number of labels", len(top_labels_string.split(','))
+
     # Function: Sets up joint limit bounds
     # Inputs: None
     # Returns: None
@@ -330,6 +375,7 @@ class Controller():
         for i in range(self.kinematics.J_num):
             joint_cur_val = Q_cur[i]
             joint_name = self.kinematics.Jindex_to_names[i]
+            print 'i', i, ' ', joint_name
             joint_max_val = self.joint_publisher.free_joints[joint_name]['max']
             joint_min_val = self.joint_publisher.free_joints[joint_name]['min']
 
@@ -353,13 +399,16 @@ class Controller():
     def h_i(self, joint_index):
         i = joint_index
         q_i = self.kinematics.Jlist[i]
+
+
         tilde_q_i = self.joint_limit_activation_pos[i]
         utilde_q_i = self.joint_limit_activation_neg[i]
         bar_q_i = self.joint_limit_max[i]
         ubar_q_i = self.joint_limit_min[i]        
         beta_i = self.beta[i]
 
-        # print 'joint ', i, 'q_i', q_i, 'utilde_q', utilde_q_i, 'tilde_q_i', tilde_q_i
+        #print 'i', i, ' ', self.kinematics.Jindex_to_names[i], ' q_i ', q_i
+        #print '    ', 'utilde_q', utilde_q_i, 'tilde_q_i', tilde_q_i
 
         if (q_i >= bar_q_i):
             #print '       COND 1'
@@ -487,6 +536,7 @@ class Controller():
         # Initialize kinematic positions
         self.Q_o_at_start = self.kinematics.Jlist
 
+
         # Initialize Final Head Gaze Location Point
         self.xyz_head_gaze_loc = xyz_head_gaze_loc
         self.xyz_eye_gaze_loc = xyz_eye_gaze_loc
@@ -494,6 +544,7 @@ class Controller():
         # Initialize Time parameters
         self.start_time = start_time
         self.current_traj_time = start_time
+        self.local_start_time = 0
         self.prev_traj_time = 0     
 
         self.initialize_head_eye_focus_point(xyz_head_gaze_loc, xyz_eye_gaze_loc)
@@ -1116,7 +1167,6 @@ class Controller():
 
         # End Helper Functions
 
-
         N_k_list = [N_k_set(i) for i in range(len(J_tasks))]
 
         # Finds the prioritized dq solutions:
@@ -1126,7 +1176,7 @@ class Controller():
         for k in range(T):
             dx_i_k = h_tasks[k]*dx_tasks[k] + (1-h_tasks[k])*(J_tasks[k]).dot(dq_wj(k))
             if k == 0:
-                dq_0 = np.linalg.pinv(J_tasks[0].round(decimals=12), rcond).dot(dx_tasks[0])
+                dq_0 = np.linalg.pinv(J_tasks[0].round(decimals=12), rcond).dot(dx_i_k)
                 dq_prior_sums = dq_0
             else:
                 #print 'dq_k', k
@@ -1136,6 +1186,7 @@ class Controller():
                 # print 'dq_prior_sums shape', dq_prior_sums.shape
                 # print 'J.dot(dq_priors) shape', (J_tasks[k].dot(dq_prior_sums)).shape
                 #print 'N_[k-1] rank:', np.linalg.matrix_rank(N_k_list[k-1])
+                
                 dq_k = np.linalg.pinv((J_tasks[k].dot(N_k_list[k-1])).round(decimals=12), rcond).dot( dx_i_k - J_tasks[k].dot(dq_prior_sums))
                 dq_prior_sums = dq_prior_sums + dq_k
 
@@ -1151,9 +1202,12 @@ class Controller():
     # Returns: Desired Joint Configuration, Completion of task
     def eye_priority_head_trajectory_look_at_point(self):
         # Calculate Time
-        t, t_prev = self.calculate_t_t_prev()
-        dt = t - t_prev
+        # t, t_prev = self.calculate_t_t_prev()
+        # dt = t - t_prev
         DT = self.movement_duration
+        dt = 1/20.0 #t - t_prev
+        self.local_start_time += dt
+        t = self.local_start_time
 
         # Specify current (x,y,z) gaze location
         xyz_eye_gaze_loc = self.xyz_eye_gaze_loc
@@ -1285,30 +1339,26 @@ class Controller():
         h_j_list = []
 
 
-        x0_d = np.zeros(self.kinematics.J_num)
-
-        joint_limits = [4,5,6]#range(self.kinematics.J_num) #[0,1,2,3,4,5,6]
+        joint_limits = [4,5,6] #range(self.kinematics.J_num) #[0,1,2,3,4,5,6]
         #joint_limits = []        
         for i in joint_limits:#range(self.kinematics.J_num):
             q_i = Q_cur[i]
             k_i = self.joint_limit_buffer_gain[i]
 
+            dx_j = 0
             if self.buffer_region_type[i] == POS:
-                x0_d[i] = k_i*(0 - q_i) #k_i*(tilde_q_i - q_i)
+                dx_j = k_i*(0 - q_i) #k_i*(tilde_q_i - q_i)
             elif self.buffer_region_type[i] == NEG:
-                x0_d[i] = k_i*(0 - q_i) #k_i*(utilde_q_i - q_i) 
+                dx_j = k_i*(0 - q_i) #k_i*(utilde_q_i - q_i) 
             else:
-                x0_d[i] = 0
+                dx_j = 0
 
-            x0_task_i = np.zeros((1,1))
-            x0_task_i[0] = x0_d[i]
-            dx_tasks.append(x0_task_i)
+            dx_tasks.append(np.array([[dx_j]]))
 
-            h_j = self.h_i(i) 
+            h_j = self.h_i(i)
             h_j_list.append(h_j)
 
-
-            print 'joint', i, 'h_j', h_j
+            #print 'joint', i, 'h_j', h_j
 
 
         # Define Joint Limit Tasks
@@ -1317,31 +1367,49 @@ class Controller():
                 J_joint_lim[0][j] = 1
                 J_tasks.append(J_joint_lim)
 
-        J_tasks.append(J_eyes)
-        dx_tasks.append(dx_eyes*1.0) 
-        h_j_list.append(1.0) # Task is always activated
-
-        J_tasks.append(J_head)        
-        dx_tasks.append(dx_head*0.5)  # Eye Square Task  
+        J_tasks.append(J1)
+        dx_tasks.append(dx1*1.0) 
         h_j_list.append(1.0) # Task is always activated
 
 
-        print "calc dq_tot"
+        J_tasks.append(J2)        
+        dx_tasks.append(dx2*0.5)   
+        h_j_list.append(1.0) # Task is always activated
+
+
+
         dq_tot = self.get_dq_i_given_tasks(J_tasks, dx_tasks, h_j_list)[:,0] 
+        print dq_tot
 
-        #dq_tot = dq1_proposed + dq2_proposed
+        # Calculate Rank
+        J_constraints = None
+        for i in range(len(joint_limits)):
+            if i < len(joint_limits) and h_j_list[i] > 0:
+                if J_constraints == None:
+                    J_constraints = J_tasks[i]
+                else:
+                    J_constraints = np.concatenate((J_constraints, J_tasks[i]) ,axis=0)                
 
+        task_1_rank = np.linalg.matrix_rank(J1)
+        task_2_rank = np.linalg.matrix_rank(J2.dot(N1))
+        if J_constraints != None:
+            N_c = np.eye(self.kinematics.J_num) - np.linalg.pinv(J_constraints, 0.0001).dot(J_constraints)
+            N1_c = np.eye(self.kinematics.J_num) #- np.linalg.pinv(J1.dot(Nc), 0.0001).dot(J1.dot(Nc))
+            task_1_rank = np.linalg.matrix_rank(J1.dot(N_c))
+            task_2_rank = np.linalg.matrix_rank(J2.dot(N1_c.dot(N_c)))
+
+        print "    task_1_rank", task_1_rank
+        print "    task_2_rank", task_2_rank        
+        # End Rank Calculation
 
         Q_des = Q_cur + dq_tot
 
-        # dq_try = dq1 + dq2 + dq3
-        # Q_des = Q_cur + dq_try[:,0]
 
         self.prev_traj_time = t
         # Loop Done
-
-        theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'right_eye')
-        theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'left_eye')
+        theta_error_head, angular_vel_hat_head = orientation_error(p_head_des_cur, Q_cur, 'right_eye')
+        theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(p_des_cur_re, Q_cur, 'right_eye')
+        theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(p_des_cur_le, Q_cur, 'left_eye')
 
         #print 'Right Eye Th Error', theta_error_right_eye, 'rads ', (theta_error_right_eye*180.0/np.pi), 'degrees'      
         #print 'Left Eye Th Error', theta_error_left_eye, 'rads ', (theta_error_left_eye*180.0/np.pi), 'degrees'      
@@ -1355,6 +1423,15 @@ class Controller():
         self.gaze_focus_states.current_focus_length[self.RE] =  np.linalg.norm(p_cur_right_eye - p_des_cur_re)         
         self.gaze_focus_states.current_focus_length[self.LE] =  np.linalg.norm(p_cur_left_eye -p_des_cur_le) 
 
+        self.store_values(dt, p_head_des_cur, 
+                              p_des_cur_re, 
+                              p_des_cur_le, 
+                              p_cur_head,
+                              p_cur_right_eye,
+                              p_cur_left_eye,
+                              theta_error_head,
+                              theta_error_right_eye,
+                              theta_error_left_eye)
 
         # Prepare result of command
         result = False
@@ -1363,6 +1440,34 @@ class Controller():
 
         return Q_des, result
 
+
+    def store_values(self, dt, p_head_des_cur, 
+                               p_des_cur_re, 
+                               p_des_cur_le, 
+                               p_cur_head,
+                               p_cur_right_eye,
+                               p_cur_left_eye,
+                               theta_error_head,
+                               theta_error_right_eye,
+                               theta_error_left_eye):
+        # head_des_xyz = ["head_des_x", "head_des_y", "head_des_z"]
+        # reye_des_xyz = ["reye_des_x", "reye_des_y", "reye_des_z"]        
+        # leye_des_xyz = ["leye_des_x", "leye_des_y", "leye_des_z"]
+        # head_cur_xyz = ["head_cur_x", "head_cur_y", "head_cur_z"]
+        # reye_cur_xyz = ["reye_cur_x", "reye_cur_y", "reye_cur_z"]
+        # leye_cur_xyz = ["leye_cur_x", "leye_cur_y", "leye_cur_z"]        
+        # orientation_error = ["head_ori_error", "reye_orientation_error", "leye_orientation_error"]
+        # h_vals = ["h1", "h2", "h3", "h4", "h5"]        
+        # q_vals = ["q0", "q1", "q2", "q3", "q4", "q5", "q6"]
+        # dq_vals = ["dq0", "dq1", "dq2", "dq3", "dq4", "dq5", "dq6"]        
+        # rank_tasks = ["rank_t1", "rank_t2"]
+
+        head_des_xyz = [p_head_des_cur[0], p_head_des_cur[1], p_head_des_cur[2]]
+        reye_des_xyz = [p_des_cur_re[0], p_des_cur_re[1], p_des_cur_re[2]]        
+        leye_des_xyz = [p_des_cur_le[0], p_des_cur_le[1], p_des_cur_le[2]]                
+        print 'head_des_xyz', head_des_xyz  
+
+        self.file_to_write.write(str(dt) + "\n")
 
 
     # Track with the head
