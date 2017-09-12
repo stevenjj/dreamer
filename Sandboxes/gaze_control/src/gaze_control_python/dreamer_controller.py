@@ -1428,7 +1428,7 @@ class Controller():
         self.store_values(dt, p_head_des_cur, 
                               p_des_cur_re,
                               p_des_cur_le, 
-                              p_cur_head + mr.Normalize(p_head_des_cur - p_head_des_cur)*self.gaze_focus_states.current_focus_length[self.H],
+                              p_cur_head + mr.Normalize(p_head_des_cur - p_cur_head)*self.gaze_focus_states.current_focus_length[self.H],
                               p_cur_right_eye + mr.Normalize(p_des_cur_re - p_cur_right_eye)*self.gaze_focus_states.current_focus_length[self.RE],
                               p_cur_left_eye + mr.Normalize(p_des_cur_le - p_cur_left_eye)*self.gaze_focus_states.current_focus_length[self.LE],
                               theta_error_head,
