@@ -1402,6 +1402,8 @@ class Controller():
         print "    task_2_rank", task_2_rank        
         # End Rank Calculation
 
+        # dq_tot = dq1_proposed.reshape(7,) + dq2_proposed.reshape(7,)
+        # print "dq_tot.shape", dq_tot.shape
         Q_des = Q_cur + dq_tot
 
 
@@ -1424,14 +1426,19 @@ class Controller():
         self.gaze_focus_states.current_focus_length[self.LE] =  np.linalg.norm(p_cur_left_eye -p_des_cur_le) 
 
         self.store_values(dt, p_head_des_cur, 
-                              p_des_cur_re, 
+                              p_des_cur_re,
                               p_des_cur_le, 
-                              p_cur_head,
-                              p_cur_right_eye,
-                              p_cur_left_eye,
+                              p_cur_head + mr.Normalize(p_head_des_cur - p_head_des_cur)*self.gaze_focus_states.current_focus_length[self.H],
+                              p_cur_right_eye + mr.Normalize(p_des_cur_re - p_cur_right_eye)*self.gaze_focus_states.current_focus_length[self.RE],
+                              p_cur_left_eye + mr.Normalize(p_des_cur_le - p_cur_left_eye)*self.gaze_focus_states.current_focus_length[self.LE],
                               theta_error_head,
                               theta_error_right_eye,
-                              theta_error_left_eye)
+                              theta_error_left_eye,
+                              h_j_list,
+                              Q_cur,
+                              dq_tot,
+                              task_1_rank,
+                              task_2_rank)
 
         # Prepare result of command
         result = False
@@ -1449,14 +1456,22 @@ class Controller():
                                p_cur_left_eye,
                                theta_error_head,
                                theta_error_right_eye,
-                               theta_error_left_eye):
+                               theta_error_left_eye,
+                               h_j_list,
+                               Q_cur,
+                               dq_tot,
+                               task_1_rank,
+                               task_2_rank):
         # head_des_xyz = ["head_des_x", "head_des_y", "head_des_z"]
         # reye_des_xyz = ["reye_des_x", "reye_des_y", "reye_des_z"]        
         # leye_des_xyz = ["leye_des_x", "leye_des_y", "leye_des_z"]
+
         # head_cur_xyz = ["head_cur_x", "head_cur_y", "head_cur_z"]
         # reye_cur_xyz = ["reye_cur_x", "reye_cur_y", "reye_cur_z"]
         # leye_cur_xyz = ["leye_cur_x", "leye_cur_y", "leye_cur_z"]        
+
         # orientation_error = ["head_ori_error", "reye_orientation_error", "leye_orientation_error"]
+
         # h_vals = ["h1", "h2", "h3", "h4", "h5"]        
         # q_vals = ["q0", "q1", "q2", "q3", "q4", "q5", "q6"]
         # dq_vals = ["dq0", "dq1", "dq2", "dq3", "dq4", "dq5", "dq6"]        
@@ -1465,9 +1480,28 @@ class Controller():
         head_des_xyz = [p_head_des_cur[0], p_head_des_cur[1], p_head_des_cur[2]]
         reye_des_xyz = [p_des_cur_re[0], p_des_cur_re[1], p_des_cur_re[2]]        
         leye_des_xyz = [p_des_cur_le[0], p_des_cur_le[1], p_des_cur_le[2]]                
-        print 'head_des_xyz', head_des_xyz  
+        head_cur_xyz = [p_cur_head[0], p_cur_head[1], p_cur_head[2]]
+        reye_cur_xyz = [p_cur_right_eye[0], p_cur_right_eye[1], p_cur_right_eye[2]]
+        leye_cur_xyz = [p_cur_left_eye[0], p_cur_left_eye[1], p_cur_left_eye[2]]
+        orientation_error = [theta_error_head, theta_error_right_eye, theta_error_left_eye]
+        h_vals = [h_j_list[0], h_j_list[1], h_j_list[2], h_j_list[3], h_j_list[4]]
+        q_vals = [Q_cur[0], Q_cur[1], Q_cur[2], Q_cur[3], Q_cur[4], Q_cur[5], Q_cur[6]]
+        dq_vals = [dq_tot[0], dq_tot[1], dq_tot[2], dq_tot[3], dq_tot[4], dq_tot[5], dq_tot[6]]                
+        rank_tasks = [task_1_rank, task_2_rank]
 
-        self.file_to_write.write(str(dt) + "\n")
+        data_list = [head_des_xyz, reye_des_xyz, leye_des_xyz, 
+                     head_cur_xyz, reye_cur_xyz, leye_cur_xyz, 
+                     orientation_error,
+                     h_vals, q_vals, dq_vals, rank_tasks]
+ 
+        line_to_write = str(dt)
+        for data_type in data_list:
+            for data in data_type:
+                line_to_write = line_to_write + "," + str(round(data,4))
+
+        self.file_to_write.write(line_to_write + "\n")
+
+        #print "length of data_list", len(line_to_write.split(","))
 
 
     # Track with the head
