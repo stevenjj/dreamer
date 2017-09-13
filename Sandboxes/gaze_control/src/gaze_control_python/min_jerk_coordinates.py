@@ -232,19 +232,30 @@ def squares_task(head_square_size_in = 0.3):
 	eyes_y = []
 	eyes_z = []
 
-	# Starting Point
+	# Init Gaze Dir
 	head_x.append(single.Waypoint(head_gaze_length, 0,  0, 0))
-	head_y.append(single.Waypoint(head_square_size/2.0, 0, 0, 0))
-	head_z.append(single.Waypoint(head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, 0))
+	head_y.append(single.Waypoint(0, 0, 0, 0))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
 
 	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, 0))
-	eyes_y.append(single.Waypoint(eye_square_size/2.0, 0, 0, 0))
-	eyes_z.append(single.Waypoint(eye_square_size/2.0 + + hk.Head_Kinematics().l1, 0, 0, 0))
+	eyes_y.append(single.Waypoint(0, 0, 0, 0))
+	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, 0))
+
+
+	# Starting Point
+	head_x.append(single.Waypoint(head_gaze_length, 0,  0, traj_duration))
+	head_y.append(single.Waypoint(head_square_size/2.0, 0, 0, traj_duration))
+	head_z.append(single.Waypoint(head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, traj_duration))
+
+	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, traj_duration))
+	eyes_y.append(single.Waypoint(eye_square_size/2.0, 0, 0, traj_duration))
+	eyes_z.append(single.Waypoint(eye_square_size/2.0 + + hk.Head_Kinematics().l1, 0, 0, traj_duration))
 
 	# Waypoint 1
 	head_x.append(single.Waypoint(head_gaze_length, 0,  0, traj_duration))
 	head_y.append(single.Waypoint(head_square_size/2.0, 0, 0, traj_duration))
 	head_z.append(single.Waypoint(-head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, traj_duration))
+	#head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, traj_duration))
 
 	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, traj_duration))
 	eyes_y.append(single.Waypoint(-eye_square_size/2.0, 0, 0, traj_duration))
@@ -254,6 +265,7 @@ def squares_task(head_square_size_in = 0.3):
 	head_x.append(single.Waypoint(head_gaze_length, 0,  0, traj_duration))
 	head_y.append(single.Waypoint(-head_square_size/2.0, 0, 0, traj_duration))
 	head_z.append(single.Waypoint(-head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, traj_duration))
+#	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, traj_duration))
 
 	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, traj_duration))
 	eyes_y.append(single.Waypoint(-eye_square_size/2.0, 0, 0, traj_duration))
@@ -263,6 +275,7 @@ def squares_task(head_square_size_in = 0.3):
 	head_x.append(single.Waypoint(head_gaze_length, 0,  0, traj_duration))
 	head_y.append(single.Waypoint(-head_square_size/2.0, 0, 0, traj_duration))
 	head_z.append(single.Waypoint(head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, traj_duration))
+#	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, traj_duration))
 
 	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, traj_duration))
 	eyes_y.append(single.Waypoint(eye_square_size/2.0, 0, 0, traj_duration))
@@ -271,6 +284,7 @@ def squares_task(head_square_size_in = 0.3):
 	head_x.append(single.Waypoint(head_gaze_length, 0,  0, traj_duration))
 	head_y.append(single.Waypoint(head_square_size/2.0, 0, 0, traj_duration))
 	head_z.append(single.Waypoint(head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, traj_duration))
+	#head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, traj_duration))
 
 	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, traj_duration))
 	eyes_y.append(single.Waypoint(eye_square_size/2.0, 0, 0, traj_duration))

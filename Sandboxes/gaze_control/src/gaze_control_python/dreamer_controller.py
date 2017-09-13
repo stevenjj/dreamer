@@ -671,11 +671,10 @@ class Controller():
         Q_cur = self.kinematics.Jlist
         J_1 = self.kinematics.get_6D_Right_Eye_Jacobian(Q_cur)
         J_2 = self.kinematics.get_6D_Left_Eye_Jacobian(Q_cur)
-
         J_1 = J_1[1:3,:] #Grab the  rows 2 and 3  Right Eye Yaw and Pitch     
-        J_2 = J_2[2:3,:] #Grab row 3 Left Eye Yaw
-        J_eyes = np.concatenate((J_1, J_2) ,axis=0) 
+        J_2 = J_2[1:3,:] #Grab row 3 Left Eye Yaw
 
+        J_eyes = np.concatenate((J_1, J_2) ,axis=0) 
 
         # Current desired eye gaze point
         p_des_cur_re = xyz_eye_gaze_loc
@@ -690,7 +689,7 @@ class Controller():
 
         #Format dx_eyes
         dx_re = np.array([ [dx_re[1]], [dx_re[2]] ]) # Right Eye Yaw and Pitch
-        dx_le = np.array([ [dx_le[2]] ]) #Left Eye Yaw Only
+        dx_le = np.array([ [dx_le[1]], [dx_le[2]] ]) #Left Eye Yaw Only
         dx_eyes = np.concatenate( (dx_re, dx_le),  axis=0)
 
         # Remember previously that we concatenated the two Jacobian matrices because both eyes are the same priority
@@ -719,9 +718,117 @@ class Controller():
 
         dq1_proposed = np.linalg.pinv(J1).dot(dx1)
         dq2_proposed = np.linalg.pinv(J2_N1).dot(dx2 -J2.dot(dq1_proposed))
+        
+        # Previous Solution
+        #dq_tot = dq1_proposed.reshape(self.kinematics.J_num,) + dq2_proposed.reshape(self.kinematics.J_num,)
 
 
-        dq_tot = dq1_proposed.reshape(self.kinematics.J_num,) + dq2_proposed.reshape(self.kinematics.J_num,)
+        #-------------------------------------------------------------------------------------------------
+        # With Intermediate Task Solution Joint Limit fix:
+        J_oper_tasks = []
+        dx_oper_tasks = []
+
+
+        J_limit_tasks = []
+        dx_limit_tasks = []
+        h_limit_list = []        
+
+
+        joint_limits = [4,5,6] 
+        for i in joint_limits:#range(self.kinematics.J_num):
+            q_i = Q_cur[i]
+            k_i = self.joint_limit_buffer_gain[i]
+
+            dx_j = 0
+            if self.buffer_region_type[i] == POS:
+                dx_j = k_i*(0 - q_i) #k_i*(tilde_q_i - q_i)
+            elif self.buffer_region_type[i] == NEG:
+                dx_j = k_i*(0 - q_i) #k_i*(utilde_q_i - q_i) 
+            else:
+                dx_j = 0
+
+            dx_limit_tasks.append(np.array([[dx_j]]))
+
+            h_j = self.h_i(i)
+            h_limit_list.append(h_j)
+
+            J_joint_lim = np.zeros( (1, self.kinematics.J_num) ) 
+            J_joint_lim[0][i] = 1
+            J_limit_tasks.append(J_joint_lim)
+
+
+            print 'joint', i, 'h_j', h_j
+
+
+        # Inserting task without intermediate task transition
+        # joint_limits = [4,5,6]
+        # J_limits = None
+        # dx_limits = None
+        # for i in joint_limits:
+        #     if self.h_i(i) > 0:
+        #         J_limit = np.zeros( (1, self.kinematics.J_num) ) 
+        #         J_limit[0][i] = 1
+    
+        #         q_i = Q_cur[i]
+        #         k_i = self.joint_limit_buffer_gain[i]
+        #         dx_j = 0
+        #         if self.buffer_region_type[i] == POS:
+        #             dx_j = k_i*(0 - q_i) #k_i*(tilde_q_i - q_i)
+        #         elif self.buffer_region_type[i] == NEG:
+        #             dx_j = k_i*(0 - q_i) #k_i*(utilde_q_i - q_i) 
+        #         else:
+        #             dx_j = 0
+
+        #         dx_limit = np.array([[dx_j]])
+
+        #         if (J_limits == None):    
+        #             J_limits = J_limit
+        #             dx_limits = dx_limit                
+        #         else:
+        #             J_limits = np.concatenate( (J_limits, J_limit), axis=0)
+        #             dx_limits = np.concatenate( (dx_limits, dx_limit), axis=0)
+
+        # print J_limits
+        # if J_limits != None:        
+        #     print 'hello?'
+        #     J_tasks.append(J_limits)
+        #     h_j_list.append(1.0)
+        #     dx_tasks.append(dx_limits)
+
+        # J_tasks.append(np.array([[0,0,0,0,1,0,0],[0,0,0,0,0,1,0], [0,0,0,0,0,0,1]]))
+        # h_j_list.append(1.0)
+        # dx_tasks.append(np.array([[0],[0],[0]]))
+
+        # J_tasks.append(np.array([[0,0,0,0,1,0,0],[0,0,0,0,0,1,0], [0,0,0,0,0,0,1]]))
+        # h_j_list.append(1.0)
+        # dx_tasks.append(np.array([[0],[0],[0]]))
+
+        # J_tasks.append(np.array([[0,0,0,0,1,0,0]]))
+        # h_j_list.append(1.0)
+        # dx_tasks.append(np.array([[0]]))
+
+        # J_tasks.append(np.array([[0,0,0,0,0,1,0]]))
+        # h_j_list.append(1.0)
+        # dx_tasks.append(np.array([[0]]))
+
+        # J_tasks.append(np.array([[0,0,0,0,0,0,1]]))
+        # h_j_list.append(1.0)
+        # dx_tasks.append(np.array([[0]]))        
+
+
+        J_oper_tasks.append(J1)
+        dx_oper_tasks.append(dx1*1.0) 
+
+        J_oper_tasks.append(J2)        
+        dx_oper_tasks.append(dx2*1.0)   
+
+
+
+        dq_tot = self.get_dq_i_under_limits(J_limit_tasks, dx_limit_tasks, h_limit_list, J_oper_tasks, dx_oper_tasks)[:,0] 
+        #-------------------------------------------------------------------------------------------------
+        # END 
+
+
         Q_des = Q_cur + dq_tot
 
 
@@ -1282,9 +1389,120 @@ class Controller():
 
 
 #-------------------------------------------------------------------------------------
+# dq Joint limits intermediate task 
+#-------------------------------------------------------------------------------------
+    def get_dq_i_under_limits(self, J_lim_tasks, dx_lims, h_lims, J_oper_tasks, dx_oper_tasks):
+
+        # The solution set without joint limit j:
+        def dq_wj(j):
+            J_lims_wj = J_lim_tasks[:j] + J_lim_tasks[j+1:]
+            dx_lims_wj = dx_lims[:j] + dx_lims[j+1:]
+            h_lims_wj = h_lims[:j] + h_lims[j+1:]                        
+            return self.get_dq_i_under_limits(J_lims_wj, dx_lims_wj, h_lims_wj, J_oper_tasks, dx_oper_tasks)
+
+        m = len(h_lims)
+        rcond = 0.0001 # Singular Value cut-off
+
+        J_tasks = J_oper_tasks
+        dx_tasks = dx_oper_tasks
+
+        if m > 0:
+            # Construct Joint Limit Jacobian with priority 1
+            J_joints = J_lim_tasks[0]
+            for i in range(1, m):
+                J_joints = np.concatenate( (J_joints, J_lim_tasks[i]), axis=0 )
+
+            dx_joints = np.zeros( (m,1) )
+            for j in range(m):
+                dx_i_j = h_lims[j]*dx_lims[j] + (1-h_lims[j])*(J_lim_tasks[j]).dot(dq_wj(j))
+                dx_joints[j] = dx_i_j
+
+
+            # Add Joint Limit task to Prioritized Formulation
+            J_tasks = [J_joints] + J_oper_tasks 
+            dx_tasks = [dx_joints] + dx_oper_tasks
+
+        # Begin Calculation
+
+        T = len(J_tasks)
+
+        # Helper Functions-----------------------------------------------------------------        
+        N_k_prec_k_memoize = {} # Create a table for faster computation
+
+        def N_k_prec_k(k):
+            if k in N_k_prec_k_memoize: # Look up table if this was previously calculated
+                return N_k_prec_k_memoize[k]
+            elif k == 0:
+                Jk = J_tasks[0]
+                Jk_bar = np.linalg.pinv(Jk)        
+                pJk_Jk = Jk_bar.dot(Jk)
+                I = np.eye(np.shape(pJk_Jk)[0])
+                N_k = (I - pJk_Jk)
+
+                # Memorize for future calls:
+                N_k_prec_k_memoize[k] = N_k
+                return N_k
+            else:
+                Jk = J_tasks[k]
+                Jk_N_prec_k = Jk.dot(N_k_prec_k(k-1))
+
+                Jk_N_prec_k_bar = np.linalg.pinv( Jk_N_prec_k )    
+                pJk_Jk = Jk_N_prec_k_bar.dot(Jk_N_prec_k)                
+
+
+                I = np.eye(np.shape(Jk)[1])
+                N_k = (I - pJk_Jk)
+
+                # Memorize for future calls:
+                N_k_prec_k_memoize[k] = N_k
+                return N_k
+
+        # Finds N_[k] = N_k|k-1 * N_k-1|k-2 * ... * N_2|1 * N_1
+        # k >= 0
+        def N_k_set(k):                        
+            # #Calculate the N_0          
+            ans = N_k_prec_k(0)
+            for k_index in range(1, k+1): #Do the remaining k-1 tasks
+                ans = ans.dot(N_k_prec_k(k_index))
+            return ans
+
+
+        #-----------------------------------------------------------------------------------------------------
+        # End Helper Functions
+
+        N_k_list = [N_k_set(i) for i in range(len(J_tasks))]
+
+        # Finds the prioritized dq solutions:
+        # dq_k = dq_1 + dq_2 + ... + dq_k
+        dq_prior_sums = np.zeros( (self.kinematics.J_num, 1) )
+
+        for k in range(T):
+            if k == 0:
+                dq_0 = np.linalg.pinv(J_tasks[0].round(decimals=12), rcond).dot(dx_tasks[0])
+                dq_prior_sums = dq_0
+            else:
+                #print 'dq_k', k
+                # print 'dx shape:', dx_tasks[k].shape, 'dx size', dx_tasks[k].size
+                #print "dx_tasks[k]", dx_tasks[k]
+                # print 'J_tasks shape:', J_tasks[k].shape
+                # print 'dq_prior_sums shape', dq_prior_sums.shape
+                # print 'J.dot(dq_priors) shape', (J_tasks[k].dot(dq_prior_sums)).shape
+                #print 'N_[k-1] rank:', np.linalg.matrix_rank(N_k_list[k-1])
+                
+
+                dq_k = np.linalg.pinv((J_tasks[k].dot(N_k_list[k-1])).round(decimals=12), rcond).dot( dx_tasks[k] - J_tasks[k].dot(dq_prior_sums))
+                dq_prior_sums = dq_prior_sums + dq_k
+
+        dq_sum = dq_prior_sums
+        #print "dq_sum shape", dq_sum.shape, dq_sum
+        
+        return dq_sum
+
+
+
+#-------------------------------------------------------------------------------------
 # dq Intermediate task
 #-------------------------------------------------------------------------------------
-
     def get_dq_i_given_tasks(self, J_tasks, dx_tasks, h_tasks):
         T = len(J_tasks)
         rcond = 0.0001 # Singular Value cut-off
@@ -1360,6 +1578,10 @@ class Controller():
                 # print 'J.dot(dq_priors) shape', (J_tasks[k].dot(dq_prior_sums)).shape
                 #print 'N_[k-1] rank:', np.linalg.matrix_rank(N_k_list[k-1])
                 
+                if k == 3 or k == 4:
+                    print 'k', k, 'dagger:', np.linalg.pinv((J_tasks[k].dot(N_k_list[k-1])).round(decimals=12), rcond)
+                    print "rank J_tasks[k].dot(N_k_list[k-1])", np.linalg.matrix_rank(J_tasks[k].dot(N_k_list[k-1]))
+
                 dq_k = np.linalg.pinv((J_tasks[k].dot(N_k_list[k-1])).round(decimals=12), rcond).dot( dx_i_k - J_tasks[k].dot(dq_prior_sums))
                 dq_prior_sums = dq_prior_sums + dq_k
 
