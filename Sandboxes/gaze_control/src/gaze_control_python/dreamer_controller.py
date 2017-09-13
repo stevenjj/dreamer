@@ -722,8 +722,7 @@ class Controller():
         # Previous Solution
         #dq_tot = dq1_proposed.reshape(self.kinematics.J_num,) + dq2_proposed.reshape(self.kinematics.J_num,)
 
-
-        #-------------------------------------------------------------------------------------------------
+        #-----------------------------------------------------------------------------------------------------
         # With Intermediate Task Solution Joint Limit fix:
         J_oper_tasks = []
         dx_oper_tasks = []
@@ -732,7 +731,6 @@ class Controller():
         J_limit_tasks = []
         dx_limit_tasks = []
         h_limit_list = []        
-
 
         joint_limits = [4,5,6] 
         for i in joint_limits:#range(self.kinematics.J_num):
@@ -749,22 +747,24 @@ class Controller():
 
             dx_limit_tasks.append(np.array([[dx_j]]))
 
-            h_j = self.h_i(i)
+            h_j = self.h_i(i) # set to 0 to turn off joint limits
             h_limit_list.append(h_j)
 
             J_joint_lim = np.zeros( (1, self.kinematics.J_num) ) 
             J_joint_lim[0][i] = 1
             J_limit_tasks.append(J_joint_lim)
 
-
             print 'joint', i, 'h_j', h_j
+        #----------------------------------------------------------------------------------------------------
 
+#----------- UNCOMMENT TO ENABLE Task Insertion without intermediate Values ----------------------
+##        Inserting task without intermediate task transition
+        # J_limit_tasks = []
+        # dx_limit_tasks = []
+        # h_limit_list = [0,0,0]    
 
-        # Inserting task without intermediate task transition
-        # joint_limits = [4,5,6]
-        # J_limits = None
-        # dx_limits = None
-        # for i in joint_limits:
+        # for index in range(len(joint_limits)):
+        #     i = joint_limits[index]
         #     if self.h_i(i) > 0:
         #         J_limit = np.zeros( (1, self.kinematics.J_num) ) 
         #         J_limit[0][i] = 1
@@ -779,41 +779,12 @@ class Controller():
         #         else:
         #             dx_j = 0
 
-        #         dx_limit = np.array([[dx_j]])
+        #         dx_limit_tasks.append( np.array([[dx_j]]) )
+        #         J_limit_tasks.append(J_limit)
+        #         h_limit_list[index] = 1.0
 
-        #         if (J_limits == None):    
-        #             J_limits = J_limit
-        #             dx_limits = dx_limit                
-        #         else:
-        #             J_limits = np.concatenate( (J_limits, J_limit), axis=0)
-        #             dx_limits = np.concatenate( (dx_limits, dx_limit), axis=0)
 
-        # print J_limits
-        # if J_limits != None:        
-        #     print 'hello?'
-        #     J_tasks.append(J_limits)
-        #     h_j_list.append(1.0)
-        #     dx_tasks.append(dx_limits)
-
-        # J_tasks.append(np.array([[0,0,0,0,1,0,0],[0,0,0,0,0,1,0], [0,0,0,0,0,0,1]]))
-        # h_j_list.append(1.0)
-        # dx_tasks.append(np.array([[0],[0],[0]]))
-
-        # J_tasks.append(np.array([[0,0,0,0,1,0,0],[0,0,0,0,0,1,0], [0,0,0,0,0,0,1]]))
-        # h_j_list.append(1.0)
-        # dx_tasks.append(np.array([[0],[0],[0]]))
-
-        # J_tasks.append(np.array([[0,0,0,0,1,0,0]]))
-        # h_j_list.append(1.0)
-        # dx_tasks.append(np.array([[0]]))
-
-        # J_tasks.append(np.array([[0,0,0,0,0,1,0]]))
-        # h_j_list.append(1.0)
-        # dx_tasks.append(np.array([[0]]))
-
-        # J_tasks.append(np.array([[0,0,0,0,0,0,1]]))
-        # h_j_list.append(1.0)
-        # dx_tasks.append(np.array([[0]]))        
+#----------- END UNCOMMENT TO ENABLE Task Insertion without intermediate Values ----------------------
 
 
         J_oper_tasks.append(J1)
@@ -821,8 +792,6 @@ class Controller():
 
         J_oper_tasks.append(J2)        
         dx_oper_tasks.append(dx2*1.0)   
-
-
 
         dq_tot = self.get_dq_i_under_limits(J_limit_tasks, dx_limit_tasks, h_limit_list, J_oper_tasks, dx_oper_tasks)[:,0] 
         #-------------------------------------------------------------------------------------------------
@@ -836,11 +805,13 @@ class Controller():
         # Calculate Rank
         J_constraints = None
         for i in range(len(joint_limits)):
+            J_joint_const = np.zeros( (1, self.kinematics.J_num) ) 
+            J_joint_const[0][joint_limits[i]] = 1            
             if i < len(joint_limits) and h_limit_list[i] > 0:
                 if J_constraints == None:
-                    J_constraints = J_limit_tasks[i]
+                    J_constraints = J_joint_const
                 else:
-                    J_constraints = np.concatenate((J_constraints, J_limit_tasks[i]) ,axis=0)                
+                    J_constraints = np.concatenate((J_constraints, J_joint_const) ,axis=0)                
 
         task_1_rank = np.linalg.matrix_rank(J1)
         task_2_rank = np.linalg.matrix_rank(J2.dot(N1))
@@ -1445,7 +1416,7 @@ class Controller():
             h_lims_wj = h_lims[:j] + h_lims[j+1:]                        
             return self.get_dq_i_under_limits(J_lims_wj, dx_lims_wj, h_lims_wj, J_oper_tasks, dx_oper_tasks)
 
-        m = len(h_lims)
+        m = len(J_lim_tasks)
         rcond = 0.0001 # Singular Value cut-off
 
         J_tasks = J_oper_tasks
