@@ -220,7 +220,8 @@ def squares_task(head_square_size_in = 0.3):
 	eye_gaze_length = 0.7
 	eye_square_size = 0.1	
 
-	traj_duration = 3.0
+	head_traj_duration = 4.0
+	eye_traj_duration = 2.0	
 
 	#x, dot_x, ddot_x, Dt
 
@@ -243,52 +244,59 @@ def squares_task(head_square_size_in = 0.3):
 
 
 	# Starting Point
-	head_x.append(single.Waypoint(head_gaze_length, 0,  0, traj_duration))
-	head_y.append(single.Waypoint(head_square_size/2.0, 0, 0, traj_duration))
-	head_z.append(single.Waypoint(head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, traj_duration))
+	head_x.append(single.Waypoint(head_gaze_length, 0,  0, head_traj_duration))
+	head_y.append(single.Waypoint(head_square_size/2.0, 0, 0, head_traj_duration))
+	head_z.append(single.Waypoint(head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, head_traj_duration))
 
-	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, traj_duration))
-	eyes_y.append(single.Waypoint(eye_square_size/2.0, 0, 0, traj_duration))
-	eyes_z.append(single.Waypoint(eye_square_size/2.0 + + hk.Head_Kinematics().l1, 0, 0, traj_duration))
+	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, eye_traj_duration))
+	eyes_y.append(single.Waypoint(eye_square_size/2.0, 0, 0, eye_traj_duration))
+	eyes_z.append(single.Waypoint(eye_square_size/2.0 + + hk.Head_Kinematics().l1, 0, 0, eye_traj_duration))
 
 	# Waypoint 1
-	head_x.append(single.Waypoint(head_gaze_length, 0,  0, traj_duration))
-	head_y.append(single.Waypoint(head_square_size/2.0, 0, 0, traj_duration))
-	head_z.append(single.Waypoint(-head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, traj_duration))
-	#head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, traj_duration))
+	head_x.append(single.Waypoint(head_gaze_length, 0,  0, head_traj_duration))
+	head_y.append(single.Waypoint(head_square_size/2.0, 0, 0, head_traj_duration))
+	head_z.append(single.Waypoint(-head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, head_traj_duration))
 
-	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, traj_duration))
-	eyes_y.append(single.Waypoint(-eye_square_size/2.0, 0, 0, traj_duration))
-	eyes_z.append(single.Waypoint(eye_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, traj_duration))
+	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, eye_traj_duration))
+	eyes_y.append(single.Waypoint(-eye_square_size/2.0, 0, 0, eye_traj_duration))
+	eyes_z.append(single.Waypoint(eye_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, eye_traj_duration))
 
 	# Waypoint 2
-	head_x.append(single.Waypoint(head_gaze_length, 0,  0, traj_duration))
-	head_y.append(single.Waypoint(-head_square_size/2.0, 0, 0, traj_duration))
-	head_z.append(single.Waypoint(-head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, traj_duration))
-#	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, traj_duration))
+	head_x.append(single.Waypoint(head_gaze_length, 0,  0, head_traj_duration))
+	head_y.append(single.Waypoint(-head_square_size/2.0, 0, 0, head_traj_duration))
+	head_z.append(single.Waypoint(-head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, head_traj_duration))
 
-	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, traj_duration))
-	eyes_y.append(single.Waypoint(-eye_square_size/2.0, 0, 0, traj_duration))
-	eyes_z.append(single.Waypoint(-eye_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, traj_duration))
+	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, eye_traj_duration))
+	eyes_y.append(single.Waypoint(-eye_square_size/2.0, 0, 0, eye_traj_duration))
+	eyes_z.append(single.Waypoint(-eye_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, eye_traj_duration))
 
 	# Waypoint 3
-	head_x.append(single.Waypoint(head_gaze_length, 0,  0, traj_duration))
-	head_y.append(single.Waypoint(-head_square_size/2.0, 0, 0, traj_duration))
-	head_z.append(single.Waypoint(head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, traj_duration))
-#	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, traj_duration))
+	head_x.append(single.Waypoint(head_gaze_length, 0,  0, head_traj_duration))
+	head_y.append(single.Waypoint(-head_square_size/2.0, 0, 0, head_traj_duration))
+	head_z.append(single.Waypoint(head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, head_traj_duration))
 
-	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, traj_duration))
-	eyes_y.append(single.Waypoint(eye_square_size/2.0, 0, 0, traj_duration))
-	eyes_z.append(single.Waypoint(-eye_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, traj_duration))
+	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, eye_traj_duration))
+	eyes_y.append(single.Waypoint(eye_square_size/2.0, 0, 0, eye_traj_duration))
+	eyes_z.append(single.Waypoint(-eye_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, eye_traj_duration))
+
 	# Waypoint 4
-	head_x.append(single.Waypoint(head_gaze_length, 0,  0, traj_duration))
-	head_y.append(single.Waypoint(head_square_size/2.0, 0, 0, traj_duration))
-	head_z.append(single.Waypoint(head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, traj_duration))
-	#head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, traj_duration))
+	head_x.append(single.Waypoint(head_gaze_length, 0,  0, head_traj_duration))
+	head_y.append(single.Waypoint(head_square_size/2.0, 0, 0, head_traj_duration))
+	head_z.append(single.Waypoint(head_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, head_traj_duration))
 
-	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, traj_duration))
-	eyes_y.append(single.Waypoint(eye_square_size/2.0, 0, 0, traj_duration))
-	eyes_z.append(single.Waypoint(eye_square_size/2.0 + + hk.Head_Kinematics().l1, 0, 0, traj_duration))
+	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, eye_traj_duration))
+	eyes_y.append(single.Waypoint(eye_square_size/2.0, 0, 0, eye_traj_duration))
+	eyes_z.append(single.Waypoint(eye_square_size/2.0 + hk.Head_Kinematics().l1, 0, 0, eye_traj_duration))
+
+
+	# Waypoint 5
+	head_x.append(single.Waypoint(head_gaze_length, 0,  0, head_traj_duration))
+	head_y.append(single.Waypoint(0, 0, 0, head_traj_duration))
+	head_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, head_traj_duration))
+
+	eyes_x.append(single.Waypoint(eye_gaze_length, 0, 0, eye_traj_duration))
+	eyes_y.append(single.Waypoint(0, 0, 0, eye_traj_duration))
+	eyes_z.append(single.Waypoint(hk.Head_Kinematics().l1, 0, 0, eye_traj_duration))
 
 
 	head_x_coord = single.MinimumJerk(head_x)
