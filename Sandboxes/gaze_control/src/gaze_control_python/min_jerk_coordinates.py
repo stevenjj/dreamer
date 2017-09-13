@@ -220,7 +220,7 @@ def squares_task(head_square_size_in = 0.3):
 	eye_gaze_length = 0.7
 	eye_square_size = 0.1	
 
-	traj_duration = 2.0
+	traj_duration = 3.0
 
 	#x, dot_x, ddot_x, Dt
 

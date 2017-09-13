@@ -350,7 +350,7 @@ class Controller():
         reye_cur_xyz = ["reye_cur_x", "reye_cur_y", "reye_cur_z"]
         leye_cur_xyz = ["leye_cur_x", "leye_cur_y", "leye_cur_z"]        
         orientation_error = ["head_ori_error", "reye_orientation_error", "leye_orientation_error"]
-        h_vals = ["h1", "h2", "h3", "h4", "h5"]        
+        h_vals = ["h1", "h2", "h3"]        
         q_vals = ["q0", "q1", "q2", "q3", "q4", "q5", "q6"]
         dq_vals = ["dq0", "dq1", "dq2", "dq3", "dq4", "dq5", "dq6"]        
         rank_tasks = ["rank_t1", "rank_t2"]
@@ -831,22 +831,67 @@ class Controller():
 
         Q_des = Q_cur + dq_tot
 
-
         self.prev_traj_time = t
-       
+
+        # Calculate Rank
+        J_constraints = None
+        for i in range(len(joint_limits)):
+            if i < len(joint_limits) and h_limit_list[i] > 0:
+                if J_constraints == None:
+                    J_constraints = J_limit_tasks[i]
+                else:
+                    J_constraints = np.concatenate((J_constraints, J_limit_tasks[i]) ,axis=0)                
+
+        task_1_rank = np.linalg.matrix_rank(J1)
+        task_2_rank = np.linalg.matrix_rank(J2.dot(N1))
+        if J_constraints != None:
+            N_c = np.eye(self.kinematics.J_num) - np.linalg.pinv(J_constraints, 0.0001).dot(J_constraints)
+            N1_c = np.eye(self.kinematics.J_num) #- np.linalg.pinv(J1.dot(Nc), 0.0001).dot(J1.dot(Nc))
+            task_1_rank = np.linalg.matrix_rank(J1.dot(N_c))
+            task_2_rank = np.linalg.matrix_rank(J2.dot(N1_c.dot(N_c)))
+
+        print "    task_1_rank", task_1_rank
+        print "    task_2_rank", task_2_rank        
+        # End rank calculation
+
         # Get orientation error for eyes based on current joint configuration
+        theta_error_head, angular_vel_hat_head = orientation_error(xyz_head_gaze_loc, Q_cur, 'head')
         theta_error_right_eye, angular_vel_hat_right_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'right_eye')
         theta_error_left_eye, angular_vel_hat_left_eye = orientation_error(xyz_eye_gaze_loc, Q_cur, 'left_eye')
 
         # Get joint orientations and spatial positions
         R_cur_head, p_cur_head = self.kinematics.get_6D_Head_Position(Q_cur)
-        R_cur, p_cur_right_eye = self.kinematics.get_6D_Right_Eye_Position(Q_cur)
-        R_cur, p_cur_left_eye = self.kinematics.get_6D_Left_Eye_Position(Q_cur)
+        R_cur_re, p_cur_right_eye = self.kinematics.get_6D_Right_Eye_Position(Q_cur)
+        R_cur_le, p_cur_left_eye = self.kinematics.get_6D_Left_Eye_Position(Q_cur)
 
+
+        x_head_hat = np.array(R_cur_head)[:,0]
+        x_right_eye_hat = np.array(R_cur_re)[:,0]        
+        x_left_eye_hat = np.array(R_cur_le)[:,0]
+
+
+        # STORE VALUES
+        self.store_values(dt, p_head_des_cur, 
+                              p_des_cur_re,
+                              p_des_cur_le, 
+                              p_cur_head + x_head_hat*self.gaze_focus_states.current_focus_length[self.H],
+                              p_cur_right_eye + x_right_eye_hat*self.gaze_focus_states.current_focus_length[self.RE],
+                              p_cur_left_eye + x_left_eye_hat*self.gaze_focus_states.current_focus_length[self.LE],
+                              theta_error_head,
+                              theta_error_right_eye,
+                              theta_error_left_eye,
+                              h_limit_list,
+                              Q_cur,
+                              dq_tot,
+                              task_1_rank,
+                              task_2_rank)
+
+        # Update Focus Length
         # Get a unit vector of the difference between the current position and desired position
         self.gaze_focus_states.current_focus_length[self.H] =   np.linalg.norm(p_cur_head - p_head_des_cur)  
         self.gaze_focus_states.current_focus_length[self.RE] =  np.linalg.norm(p_cur_right_eye - p_des_cur_re)         
         self.gaze_focus_states.current_focus_length[self.LE] =  np.linalg.norm(p_cur_left_eye -p_des_cur_le)
+
 
 
         # Prepare result of command
@@ -1879,7 +1924,7 @@ class Controller():
         reye_cur_xyz = [p_cur_right_eye[0], p_cur_right_eye[1], p_cur_right_eye[2]]
         leye_cur_xyz = [p_cur_left_eye[0], p_cur_left_eye[1], p_cur_left_eye[2]]
         orientation_error = [theta_error_head, theta_error_right_eye, theta_error_left_eye]
-        h_vals = [h_j_list[0], h_j_list[1], h_j_list[2], h_j_list[3], h_j_list[4]]
+        h_vals = [h_j_list[0], h_j_list[1], h_j_list[2]]
         q_vals = [Q_cur[0], Q_cur[1], Q_cur[2], Q_cur[3], Q_cur[4], Q_cur[5], Q_cur[6]]
         dq_vals = [dq_tot[0], dq_tot[1], dq_tot[2], dq_tot[3], dq_tot[4], dq_tot[5], dq_tot[6]]                
         rank_tasks = [task_1_rank, task_2_rank]
