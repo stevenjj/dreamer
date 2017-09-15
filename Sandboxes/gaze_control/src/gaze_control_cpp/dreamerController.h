@@ -40,7 +40,7 @@ class dreamerController{
 		std::map <std::string, Eigen::RowVector3d> gazeOldPosition;
 		std::map <std::string, Eigen::RowVector3d> gazeVelocity;
 
-		ros::NodeHandle n;
+		ros::NodeHandle handlerLow;
 		ros::Publisher gazePublisher;
 		
 		dreamerController(void);

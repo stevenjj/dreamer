@@ -84,6 +84,12 @@ dreamerHighLevelController::dreamerHighLevelController(void){
 	// Initialize GUI stuff
 	GUICommanded = NO_COMMAND;
 
+	currentDesiredHead << 1, 
+						0,
+						 lowCtrl.kinematics.l1;
+	currentDesiredEyes << 1,
+	 					0,
+	 	 				lowCtrl.kinematics.l1;
 	taskIndex = 0; // Save the index of the current task
 	taskInitTime = 0; // Save the start time of each task
 	initTaskQ = lowCtrl.kinematics.Jlist; // Save initial joint position of each task
@@ -480,11 +486,6 @@ void dreamerHighLevelController::taskLogic(void){
 		initTaskQ = lowCtrl.kinematics.Jlist;
 	}
 	else if(currentTask == TASK_GO_TO_POINT_CONSTANT_VELOCITY){
-		// Get task variables
-		Eigen::Vector3d xyzHead = taskParams[taskIndex][0].point;
-		Eigen::Vector3d xyzEyes = taskParams[taskIndex][1].point;
-		// Initialize focus point
-		lowCtrl.initializeHeadEyeFocusPoint(xyzHead, xyzEyes);	
 		taskCommanded = true;
 		// Save current joint configuration
 		initTaskQ = lowCtrl.kinematics.Jlist;
@@ -545,12 +546,9 @@ void dreamerHighLevelController::jointLogic(void){
 			updateHeadJoints(ret, nodeInterval);
 	}
 	else if(currentTask == TASK_GO_TO_POINT_CONSTANT_VELOCITY){
-			// Load desired points and time
-			Eigen::Vector3d xyzHead = taskParams[taskIndex][0].point;
-			Eigen::Vector3d xyzEyes = taskParams[taskIndex][1].point;
 			
 			// Calculate new joint position
-			Eigen::VectorXd ret = lowCtrl.constantVelocityLookAtPoint(xyzHead, xyzEyes, initTaskQ, taskInitTime);
+			Eigen::VectorXd ret = lowCtrl.constantVelocityLookAtPoint(currentDesiredHead, currentDesiredEyes, initTaskQ, taskInitTime);
 
 			// Update and limit joint variables
 			updateHeadJoints(ret, nodeInterval);

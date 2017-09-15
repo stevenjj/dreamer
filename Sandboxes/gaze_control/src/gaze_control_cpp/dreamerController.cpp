@@ -130,7 +130,7 @@ dreamerController::dreamerController(void){
 
 	// Initialize gaze publisher
 	// "gazePublisher" and "n" are defined in dreamerController.h
-	gazePublisher = n.advertise<std_msgs::Float32MultiArray>("setArrLength", 1);
+	gazePublisher = handlerLow.advertise<std_msgs::Float32MultiArray>("setArrLength", 1);
 
 }
 
@@ -658,15 +658,6 @@ Eigen::VectorXd dreamerController::constantVelocityLookAtPoint(const Eigen::Vect
 	Eigen::Vector3d xhead = head[0].block<3,1>(0, 0);
 	Eigen::Vector3d xre = re[0].block<3,1>(0, 0);
 	Eigen::Vector3d xle = le[0].block<3,1>(0, 0);
-
-
-
-
-	// Note if the task is completed
-	if(currentTrajectoryTime > (lHead / velocity))
-		movement_complete = true;
-	else
-		movement_complete = false;
 
 	return Q_des;
 }

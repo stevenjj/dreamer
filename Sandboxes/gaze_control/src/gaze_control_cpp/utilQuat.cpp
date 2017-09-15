@@ -22,16 +22,16 @@ Eigen::RowVector3d quatToWth(const Eigen::RowVector4d& q){
 		return v_ret;
 	}
 
-	q = Normalize(q);
+	Eigen::RowVector4d qNorm = Normalize(q);
 	// Select whether unit quaternion q or -q is to be used
 	double theta = 2*std::acos(q(0));
 	if(theta > M_PI) {
-		q << -q(0), -q(1), -q(2), -q(3);
+		qNorm << -qNorm(0), -qNorm(1), -qNorm(2), -qNorm(3);
 		theta = 2*std::acos(q(0));
 	}
 
 	double factor = std::sin(theta/2);
-	v_ret << (q(1)/factor), (q(2)/factor), (q(3)/factor);
+	v_ret << (qNorm(1)/factor), (qNorm(2)/factor), (qNorm(3)/factor);
 	return v_ret * theta;
 }
 

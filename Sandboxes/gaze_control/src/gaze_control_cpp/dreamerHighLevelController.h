@@ -27,6 +27,10 @@ public:
 	double taskInitTime;
 	Eigen::VectorXd initTaskQ;
 
+	Eigen::Vector3d currentDesiredHead;
+	Eigen::Vector3d currentDesiredEyes;
+
+
 	std::vector<std::string> taskList;
 	std::vector< std::vector<Waypoint> > taskParams;
 
