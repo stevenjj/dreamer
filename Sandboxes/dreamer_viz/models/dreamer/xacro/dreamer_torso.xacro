@@ -1,0 +1,131 @@
+<?xml version="1.0"?>
+<robot xmlns:sensor="http://playerstage.sourceforge.net/gazebo/xmlschema/#sensor"
+       xmlns:controller="http://playerstage.sourceforge.net/gazebo/xmlschema/#controller"
+       xmlns:interface="http://playerstage.sourceforge.net/gazebo/xmlschema/#interface">
+
+    <!-- ensure that modelPath, MESH, TORSO are defined in parent xacro -->
+    <macro name="dreamer_torso" params="height">
+
+        <link name="panplate_link">
+            <inertial>
+                <mass value="8" />
+                <origin xyz="0 0 ${0 + height}" />
+                <inertia ixx=".8"  ixy="0"  ixz="0" iyy=".8" iyz="0" izz=".8" />
+            </inertial>
+            <visual>
+                <material name="GreyA" />
+                <origin xyz="0 0 ${0 + height}" rpy="0 0 0 " />
+                <geometry name="panplate_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/T2R3/T2R3_TJ0_base.${MESH_EXTENSION}"/>
+                </geometry>
+            </visual>
+            <collision>
+               <origin xyz="0 0 ${0 + height}" rpy="0.0 0.0 0.0 " />
+               <geometry name="base_collision_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_COLL}/T2R3/T2R3_TJ0_base.stl" />
+               </geometry>
+            </collision>
+        </link>
+
+        <joint name="torso_yaw" type="${JOINT_TYPE_TORSO_YAW}">
+            <axis xyz="0 0 1"/>
+            <origin xyz="0 0 ${0.1678 + height}" rpy="0 0 0" />
+            <parent link="panplate_link" />
+            <child link="torso_yaw_link" />
+            <limit effort="100" velocity="${25.0*M_PI/180}" lower="${-90*M_PI/180.0}" upper="${90*M_PI/180}" />
+            <dynamics damping="1.0"/>
+        </joint>
+
+        <link name="torso_yaw_link">
+            <inertial>
+                <mass value="4.411" />
+                <origin xyz="0.00011774 0.0038073 -0.0522753" />
+                <inertia ixx="0.026360"  ixy="-0.0000024"  ixz="-0.0000508" iyy="0.0134266" iyz="0.0006839" izz="0.0229879" />
+            </inertial>
+            <visual>
+                <material name="GreyC" />
+                <origin xyz="0 0 0" rpy="0 0 0 " />
+                <geometry name="torso_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/T2R3/T2R3_TJ1_pan.${MESH_EXTENSION}"/>
+                </geometry>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="0.0 0.0 0.0 " />
+                <geometry name="torso_collision_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_COLL}/T2R3/T2R3_TJ1_pan.stl" />
+                </geometry>
+            </collision>
+        </link>
+
+        <joint name="torso_lower_pitch" type="${JOINT_TYPE_TORSO_LOWER_PITCH}">
+            <axis xyz="0 1 0"/>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <parent link="torso_yaw_link" />
+            <child link="torso_lower_pitch_link" />
+            <limit effort="200" velocity="${10.0*M_PI/180}" lower="${-21*M_PI/180}" upper="${50*M_PI/180}" />
+            <dynamics damping="1.0"/>
+        </joint>
+
+        <link name="torso_lower_pitch_link">
+            <inertial>
+                <mass value="4.934" />
+                <origin xyz="0.001179 -0.002993 0.046259"/>
+                <inertia ixx="0.041106"
+                         iyy="0.026009"
+                         izz="0.025902"
+                         ixy="0.000135"
+                         ixz="0.000505"
+                         iyz="0.002396" />
+            </inertial>
+            <visual>
+                <material name="GreyB" />
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry name="mid_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/T2R3/T2R3_TJ2.${MESH_EXTENSION}"/>
+                </geometry>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="0.0 0.0 0.0 " />
+                <geometry name="mid_collision_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_COLL}/T2R3/T2R3_TJ2.stl" />
+                </geometry>
+            </collision>
+        </link>
+
+        <joint name="torso_upper_pitch" type="${JOINT_TYPE_TORSO_UPPER_PITCH}">
+            <axis xyz="0 1 0"/>
+            <origin xyz="0 0 0.1397" rpy="0 0 0" />
+            <parent link="torso_lower_pitch_link" />
+            <child link="torso_upper_pitch_link" />
+            <limit effort="200" velocity="${10.0*M_PI/180}" lower="${-21*M_PI/180}" upper="${50*M_PI/180}" />
+            <dynamics damping="1.0"/>
+        </joint>
+
+      <!-- torso with motors, bottom pullies, and neck mount -->
+      <link name="torso_upper_pitch_link">
+            <inertial>
+                <mass value="6.534" />
+                <origin xyz="0.008700 0.011470 0.129740"/>
+                <inertia ixx="0.069760"
+                         iyy="0.048010"
+                         izz="0.040590"
+                         ixy="-0.000400"
+                         ixz="0.001300"
+                         iyz="0.005100" />
+            </inertial>
+            <visual>
+                <material name="GreyC" />
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry name="upper_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/T2R3/T2R3_TJ3_chest_waist_neck.${MESH_EXTENSION}"/>
+                </geometry>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="0.0 0.0 0.0 " />
+                <geometry name="upper_collision_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_COLL}/T2R3/T2R3_TJ3_chest_waist_neck.stl" />
+                </geometry>
+            </collision>
+        </link>
+    </macro>
+</robot>

@@ -55,13 +55,13 @@
       <material name="GreyA"/>
       <origin rpy="0 0 0 " xyz="0 0 0.8"/>
       <geometry name="panplate_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/T2R3/T2R3_TJ0_base.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/T2R3/T2R3_TJ0_base.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0.8"/>
       <geometry name="base_collision_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/T2R3/T2R3_TJ0_base.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/T2R3/T2R3_TJ0_base.stl"/>
       </geometry>
     </collision>
   </link>
@@ -83,13 +83,13 @@
       <material name="GreyC"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="torso_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/T2R3/T2R3_TJ1_pan.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/T2R3/T2R3_TJ1_pan.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="torso_collision_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/T2R3/T2R3_TJ1_pan.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/T2R3/T2R3_TJ1_pan.stl"/>
       </geometry>
     </collision>
   </link>
@@ -111,13 +111,13 @@
       <material name="GreyB"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry name="mid_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/T2R3/T2R3_TJ2.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/T2R3/T2R3_TJ2.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="mid_collision_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/T2R3/T2R3_TJ2.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/T2R3/T2R3_TJ2.stl"/>
       </geometry>
     </collision>
   </link>
@@ -140,13 +140,13 @@
       <material name="GreyC"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry name="upper_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/T2R3/T2R3_TJ3_chest_waist_neck.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/T2R3/T2R3_TJ3_chest_waist_neck.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="upper_collision_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/T2R3/T2R3_TJ3_chest_waist_neck.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/T2R3/T2R3_TJ3_chest_waist_neck.stl"/>
       </geometry>
     </collision>
   </link>
@@ -171,13 +171,13 @@
       <material name="GreyA"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="r_shoulder_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_RT1_shoulderRoll.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_RT1_shoulderRoll.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="r_shoulder_collision_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_RT1_shoulderRoll.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_RT1_shoulderRoll.stl"/>
       </geometry>
     </collision>
   </link>
@@ -199,13 +199,13 @@
       <material name="GreyB"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="right_shoulder_abductor_link">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_RT2_shoulderPitch.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_RT2_shoulderPitch.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="right_shoulder_abductor_link_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_RT2_shoulderPitch.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_RT2_shoulderPitch.stl"/>
       </geometry>
     </collision>
   </link>
@@ -227,13 +227,13 @@
       <material name="GreyC"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="right_shoulder_rotator_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_RT3_bicep.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_RT3_bicep.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="right_shoulder_rotator_link_geom_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_RT3_bicep.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_RT3_bicep.stl"/>
       </geometry>
     </collision>
   </link>
@@ -257,13 +257,13 @@
       <material name="GreyA"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="right_elbow_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_RT4_elbow.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_RT4_elbow.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="right_elbow_link_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_RT4_elbow.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_RT4_elbow.stl"/>
       </geometry>
     </collision>
   </link>
@@ -285,13 +285,13 @@
       <material name="GreyC"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="right_wrist_rotator_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_T5_forearmRoll.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_T5_forearmRoll.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="right_wrist_rotator_link_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_T5_forearmRoll.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_T5_forearmRoll.stl"/>
       </geometry>
     </collision>
   </link>
@@ -313,7 +313,7 @@
       <material name="GreyB"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="right_wrist_pitch_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_T6_wristDiff.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_T6_wristDiff.stl"/>
       </geometry>
     </visual>
     <collision>
@@ -341,13 +341,13 @@
       <material name="GreyA"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="right_wrist_yaw_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_T7_wristYaw.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_T7_wristYaw.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="right_wrist_yaw_link_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_T7_wristYaw.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_T7_wristYaw.stl"/>
       </geometry>
     </collision>
   </link>
@@ -371,13 +371,13 @@
       <material name="GreyA"/>
       <origin rpy="3.14159265359 0 0 " xyz="0 0 0"/>
       <geometry name="l_shoulder_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_RT1_shoulderRoll.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_RT1_shoulderRoll.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="3.14159265359 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="r_shoulder_collision_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_RT1_shoulderRoll.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_RT1_shoulderRoll.stl"/>
       </geometry>
     </collision>
   </link>
@@ -399,13 +399,13 @@
       <material name="GreyB"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="left_shoulder_abductor_link">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_RT2_shoulderPitch.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_RT2_shoulderPitch.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="left_shoulder_abductor_link_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_RT2_shoulderPitch.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_RT2_shoulderPitch.stl"/>
       </geometry>
     </collision>
   </link>
@@ -427,13 +427,13 @@
       <material name="GreyC"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="left_shoulder_rotator_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_RT3_bicep.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_RT3_bicep.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="left_shoulder_rotator_link_geom_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_RT3_bicep.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_RT3_bicep.stl"/>
       </geometry>
     </collision>
   </link>
@@ -456,13 +456,13 @@
       <material name="GreyA"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="left_elbow_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_RT4_elbow.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_RT4_elbow.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="left_elbow_link_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_RT4_elbow.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_RT4_elbow.stl"/>
       </geometry>
     </collision>
   </link>
@@ -484,13 +484,13 @@
       <material name="GreyC"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="left_wrist_rotator_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_T5_forearmRoll.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_T5_forearmRoll.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="left_wrist_rotator_link_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_T5_forearmRoll.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_T5_forearmRoll.stl"/>
       </geometry>
     </collision>
   </link>
@@ -512,7 +512,7 @@
       <material name="GreyB"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry name="left_wrist_pitch_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_T6_wristDiff.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_T6_wristDiff.stl"/>
       </geometry>
     </visual>
     <collision>
@@ -540,13 +540,13 @@
       <material name="GreyA"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry name="left_wrist_yaw_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_T7_wristYaw.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/A2R3/A2R3_T7_wristYaw.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="left_wrist_yaw_link_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_T7_wristYaw.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/A2R3/A2R3_T7_wristYaw.stl"/>
       </geometry>
     </collision>
   </link>
@@ -569,13 +569,13 @@
       <material name="GreyA"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="lower_neck_pitch_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/S2R1/S2R1_SH1_neckTilt.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/S2R1/S2R1_SH1_neckTilt.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="lower_neck_pitch_link_geom_collison">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/S2R1/S2R1_SH1_neckTilt.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/S2R1/S2R1_SH1_neckTilt.stl"/>
       </geometry>
     </collision>
   </link>
@@ -596,7 +596,7 @@
       <material name="GreyB"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="neck_roll_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/S2R1/S2R1_SH2_neckRoll.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/S2R1/S2R1_SH2_neckRoll.stl"/>
       </geometry>
     </visual>
     <collision>
@@ -623,7 +623,7 @@
       <material name="GreyC"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="S2R1_H3_neckYaw_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/S2R1/S2R1_H3_neckYaw.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/S2R1/S2R1_H3_neckYaw.stl"/>
       </geometry>
     </visual>
     <collision>
@@ -651,13 +651,13 @@
       <material name="face_main"/>      
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="upper_pitch_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/S2R1/S2R1_H4_UTA_head.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/S2R1/S2R1_H4_UTA_head.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="upper_pitch_link_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/S2R1/S2R1_H4_UTA_head.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/S2R1/S2R1_H4_UTA_head.stl"/>
       </geometry>
     </collision>
   </link>
@@ -679,7 +679,7 @@
       <material name="GreyC"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="eye_pitch_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/S2R1/S2R1_SH5_eyeTilt.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/S2R1/S2R1_SH5_eyeTilt.stl"/>
       </geometry>
     </visual>
     <collision>
@@ -707,13 +707,13 @@
       <material name="GreyC"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="right_eye_yaw_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/S2R1/S2R1_eye.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/S2R1/S2R1_eye.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="right_eye_yaw_link_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/S2R1/S2R1_eye.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/S2R1/S2R1_eye.stl"/>
       </geometry>
     </collision>
   </link>
@@ -735,13 +735,13 @@
       <material name="GreyC"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="left_eye_yaw_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/S2R1/S2R1_eye.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/S2R1/S2R1_eye.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="left_eye_yaw_link_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/S2R1/S2R1_eye.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/S2R1/S2R1_eye.stl"/>
       </geometry>
     </collision>
   </link>
@@ -763,13 +763,13 @@
       <material name="GreyA"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="palm_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_RT8_palm_right.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_RT8_palm_right.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="palm_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_RT8_palm_right.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_RT8_palm_right.stl"/>
       </geometry>
     </collision>
   </link>
@@ -793,7 +793,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_RJ0_thumb_abductlink.stl" scale="1 1 1"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_RJ0_thumb_abductlink.stl" scale="1 1 1"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <!-- <origin rpy="${origin_rpy}" xyz="${origin_xyz}"/> -->
@@ -801,7 +801,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_RJ0_thumb_abductlink.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_RJ0_thumb_abductlink.stl"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </collision>
@@ -827,13 +827,13 @@
       <material name="GreyB"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="right_thumb_mcp_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_thumb_knuckle1.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_thumb_knuckle1.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="right_thumb_mcp_link_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_thumb_knuckle1.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_thumb_knuckle1.stl"/>
       </geometry>
     </collision>
   </link>
@@ -858,13 +858,13 @@
       <material name="GreyC"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="thumb_knuckle2_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_thumb_knuckle2.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_thumb_knuckle2.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="thumb_knuckle2_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_thumb_knuckle2.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_thumb_knuckle2.stl"/>
       </geometry>
     </collision>
   </link>
@@ -890,13 +890,13 @@
       <material name="GreyA"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="right_pointer_finger_mcp_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle1.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle1.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="right_pointer_finger_mcp_link__collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle1.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle1.stl"/>
       </geometry>
     </collision>
   </link>
@@ -921,13 +921,13 @@
       <material name="GreyC"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="right_pointer_finger_pip_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle2.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle2.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="right_pointer_finger_pip_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle2.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle2.stl"/>
       </geometry>
     </collision>
   </link>
@@ -952,13 +952,13 @@
       <material name="GreyC"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="right_pointer_finger_dip_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle3.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle3.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="right_pointer_finger_dip_link_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle3.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle3.stl"/>
       </geometry>
     </collision>
   </link>
@@ -984,13 +984,13 @@
       <material name="GreyA"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="right_middle_finger_mcp_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle1.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle1.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="right_middle_finger_mcp_link__collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle1.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle1.stl"/>
       </geometry>
     </collision>
   </link>
@@ -1015,13 +1015,13 @@
       <material name="GreyC"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="right_middle_finger_pip_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle2.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle2.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="right_middle_finger_pip_link_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle2.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle2.stl"/>
       </geometry>
     </collision>
   </link>
@@ -1046,13 +1046,13 @@
       <material name="GreyC"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="right_middle_finger_dip_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle3.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle3.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="right_middle_finger_dip_link_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle3.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle3.stl"/>
       </geometry>
     </collision>
   </link>
@@ -1078,13 +1078,13 @@
       <material name="GreyA"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="right_pinky_mcp_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle1.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle1.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="right_pinky_mcp__collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle1.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle1.stl"/>
       </geometry>
     </collision>
   </link>
@@ -1109,13 +1109,13 @@
       <material name="GreyC"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="right_pinky_pip_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle2.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle2.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="right_pinky_pip_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle2.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle2.stl"/>
       </geometry>
     </collision>
   </link>
@@ -1140,13 +1140,13 @@
       <material name="GreyC"/>
       <origin rpy="0 0 0 " xyz="0 0 0"/>
       <geometry name="right_pinky_dip_link_geom">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle3.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/optimized/H2R3/H2R3_finger_knuckle3.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0 " xyz="0 0 0"/>
       <geometry name="right_pinky_dip_link_collision">
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle3.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/low_res/H2R3/H2R3_finger_knuckle3.stl"/>
       </geometry>
     </collision>
   </link>
@@ -1177,14 +1177,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/gripper_v0/gripper_palm.dae"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/gripper_v0/gripper_palm.dae"/>
       </geometry>
       <material name="Red"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/gripper_v0/gripper_palm.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/gripper_v0/gripper_palm.stl"/>
       </geometry>
     </collision>
   </link>
@@ -1249,14 +1249,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/gripper_v0/l_finger.dae"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/gripper_v0/l_finger.dae"/>
       </geometry>
       <material name="Grey"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/gripper_v0/l_finger.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/gripper_v0/l_finger.stl"/>
       </geometry>
     </collision>
   </link>
@@ -1284,14 +1284,14 @@
     <visual>
       <origin rpy="3.14159265359 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/gripper_v0/l_finger.dae"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/gripper_v0/l_finger.dae"/>
       </geometry>
       <material name="Grey"/>
     </visual>
     <collision>
       <origin rpy="3.14159265359 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/gripper_v0/l_finger.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/gripper_v0/l_finger.stl"/>
       </geometry>
     </collision>
   </link>
@@ -1319,14 +1319,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/gripper_v0/l_finger_tip.dae"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/gripper_v0/l_finger_tip.dae"/>
       </geometry>
       <material name="Green"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/gripper_v0/l_finger_tip.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/gripper_v0/l_finger_tip.stl"/>
       </geometry>
     </collision>
   </link>
@@ -1354,14 +1354,14 @@
     <visual>
       <origin rpy="3.14159265359 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/gripper_v0/l_finger_tip.dae"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/gripper_v0/l_finger_tip.dae"/>
       </geometry>
       <material name="Green"/>
     </visual>
     <collision>
       <origin rpy="3.14159265359 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://dreamer/models/dreamer/meka_description/meshes/gripper_v0/l_finger_tip.stl"/>
+        <mesh filename="package://dreamer_viz/models/dreamer/meka_description/meshes/gripper_v0/l_finger_tip.stl"/>
       </geometry>
     </collision>
   </link>
