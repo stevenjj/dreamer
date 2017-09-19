@@ -12,7 +12,9 @@ def time_test():
     while not rospy.is_shutdown():
         ROS_current_time = rospy.Time.now().to_sec() - ROS_start_time
         system_time = time.time() - system_start_time
+        ROS_get_time = rospy.get_time()
         print "ROS time (sec): ", ROS_current_time, "System time (sec):", system_time, "delta_t:", ROS_current_time - system_time
+        print "    rospy.get_time()", ROS_get_time, "now - ROS-start", ROS_get_time - ROS_start_time
         rate.sleep()
 
 if __name__ == '__main__':

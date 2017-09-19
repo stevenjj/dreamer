@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-import rospy
+#import rospy
 import modern_robotics as mr
 import numpy as np
 import util_quat as quat
 import head_kinematics as hk
+import time
 
 global head_kin
 head_kin = hk.Head_Kinematics()
@@ -617,7 +618,7 @@ class Controller():
 
 
     def calculate_t_t_prev(self):
-        self.current_traj_time = rospy.Time.now().to_sec() - self.start_time
+        self.current_traj_time = time.time() - self.start_time #rospy.Time.now().to_sec() - self.start_time
         t = self.current_traj_time
         t_prev = self.prev_traj_time    
         return t, t_prev
@@ -1939,7 +1940,7 @@ class Controller():
         if not (np.linalg.norm(human_eye_pos- self.gaze_focus_states.focus_point_init[self.H]) < 0.05 ):
 
             # Call initialized
-            start_time = rospy.get_time()
+            start_time = time.time() #rospy.get_time()
 
             # print self.gaze_focus_states.focus_point_init[self.H]
             xyz_eye_gaze_loc =  self.gaze_focus_states.focus_point_init[self.H]
@@ -1958,7 +1959,7 @@ class Controller():
         #          ( np.linalg.norm(human_eye_pos - self.gaze_focus_states.focus_point_init[self.LE]) < 0.05 ) ):
 
         #     # Call initialized
-        #     start_time = rospy.get_time()
+        #     start_time = time.time() #rospy.get_time()
 
         #     # print self.gaze_focus_states.focus_point_init[self.H]
         #     xyz_eye_gaze_loc =  human_eye_pos
@@ -1979,7 +1980,7 @@ class Controller():
         #         ( np.linalg.norm(human_eye_pos - self.gaze_focus_states.focus_point_init[self.LE]) < 0.05 ) ):
 
         #     # Call initialized
-        #     start_time = rospy.get_time()
+        #     start_time = time.time() #rospy.get_time()
 
         #     # print self.gaze_focus_states.focus_point_init[self.H]
         #     xyz_eye_gaze_loc =  human_eye_pos #self.gaze_focus_states.focus_point_init[self.H]
@@ -2016,7 +2017,7 @@ class Controller():
                 ( np.linalg.norm(human_eye_pos - self.gaze_focus_states.focus_point_init[self.LE]) < 0.05 ) ):
 
             # Call initialized
-            start_time = rospy.get_time()
+            start_time = time.time() #rospy.get_time()
 
             # print self.gaze_focus_states.focus_point_init[self.H]
             xyz_eye_gaze_loc =  human_eye_pos #self.gaze_focus_states.focus_point_init[self.H]
@@ -2053,7 +2054,7 @@ class Controller():
                  ( np.linalg.norm(human_eye_pos - self.gaze_focus_states.focus_point_init[self.LE]) < 0.05 ) ):
 
             # Call initialized
-            start_time = rospy.get_time()
+            start_time = time.time() #rospy.get_time()
 
             # print self.gaze_focus_states.focus_point_init[self.H]
             xyz_eye_gaze_loc =  human_eye_pos
