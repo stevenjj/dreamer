@@ -629,8 +629,8 @@ class Dreamer_Head():
         elif ((self.current_behavior == BEHAVIOR_FOLLOW_WAYPOINTS) and self.behavior_commanded == False):
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
-            piecewise_func_head, piecewise_func_eyes = squares_task(0.9) #hold_center_head_square(1.0)#squares_task(1.0) 
-
+            #piecewise_func_head, piecewise_func_eyes = eye_constant_head_square(0.8)#squares_task(0.8) #eye_constant_head_square(0.7)#hold_center_head_square(0.3) #squares_task(0.3)#squares_task(0.9) #hold_center_head_square(1.0)#squares_task(1.0) 
+            piecewise_func_head, piecewise_func_eyes = squares_task(0.8) #eye_constant_head_square(0.7)#hold_center_head_square(0.3) #squares_task(0.3)#squares_task(0.9) #hold_center_head_square(1.0)#squares_task(1.0) 
             # Extract initial coordinates
             head_coord = piecewise_func_head.get_position(0)
             x_head = head_coord[0]

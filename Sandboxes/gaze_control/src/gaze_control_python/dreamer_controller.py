@@ -803,19 +803,19 @@ class Controller():
         self.prev_traj_time = t
 
         # Calculate Rank
-        J_constraints = None
+        J_constraints = []
         for i in range(len(joint_limits)):
             J_joint_const = np.zeros( (1, self.kinematics.J_num) ) 
             J_joint_const[0][joint_limits[i]] = 1            
             if i < len(joint_limits) and h_limit_list[i] > 0:
-                if J_constraints == None:
+                if len(J_constraints) == 0:
                     J_constraints = J_joint_const
                 else:
                     J_constraints = np.concatenate((J_constraints, J_joint_const) ,axis=0)                
 
         task_1_rank = np.linalg.matrix_rank(J1)
         task_2_rank = np.linalg.matrix_rank(J2.dot(N1))
-        if J_constraints != None:
+        if len(J_constraints) > 0:
             N_c = np.eye(self.kinematics.J_num) - np.linalg.pinv(J_constraints, 0.0001).dot(J_constraints)
             N1_c = np.eye(self.kinematics.J_num) #- np.linalg.pinv(J1.dot(Nc), 0.0001).dot(J1.dot(Nc))
             task_1_rank = np.linalg.matrix_rank(J1.dot(N_c))
@@ -1793,25 +1793,24 @@ class Controller():
         print dq_tot
 
         # Calculate Rank
-        J_constraints = None
+        J_constraints = []
         for i in range(len(joint_limits)):
+            J_joint_const = np.zeros( (1, self.kinematics.J_num) ) 
+            J_joint_const[0][joint_limits[i]] = 1            
             if i < len(joint_limits) and h_j_list[i] > 0:
-                if J_constraints == None:
-                    J_constraints = J_tasks[i]
+                if len(J_constraints) == 0:
+                    J_constraints = J_joint_const
                 else:
-                    J_constraints = np.concatenate((J_constraints, J_tasks[i]) ,axis=0)                
+                    J_constraints = np.concatenate((J_constraints, J_joint_const) ,axis=0)                
 
         task_1_rank = np.linalg.matrix_rank(J1)
         task_2_rank = np.linalg.matrix_rank(J2.dot(N1))
-        if J_constraints != None:
+        if len(J_constraints) > 0:
             N_c = np.eye(self.kinematics.J_num) - np.linalg.pinv(J_constraints, 0.0001).dot(J_constraints)
             N1_c = np.eye(self.kinematics.J_num) #- np.linalg.pinv(J1.dot(Nc), 0.0001).dot(J1.dot(Nc))
             task_1_rank = np.linalg.matrix_rank(J1.dot(N_c))
             task_2_rank = np.linalg.matrix_rank(J2.dot(N1_c.dot(N_c)))
 
-        print "    task_1_rank", task_1_rank
-        print "    task_2_rank", task_2_rank        
-        # End Rank Calculation
 
         # dq_tot = dq1_proposed.reshape(7,) + dq2_proposed.reshape(7,)
         # print "dq_tot.shape", dq_tot.shape
