@@ -29,7 +29,7 @@ from GUI_params import *
 JOINT_LIM_BOUND = 0.9 #between 0 to 1.0
 
 # Rate Constants
-NODE_RATE = 50#10 # Update rate of this node in Hz
+NODE_RATE = 20#10 # Update rate of this node in Hz
 
 LOW_LEVEL_FREQ = 550
 
@@ -653,13 +653,56 @@ class Dreamer_Head():
             task_params = []
 
             init_to_go_point = 3 # Take a longer time to go to the initial point
-            duration = 3
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1+1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),      init_to_go_point) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 1.25, self.kinematics.l1-1.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -1.25, self.kinematics.l1-1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -1.25, self.kinematics.l1+1.3]), np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )                       
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 1.25, self.kinematics.l1+1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )
-            task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1-1.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+            duration = 2
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1+1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),      init_to_go_point) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 1.25, self.kinematics.l1-1.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -1.25, self.kinematics.l1-1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, -1.25, self.kinematics.l1+1.3]), np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )                       
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 1.25, self.kinematics.l1+1.3]),  np.array([0.75, 0., self.kinematics.l1-0.]),      duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [1.2, 0.25, self.kinematics.l1-1.3]),   np.array([0.75, 0., self.kinematics.l1-0.]),     duration) )
+
+            # # Fixed Eye Big Head Motion
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.2]),  np.array([0.75, 0.0, self.kinematics.l1+0.0]),      init_to_go_point) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.2]),   np.array([0.75, 0.0, self.kinematics.l1-0.0]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1-0.2]),  np.array([0.75, -0.0, self.kinematics.l1-0.0]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1+0.2]), np.array([0.75, -0.0, self.kinematics.l1+0.0]),      duration) )                       
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.2]),  np.array([0.75, 0.0, self.kinematics.l1+0.0]),      duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.2]),   np.array([0.75, 0.0, self.kinematics.l1-0.0]),     duration) )
+
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.15, self.kinematics.l1+0.2]),  np.array([0.75, 0.0, self.kinematics.l1+0.0]),      init_to_go_point) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.15, self.kinematics.l1-0.2]),   np.array([0.75, 0.0, self.kinematics.l1-0.0]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.15, self.kinematics.l1-0.2]),  np.array([0.75, -0.0, self.kinematics.l1-0.0]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.15, self.kinematics.l1+0.2]), np.array([0.75, -0.0, self.kinematics.l1+0.0]),      duration) )                       
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.15, self.kinematics.l1+0.2]),  np.array([0.75, 0.0, self.kinematics.l1+0.0]),      duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.15, self.kinematics.l1-0.2]),   np.array([0.75, 0.0, self.kinematics.l1-0.0]),     duration) )
+
+
+            # Square Eye Big Head Motion
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.2]),  np.array([0.75, 0.05, self.kinematics.l1+0.05]),      init_to_go_point) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.2]),   np.array([0.75, -0.05, self.kinematics.l1+0.05]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1-0.2]),  np.array([0.75, -0.05, self.kinematics.l1-0.05]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1+0.2]), np.array([0.75, 0.05, self.kinematics.l1-0.05]),      duration) )                       
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.2]),  np.array([0.75, 0.05, self.kinematics.l1+0.05]),      duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.2]),   np.array([0.75, -0.05, self.kinematics.l1+0.05]),     duration) )
+
+
+            # Square Eye Bigger Head Motion
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.3]),  np.array([0.75, 0.05, self.kinematics.l1+0.05]),      init_to_go_point) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.3]),   np.array([0.75, -0.05, self.kinematics.l1+0.05]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1-0.3]),  np.array([0.75, -0.05, self.kinematics.l1-0.05]),     duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.55, self.kinematics.l1+0.3]), np.array([0.75, 0.05, self.kinematics.l1-0.05]),      duration) )                       
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1+0.3]),  np.array([0.75, 0.05, self.kinematics.l1+0.05]),      duration) )
+            task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.55, self.kinematics.l1-0.3]),   np.array([0.75, -0.05, self.kinematics.l1+0.05]),     duration) )
+
+
+
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.15, self.kinematics.l1+0.2]),  np.array([0.75, 0.05, self.kinematics.l1+0.05]),      init_to_go_point) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.15, self.kinematics.l1-0.2]),   np.array([0.75, -0.05, self.kinematics.l1+0.05]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.15, self.kinematics.l1-0.2]),  np.array([0.75, -0.05, self.kinematics.l1-0.05]),     duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, -0.15, self.kinematics.l1+0.2]), np.array([0.75, 0.05, self.kinematics.l1-0.05]),      duration) )                       
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.15, self.kinematics.l1+0.2]),  np.array([0.75, 0.05, self.kinematics.l1+0.05]),      duration) )
+            # task_params.append( self.set_prioritized_go_to_point_params( np.array( [0.7, 0.15, self.kinematics.l1-0.2]),   np.array([0.75, -0.05, self.kinematics.l1+0.05]),     duration) )
+
             self.execute_behavior(task_list, task_params)
 
         # This behavior makes a square with the eyes while the head points straight ahead
@@ -706,18 +749,16 @@ class Dreamer_Head():
         elif ((self.current_behavior == BEHAVIOR_FOLLOW_WAYPOINTS) and self.behavior_commanded == False):
             task_list = [TASK_GO_TO_POINT_HEAD_PRIORITY, TASK_FOLLOW_WAYPOINTS]
             task_params = []
-            piecewise_func_head, piecewise_func_eyes = ashamed()
-            # piecewise_func_head, piecewise_func_eyes = test_script()
-            # Draw a circle behavior
-            # piecewise_func_head = circle_yz(.5, 8.0)
+
+            #piecewise_func_head, piecewise_func_eyes = eye_constant_head_square(0.8)#squares_task(0.8) #eye_constant_head_square(0.7)#hold_center_head_square(0.3) #squares_task(0.3)#squares_task(0.9) #hold_center_head_square(1.0)#squares_task(1.0) 
+            piecewise_func_head, piecewise_func_eyes = squares_task(0.8) #eye_constant_head_square(0.7)#hold_center_head_square(0.3) #squares_task(0.3)#squares_task(0.9) #hold_center_head_square(1.0)#squares_task(1.0) 
+
             # Extract initial coordinates
             head_coord = piecewise_func_head.get_position(0)
             x_head = head_coord[0]
             y_head = head_coord[1]
             z_head = head_coord[2]   
 
-            # Draw a clover behavior
-            # piecewise_func_eyes = clover(.5, 8.0)
             # Extract initial coordinates
             eyes_coord = piecewise_func_eyes.get_position(0)
             x_eyes = eyes_coord[0]
