@@ -16,6 +16,8 @@
 #include "dreamerHighLevelController.h"
 #include "Waypoint.h"
 
+#include "minJerk/minJerkCoordinates.h"
+
 
 
 // Task List
@@ -44,14 +46,17 @@ const std::string GO_HOME = "GO_HOME";
 const std::string HEAD_PRIORITY_TEST = "HEAD_PRIORITY_TEST";
 const std::string EYE_PRIORITY_TEST = "EYE_PRIORITY_TEST";
 const std::string CONSTANT_VELOCITY_TEST = "CONSTANT_VELOCITY_TEST";
+const std::string FOLLOW_TRAJECTORY_TEST = "FOLLOW_TRAJECTORY_TEST";
 
 
-// Max nodeRate on my Acer laptop = ~300Hz
+// Max nodeRate on my laptop = ~300Hz
 const double nodeRate = 25.0;
+
+// Stop joints at 90% of range of motion
 const double JOINT_LIM_BOUND = .9;
-// Print rate should be a multiple of the node rate so it will actually print correctly
+
+// Print rate should be a multiple of the node rate so it will actually print at the right time
 const double printRate = nodeRate/5.0;
-// Global GUI param variable
 
 // Low Level stuff
 const int LOW_LEVEL_FREQ = 550;
@@ -145,6 +150,10 @@ void dreamerHighLevelController::GUICallback(const std_msgs::Int8 msg){
 		case 6: resetAll();
 				GUICommanded = CONSTANT_VELOCITY_TEST; 
 				currentBehavior = BEHAVIOR_POINT_CONSTANT_VELOCITY;
+				break; 
+		case 7: resetAll();
+				GUICommanded = FOLLOW_TRAJECTORY_TEST; 
+				currentBehavior = BEHAVIOR_FOLLOW_WAYPOINTS;
 				break; 
 
 		default: GUICommanded = INVALID_CMD; break;
@@ -356,13 +365,10 @@ void dreamerHighLevelController::behaviorLogic(void){
 			double duration = 4;
 			for (int i=0; i<7; i++){
 				double scale = .1;
-				// Declare Eigen class for points
-				Eigen::Vector3d tempHead(.75, 0, lowCtrl.kinematics.l1);
-				Eigen::Vector3d tempEyes(1.0, scale * std::sin(2*M_PI*i / 6.0), lowCtrl.kinematics.l1 + scale * std::cos(2*M_PI*i / 6.0));
 				
-				// Create Waypoint with Eigen points
-				Waypoint wHead(tempHead, duration);
-				Waypoint wEyes(tempEyes, duration);
+				// // Create Waypoint with Eigen points
+				Waypoint wHead(Eigen::Vector3d(.75, 0, lowCtrl.kinematics.l1), duration);
+				Waypoint wEyes(Eigen::Vector3d(1.0, scale * std::sin(2*M_PI*i / 6.0), lowCtrl.kinematics.l1 + scale * std::cos(2*M_PI*i / 6.0)), duration);
 				
 				// Make Vector specifying eye and head gaze locations and times
 				std::vector<Waypoint> tempVec;
@@ -395,15 +401,15 @@ void dreamerHighLevelController::behaviorLogic(void){
 
 			double duration = 3;
 			for (int i=0; i<7; i++){
-				double scale = .6;
+				double scale = .5;
 				// Declare Eigen class for points
-				Eigen::Vector3d tempHead(1.0, scale * std::sin(2*M_PI*i / 6.0), lowCtrl.kinematics.l1 + scale * std::cos(2*M_PI*i / 6.0));
-				Eigen::Vector3d tempEyes(1.0, scale * std::sin(2*M_PI*i / 6.0), lowCtrl.kinematics.l1 + scale * std::cos(2*M_PI*i / 6.0));
+				// Eigen::Vector3d(2.0, scale * std::sin(2*M_PI*i / 6.0), lowCtrl.kinematics.l1 + scale * std::cos(2*M_PI*i / 6.0))
+				// Eigen::Vector3d(2.0, scale * std::sin(2*M_PI*i / 6.0), lowCtrl.kinematics.l1 + scale * std::cos(2*M_PI*i / 6.0))
 				// Eigen::Vector3d tempEyes(2.0, 0, lowCtrl.kinematics.l1);
 				
 				// Create Waypoint with Eigen points
-				Waypoint wHead(tempHead, duration);
-				Waypoint wEyes(tempEyes, duration);
+				Waypoint wHead(Eigen::Vector3d(2.0, scale * std::sin(2*M_PI*i / 6.0), lowCtrl.kinematics.l1 + scale * std::cos(2*M_PI*i / 6.0)), duration);
+				Waypoint wEyes(Eigen::Vector3d(2.0, scale * std::sin(2*M_PI*i / 6.0), lowCtrl.kinematics.l1 + scale * std::cos(2*M_PI*i / 6.0)), duration);
 				
 				// Make Vector specifying eye and head gaze locations and times
 				std::vector<Waypoint> tempVec;
@@ -444,7 +450,29 @@ void dreamerHighLevelController::behaviorLogic(void){
 
 			// Initialize behavior tracking
 			executeBehavior();
-	}		
+	}
+	else if(currentBehavior == BEHAVIOR_FOLLOW_WAYPOINTS) {
+			behaviorMin.clear();
+			taskList.push_back(TASK_GO_TO_POINT_HEAD_PRIORITY);
+			taskList.push_back(TASK_FOLLOW_WAYPOINTS);
+
+			behaviorMin = testBehavior();
+
+			Eigen::Vector3d coord = behaviorMin[0].getPosition(0);
+			std::cout << "Coordinate chosen: " << coord << std::endl;
+			double duration = 3;
+
+			std::vector<Waypoint> tempVec;
+			tempVec.push_back(Waypoint(coord, duration));
+			tempVec.push_back(Waypoint(coord, duration));
+
+			taskParams.push_back(tempVec);
+			
+			std::vector<Waypoint> empty;
+			taskParams.push_back(empty); // Necessary because of the nature different task parameters
+			
+			executeBehavior();
+	}
 
 }
 
@@ -490,6 +518,11 @@ void dreamerHighLevelController::taskLogic(void){
 		// Save current joint configuration
 		initTaskQ = lowCtrl.kinematics.Jlist;
 	}
+	else if(currentTask == TASK_FOLLOW_WAYPOINTS){
+		taskCommanded = true;
+		// Save current joint configuration
+		initTaskQ = lowCtrl.kinematics.Jlist;
+	}
 }
 
 
@@ -520,7 +553,6 @@ void dreamerHighLevelController::nextTask(void){
  * Notes: Replaces state_logic from python code
  */
 void dreamerHighLevelController::jointLogic(void){
-		
 	if(currentTask == TASK_GO_TO_POINT_HEAD_PRIORITY){
 			// Load desired points and time
 			Eigen::Vector3d xyzHead = taskParams[taskIndex][0].point;
@@ -552,6 +584,11 @@ void dreamerHighLevelController::jointLogic(void){
 
 			// Update and limit joint variables
 			updateHeadJoints(ret, nodeInterval);
+	}
+	else if(currentTask == TASK_FOLLOW_WAYPOINTS){
+		Eigen::VectorXd ret = lowCtrl.headEyeTrajectoryFollow(behaviorMin[0], behaviorMin[1], initTaskQ, taskInitTime);
+		initTaskQ = lowCtrl.kinematics.Jlist;
+		updateHeadJoints(ret, nodeInterval);
 	}
 
 
@@ -649,30 +686,30 @@ void dreamerHighLevelController::loop(void){
 		if( (loopCurrent - printLast) > (1/printRate) ){
 			printInterval = loopCurrent - printLast;
 			printLast = loopCurrent;
-			printDebug();
+			// printDebug();
 		}
 		
 
 		// Debugging Marker
-		visualization_msgs::Marker marker;
-		marker.header.frame_id = "/my_world_neck";
-		marker.header.stamp = ros::Time::now();
-		marker.ns = "basic_shapes";
-	    marker.id = 0;
-		marker.type = shape;
-		marker.action = visualization_msgs::Marker::ADD;
-	    marker.pose.position.x = 1;
-	    marker.pose.position.y = 0;
-	    marker.pose.position.z = lowCtrl.kinematics.l1+.7;
-        marker.scale.x = .01;
-	    marker.scale.y = .01;
-	    marker.scale.z = .01;
-	    marker.color.r = 0.0f;
-	    marker.color.g = 1.0f;
-	    marker.color.b = 1.0f;
-	    marker.color.a = 1.0;
-	    marker.lifetime = ros::Duration();
-		marker_pub.publish(marker);
+		// visualization_msgs::Marker marker;
+		// marker.header.frame_id = "/my_world_neck";
+		// marker.header.stamp = ros::Time::now();
+		// marker.ns = "basic_shapes";
+	 //    marker.id = 0;
+		// marker.type = shape;
+		// marker.action = visualization_msgs::Marker::ADD;
+	 //    marker.pose.position.x = 1;
+	 //    marker.pose.position.y = 0;
+	 //    marker.pose.position.z = lowCtrl.kinematics.l1+.7;
+  //       marker.scale.x = .01;
+	 //    marker.scale.y = .01;
+	 //    marker.scale.z = .01;
+	 //    marker.color.r = 0.0f;
+	 //    marker.color.g = 1.0f;
+	 //    marker.color.b = 1.0f;
+	 //    marker.color.a = 1.0;
+	 //    marker.lifetime = ros::Duration();
+		// marker_pub.publish(marker);
 
 
 		// Sleep until next interval

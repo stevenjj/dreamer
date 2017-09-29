@@ -1,3 +1,9 @@
+/**
+ * dreamerJointPublisher.cpp
+ * Holds robot joint limits
+ * Publishes robot joint list to RVIZ
+ */
+
 #include <iostream>
 #include <cstring>
 #include <cmath>
@@ -10,11 +16,12 @@
 
 #include "dreamerJointPublisher.h"
 
-// Generic Constructor: Initializes publishing node
+// Generic Constructor:
+// Loads joints from external node
+// Initializes publishing node
 dreamerJointPublisher::dreamerJointPublisher(){
-	loadJointInformation(n);
-	// jointPublisher = n.advertise<std_msgs::String>("joint_states", 5);
-	jointPublisher = n.advertise<sensor_msgs::JointState>("joint_states", 5);
+	loadJointInformation(jointNodeHandler);
+	jointPublisher = jointNodeHandler.advertise<sensor_msgs::JointState>("joint_states", 5);
 }
 
 // Generic Destructor
@@ -29,26 +36,27 @@ dreamerJointPublisher::~dreamerJointPublisher(void){}
 void dreamerJointPublisher::loadJointInformation(ros::NodeHandle n){
 	std::string retrieve;
 	// Query for "robot_description" parameter
-	if(n.hasParam("robot_description")){
+	if(jointNodeHandler.hasParam("robot_description")){
 		// Place retrieved parameter in string
-		n.getParam("robot_description", retrieve);
+		jointNodeHandler.getParam("robot_description", retrieve);
 		// std::cout << "Loaded Robot Description" << std::endl;
 
 		// Declare xml parser
 		TiXmlDocument robotXML;
 		if(robotXML.Parse(retrieve.c_str(), 0, TIXML_ENCODING_UTF8)){
 
-			// Pick out 
+			// Pick out the first element in the xml
 			TiXmlHandle hrob(&robotXML);
 			TiXmlElement *ele = hrob.FirstChildElement("robot").FirstChildElement().ToElement();
 
+			// Iterate through each element 
 			for(ele; ele; ele = ele->NextSiblingElement()){
 				// Only retrieve "joint" elements
 				if(ele->ValueStr() == "joint"){
 					std::string type = ele->Attribute("type");					
 					std::string name = ele->Attribute("name");
 					
-					// Ignore fixed/floating joints?
+					// Ignore fixed/floating joints
 					if(type == "fixed" || type == "floating")
 						continue;
 
@@ -75,12 +83,11 @@ void dreamerJointPublisher::loadJointInformation(ros::NodeHandle n){
 						}
 					}
 
-
 					// Ignoring mimic tags
 					std::string zeroes;
-					if(n.hasParam("zeros")){
+					if(jointNodeHandler.hasParam("zeros")){
 						// Place retrieved parameter in string
-						n.getParam("zeros", zeroes);
+						jointNodeHandler.getParam("zeros", zeroes);
 						zeroval = 0; // TODO actually fill in correct zero value
 					}
 					else if(minval > 0 || maxval < 0)
@@ -102,18 +109,18 @@ void dreamerJointPublisher::loadJointInformation(ros::NodeHandle n){
 
 					// Add joint to free joint map
 					freeJoints[name] = joint;
-
-					// std::cout << ele->Attribute("name") << std::endl;
 				}
+
 			}
 
-
 		}
-		// robotXML.Print();
+
 		std::cout << "Dreamer Joints loaded" << std::endl;
 	}
+
 	else
 		std::cout << "Failed to find robot parameters" << std::endl;
+	
 }
 
 

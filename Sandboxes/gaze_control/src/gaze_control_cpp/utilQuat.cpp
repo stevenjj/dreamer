@@ -1,3 +1,9 @@
+/* 
+ * utilQuat.cpp
+ * Extension of modernRobotics software
+ * Provides quaternion functionality
+ */
+
 #include <Eigen/Dense>
 #include <cmath>
 #include "modernRobotics.h"

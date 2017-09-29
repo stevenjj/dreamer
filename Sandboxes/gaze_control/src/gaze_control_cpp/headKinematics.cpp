@@ -1,3 +1,9 @@
+/*
+ * headKinematics.cpp
+ * Provides Functions for head-eye positions and jacobians
+ * Keeps track of current 
+ */
+
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
@@ -28,22 +34,23 @@ headKinematics::headKinematics(void){
 	S6 = Eigen::VectorXd::Zero(6);
 	S6 << 0, 0, 1, l3, -l2, 0;  
 
+	// Declare home matrix and positional vectors
 	rHeadHome = Eigen::MatrixXd::Identity(3,3);
 	rRightEyeHome = Eigen::MatrixXd::Identity(3,3);
 	rLeftEyeHome = Eigen::MatrixXd::Identity(3,3);
-
 
 	pHeadHome << 0, 0, l1;
 	pRightEyeHome << l2, -l3, l1;
 	pLeftEyeHome << l2, l3, l1;
 	
+	// Combine screw axis joints
 	screwAxisTables = Eigen::MatrixXd::Zero(7,6);
 	screwAxisTables << S0, S1, S2, S3, S4, S5, S6;
 
 	J_num = screwAxisTables.rows();
-
 	Jlist = Eigen::VectorXd::Zero(screwAxisTables.rows());
 
+	// Declare map key-values
 	JIndexToNames[0] = "lower_neck_pitch";
 	JIndexToNames[1] = "upper_neck_yaw";
 	JIndexToNames[2] = "upper_neck_roll";

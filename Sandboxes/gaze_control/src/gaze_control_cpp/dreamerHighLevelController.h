@@ -33,6 +33,7 @@ public:
 
 	std::vector<std::string> taskList;
 	std::vector< std::vector<Waypoint> > taskParams;
+	std::vector<minJerkCoordinates> behaviorMin;
 
 	ros::NodeHandle handlerHigh;
 	ros::ServiceClient ctrldeqClient;

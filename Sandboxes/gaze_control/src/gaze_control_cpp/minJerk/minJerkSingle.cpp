@@ -1,9 +1,12 @@
-#include "minJerkSingle.h"
 #include <Eigen/Dense>
 #include <vector>
 #include <cmath>
-// #include <iostream> // Debug
+#include <iostream> // Debug
 
+#include "../Waypoint.h"
+#include "minJerkSingle.h"
+
+minJerkSingle::minJerkSingle(void) {}
 
 minJerkSingle::minJerkSingle(std::vector<Waypoint> list) {
     waypointList = list;
@@ -77,6 +80,11 @@ double minJerkSingle::getPosition(double time) {
 	}
 	return pos_ret;
 
+}
+
+
+double minJerkSingle::getTotalRunTime(void) {
+	return waypointList[waypointList.size() - 1].Dt;
 }
 
 

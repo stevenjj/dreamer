@@ -1,3 +1,8 @@
+/**
+ * Waypoint.h
+ * Provides a wrapper to contain a point, a time, and a special parameter
+ */
+
 #ifndef Waypoint_h
 #define Waypoint_h
 #include <Eigen/Dense>

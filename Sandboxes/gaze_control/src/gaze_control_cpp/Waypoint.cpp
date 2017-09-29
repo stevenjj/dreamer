@@ -1,3 +1,8 @@
+/**
+ * Waypoint.cpp
+ * Provides a wrapper to contain a point, a time, and a special parameter
+ */
+
 #include "Waypoint.h"
 #include <Eigen/Dense>
 
