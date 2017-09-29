@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="dreamer">
+    <property name="EYE_JOINT_TYPE" value="revolute" />
+
+    <property name="RIGHT_HAND_JOINT_TYPE" value="revolute" />
+    <property name="LEFT_GRIPPER_JOINT_TYPE" value="revolute" />
+
+    <property name="JOINT_TYPE_TORSO_YAW"               value="fixed" />
+    <property name="JOINT_TYPE_TORSO_LOWER_PITCH"       value="revolute" />
+    <property name="JOINT_TYPE_TORSO_UPPER_PITCH"       value="revolute" />
+
+    <property name="JOINT_TYPE_LOWER_NECK_PITCH"        value="fixed" />
+    <property name="JOINT_TYPE_UPPER_NECK_YAW"          value="fixed" />
+    <property name="JOINT_TYPE_UPPER_NECK_ROLL"         value="fixed" />
+    <property name="JOINT_TYPE_UPPER_NECK_PITCH"        value="fixed" />
+
+    <property name="JOINT_TYPE_LEFT_SHOULDER_EXTENSOR"  value="revolute" />
+    <property name="JOINT_TYPE_LEFT_SHOULDER_ABDUCTOR"  value="revolute" />
+    <property name="JOINT_TYPE_LEFT_SHOULDER_ROTATOR"   value="revolute" />
+    <property name="JOINT_TYPE_LEFT_ELBOW"              value="revolute" />
+    <property name="JOINT_TYPE_LEFT_WRIST_ROTATOR"      value="revolute" />
+    <property name="JOINT_TYPE_LEFT_WRIST_PITCH"        value="revolute" />
+    <property name="JOINT_TYPE_LEFT_WRIST_YAW"          value="revolute" />
+
+    <property name="JOINT_TYPE_RIGHT_SHOULDER_EXTENSOR" value="revolute" />
+    <property name="JOINT_TYPE_RIGHT_SHOULDER_ABDUCTOR" value="revolute" />
+    <property name="JOINT_TYPE_RIGHT_SHOULDER_ROTATOR"  value="revolute" />
+    <property name="JOINT_TYPE_RIGHT_ELBOW"             value="revolute" />
+    <property name="JOINT_TYPE_RIGHT_WRIST_ROTATOR"     value="revolute" />
+    <property name="JOINT_TYPE_RIGHT_WRIST_PITCH"       value="revolute" />
+    <property name="JOINT_TYPE_RIGHT_WRIST_YAW"         value="revolute" />
+</robot>

@@ -1,0 +1,296 @@
+<?xml version="1.0"?>
+<robot xmlns:sensor="http://playerstage.sourceforge.net/gazebo/xmlschema/#sensor"
+       xmlns:controller="http://playerstage.sourceforge.net/gazebo/xmlschema/#controller"
+       xmlns:interface="http://playerstage.sourceforge.net/gazebo/xmlschema/#interface">
+
+
+    <property name="M_PI" value="3.1415926535897931" />
+    <property name="VELOCITY_LIMIT_SCALE" value="0.6" />
+
+    <property name="shoulder_lift_length" value="0.10" />
+    <property name="shoulder_lift_radius" value="0.12" />
+
+    <!-- for non-symmetric upper arm -->
+    <property name="uar_xyz1" value= "0.21398" />
+    <property name="uar_xyz2" value="-0.01621" />
+    <property name="uar_xyz3" value="-0.00020" />
+    <property name="uar_ixx"  value= "0.01537748957" />
+    <property name="uar_ixy"  value= "0.00375711247" />
+    <property name="uar_ixz"  value="-0.00070852914" />
+    <property name="uar_iyy"  value= "0.07473670440" />
+    <property name="uar_iyz"  value="-0.00017936450" />
+    <property name="uar_izz"  value= "0.07608763307" />
+
+    <property name="ual_xyz1" value= "0.21405" />
+    <property name="ual_xyz2" value= "0.01658" />
+    <property name="ual_xyz3" value="-0.00057" />
+    <property name="ual_ixx"  value= "0.01530603856" />
+    <property name="ual_ixy"  value="-0.00339324862" />
+    <property name="ual_ixz"  value= "0.00060765455" />
+    <property name="ual_iyy"  value= "0.07473694455" />
+    <property name="ual_iyz"  value="-0.00019953729" />
+    <property name="ual_izz"  value= "0.07601594191" />
+
+    <macro name="m3_l_shoulder" params="side parent reflect *origin">
+
+        <!-- Shoulder pan -->
+        <joint name="left_shoulder_extensor" type="${JOINT_TYPE_LEFT_SHOULDER_EXTENSOR}">
+            <axis xyz="0 -1 0" />
+            <insert_block name="origin" /> <!-- transform from parent link to this joint frame -->
+            <parent link="${parent}"/>
+            <child link="left_shoulder_extensor_link"/>
+            <limit effort="40" velocity="${30.0*M_PI/180}" lower="${-80*M_PI/180}" upper="${200*M_PI/180}" />
+            <dynamics damping="1.0" />
+        </joint>
+
+        <link name="left_shoulder_extensor_link">
+            <inertial>
+                <mass value="2.0310" />
+                <origin xyz="-0.010946 -0.025127 0.000022"/>
+                <inertia ixx="0.003461"
+                         iyy="0.003097"
+                         izz="0.005416"
+                         ixy="0.000428"
+                         ixz="0.000002"
+                         iyz="0.000000" />
+            </inertial>
+            <visual>
+              <material name="GreyA" />
+              <origin xyz="0 0 0" rpy="${M_PI} 0 0 " />
+              <geometry name="l_shoulder_geom">
+                <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/A2R3/A2R3_RT1_shoulderRoll.stl" />
+              </geometry>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="${M_PI} 0.0 0.0 " />
+                <geometry name="r_shoulder_collision_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_COLL}/A2R3/A2R3_RT1_shoulderRoll.stl" />
+                </geometry>
+            </collision>
+        </link>
+
+        <joint name="left_shoulder_abductor" type="${JOINT_TYPE_LEFT_SHOULDER_ABDUCTOR}">
+            <axis xyz="-1 0 0"/>
+            <limit effort="40" velocity="${30*M_PI/180}" lower="${-24*M_PI/180}" upper="${150*M_PI/180}" />
+            <origin xyz="0 0 0" rpy="0 0 ${M_PI}" />
+            <parent link="left_shoulder_extensor_link"/>
+            <child link="left_shoulder_abductor_link"/>
+            <dynamics damping="1.0"/>
+        </joint>
+
+        <link name="left_shoulder_abductor_link">
+            <inertial>
+                <mass value="0.566" />
+                <origin xyz="-0.000944 -0.026331 -0.043257"/>
+                <inertia ixx="0.000754"
+                         iyy="0.000921"
+                         izz="0.000834"
+                         ixy="0.000015"
+                         ixz="0.000014"
+                         iyz="0.000142" />
+            </inertial>
+            <visual>
+                <material name="GreyB" />
+                <origin xyz="0 0 0" rpy="0 0 0 " />
+                <geometry name="left_shoulder_abductor_link">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/A2R3/A2R3_RT2_shoulderPitch.stl"/>
+                </geometry>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="0.0 0.0 0.0 " />
+                <geometry name="left_shoulder_abductor_link_collision">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_COLL}/A2R3/A2R3_RT2_shoulderPitch.stl" />
+                </geometry>
+            </collision>
+        </link>
+
+        <joint name="left_shoulder_rotator" type="${JOINT_TYPE_LEFT_SHOULDER_ROTATOR}">
+            <axis xyz="0 0 1" />
+            <origin xyz="0 -0.03175 -0.27857" rpy="0 0 ${M_PI}" />
+            <parent link="left_shoulder_abductor_link" />
+            <child link="left_shoulder_rotator_link"/>
+            <limit effort="20" velocity="${50*M_PI/180}" lower="${-85*M_PI/180}" upper="${85*M_PI/180}" />
+            <dynamics damping="1.0"/>
+        </joint>
+
+        <link name="left_shoulder_rotator_link">
+            <inertial>
+                <mass value="2.296" />
+                <origin xyz="-0.005767 0.084539 0.001385"/>
+                <inertia ixx="0.013031"
+                    iyy="0.002070"
+                    izz="0.013173"
+                    ixy="-0.000564"
+                    ixz="-0.000077"
+                    iyz="0.000162" />
+            </inertial>
+            <visual>
+                <material name="GreyC" />
+                <origin xyz="0 0 0" rpy="0 0 0 " />
+                <geometry name="left_shoulder_rotator_link_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/A2R3/A2R3_RT3_bicep.stl" />
+                </geometry>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="0.0 0.0 0.0 " />
+                <geometry name="left_shoulder_rotator_link_geom_collision">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_COLL}/A2R3/A2R3_RT3_bicep.stl" />
+                </geometry>
+            </collision>
+        </link>
+    </macro>
+
+    <!-- ============================   Upper Arm   ============================ -->
+    <macro name="m3_l_upper_arm" params="side parent reflect">
+        <joint name="left_elbow" type="${JOINT_TYPE_LEFT_ELBOW}">
+            <axis xyz="0 1 0" />
+            <origin xyz="0.00502 0  0" rpy="0 0 ${M_PI}" />
+            <parent link="${parent}"/>
+            <child link="left_elbow_link"/>
+            <limit effort="20" velocity="${50*M_PI/180}" lower="${-0.278978*M_PI/180}" upper="${132.8175*M_PI/180}" />
+            <dynamics damping="1.0" />  <!-- Changed by liang to allow elbow to bend in simulation -->
+        </joint>
+
+        <link name="left_elbow_link">
+            <inertial>
+                <mass value="0.223" />
+                <origin xyz="0.000002 -0.000278 -0.026124"/>
+                <inertia ixx="0.000470"
+                         iyy="0.000233"
+                         izz="0.000425"
+                         ixy="0.000000"
+                         ixz="0.000000"
+                         iyz="0.000019" />
+            </inertial>
+
+            <visual>
+                <material name="GreyA" />
+                <origin xyz="0 0 0" rpy="0 0 0 " />
+                <geometry name="left_elbow_link_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/A2R3/A2R3_RT4_elbow.stl" />
+                </geometry>
+            </visual>
+
+            <collision>
+                <origin xyz="0 0 0" rpy="0.0 0.0 0.0 " />
+                <geometry name="left_elbow_link_collision">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_COLL}/A2R3/A2R3_RT4_elbow.stl" />
+                </geometry>
+            </collision>
+        </link>
+
+        <joint name="left_wrist_rotator" type="${JOINT_TYPE_LEFT_WRIST_ROTATOR}">
+            <axis xyz="0 0 1" />
+            <limit effort="4" velocity="${150*M_PI/180}" lower="${-49.4*M_PI/180}" upper="${229.4*M_PI/180}" />
+            <origin xyz="0 0 -0.27747" rpy="0 0 ${M_PI}" />
+            <parent link="left_elbow_link"/>
+            <child link="left_wrist_rotator_link"/>
+            <dynamics damping="1.0"/>
+        </joint>
+
+        <link name="left_wrist_rotator_link">
+            <inertial>
+                <mass value="1.468" />
+                <origin xyz="-0.004404 0.000124 0.130931"/>
+                <inertia ixx="0.006099"
+                         iyy="0.006120"
+                         izz="0.001179"
+                         ixy="0.000004"
+                         ixz="-0.000043"
+                         iyz="0.000015" />
+            </inertial>
+            <visual>
+                <material name="GreyC" />
+                <origin xyz="0 0 0" rpy="0 0 0 " />
+                <geometry name="left_wrist_rotator_link_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/A2R3/A2R3_T5_forearmRoll.stl" />
+                </geometry>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="0.0 0.0 0.0 " />
+                <geometry name="left_wrist_rotator_link_collision">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_COLL}/A2R3/A2R3_T5_forearmRoll.stl" />
+                </geometry>
+            </collision>
+        </link>
+    </macro>
+
+    <!-- ============================   Forearm   ============================ -->
+    <macro name="m3_l_forearm" params="side parent reflect">
+
+        <joint name="left_wrist_pitch" type="${JOINT_TYPE_LEFT_WRIST_PITCH}">
+            <dynamics damping="1.0" />
+            <axis xyz="0 -1 0" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <parent link="${parent}"/>
+            <child link="left_wrist_pitch_link"/>
+            <limit effort="8" velocity="${40*M_PI/180}" lower="${-58.83*M_PI/180}" upper="${58.83*M_PI/180}" />
+        </joint>
+
+        <link name="left_wrist_pitch_link">
+            <inertial>
+                <mass value="0.278" />
+                <origin xyz="0.00008 0.00163 0.00123" />
+                <inertia ixx="0.00013" ixy="0"          ixz="0"
+                                       iyy="0.00014"    iyz="0"
+                                                        izz="0.0009" />
+            </inertial>
+            <visual>
+                <material name="GreyB" />
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry name="left_wrist_pitch_link_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/A2R3/A2R3_T6_wristDiff.stl" />
+                </geometry>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="0.0 0.0 0.0" />
+                <geometry name="left_wrist_pitch_link_collision">
+                    <box size="0.01 0.01 0.01" />
+                </geometry>
+            </collision>
+        </link>
+
+        <joint name="left_wrist_yaw" type="${JOINT_TYPE_LEFT_WRIST_YAW}">
+            <axis xyz="1 0 0" />
+            <limit effort="8" velocity="${40*M_PI/180}" lower="${-60*M_PI/180}" upper="${60*M_PI/180}" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <parent link="left_wrist_pitch_link"/>
+            <child link="left_wrist_yaw_link"/>
+            <dynamics damping="1.0"/>
+        </joint>
+
+        <link name="left_wrist_yaw_link">
+            <inertial>
+                <mass value="0.093" />
+                <origin xyz="-0.00286  -0.00207 -0.10657" />
+                <inertia ixx="0.00485" ixy="0"       ixz="0"
+                                       iyy="0.00508" iyz="0"
+                                                     izz="0.00081" />
+            </inertial>
+
+            <visual>
+                <material name="GreyA" />
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry name="left_wrist_yaw_link_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/A2R3/A2R3_T7_wristYaw.stl" />
+                </geometry>
+            </visual>
+
+            <collision>
+                <origin xyz="0 0 0" rpy="0.0 0.0 0.0 " />
+                <geometry name="left_wrist_yaw_link_collision">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_COLL}/A2R3/A2R3_T7_wristYaw.stl" />
+                </geometry>
+            </collision>
+        </link>
+    </macro>
+
+    <macro name="m3_l_arm" params="side parent reflect *origin">
+        <m3_l_shoulder side="${side}" reflect="${reflect}" parent="${parent}">
+            <insert_block name="origin" />
+        </m3_l_shoulder>
+        <m3_l_upper_arm side="${side}" reflect="${reflect}" parent="left_shoulder_rotator_link"/>
+        <m3_l_forearm side="${side}" reflect="${reflect}" parent="left_wrist_rotator_link" />
+    </macro>
+
+</robot>

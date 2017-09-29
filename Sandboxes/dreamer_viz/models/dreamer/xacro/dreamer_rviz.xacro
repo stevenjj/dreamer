@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="dreamer">
+
+    <!-- Gazebo should model all of the joints in the robot.  -->
+    <property name="EYE_JOINT_TYPE" value="revolute" />
+    <property name="RIGHT_HAND_JOINT_TYPE" value="revolute" />
+    <property name="LEFT_GRIPPER_JOINT_TYPE" value="revolute" />
+
+    <property name="JOINT_TYPE_TORSO_YAW"               value="revolute" />
+    <property name="JOINT_TYPE_TORSO_LOWER_PITCH"       value="revolute" />
+    <property name="JOINT_TYPE_TORSO_UPPER_PITCH"       value="revolute" />
+
+    <property name="JOINT_TYPE_LOWER_NECK_PITCH"        value="revolute" />
+    <property name="JOINT_TYPE_UPPER_NECK_YAW"          value="revolute" />
+    <property name="JOINT_TYPE_UPPER_NECK_ROLL"         value="revolute" />
+    <property name="JOINT_TYPE_UPPER_NECK_PITCH"        value="revolute" />
+
+    <property name="JOINT_TYPE_LEFT_SHOULDER_EXTENSOR"  value="revolute" />
+    <property name="JOINT_TYPE_LEFT_SHOULDER_ABDUCTOR"  value="revolute" />
+    <property name="JOINT_TYPE_LEFT_SHOULDER_ROTATOR"   value="revolute" />
+    <property name="JOINT_TYPE_LEFT_ELBOW"              value="revolute" />
+    <property name="JOINT_TYPE_LEFT_WRIST_ROTATOR"      value="revolute" />
+    <property name="JOINT_TYPE_LEFT_WRIST_PITCH"        value="revolute" />
+    <property name="JOINT_TYPE_LEFT_WRIST_YAW"          value="revolute" />
+
+    <property name="JOINT_TYPE_RIGHT_SHOULDER_EXTENSOR" value="revolute" />
+    <property name="JOINT_TYPE_RIGHT_SHOULDER_ABDUCTOR" value="revolute" />
+    <property name="JOINT_TYPE_RIGHT_SHOULDER_ROTATOR"  value="revolute" />
+    <property name="JOINT_TYPE_RIGHT_ELBOW"             value="revolute" />
+    <property name="JOINT_TYPE_RIGHT_WRIST_ROTATOR"     value="revolute" />
+    <property name="JOINT_TYPE_RIGHT_WRIST_PITCH"       value="revolute" />
+    <property name="JOINT_TYPE_RIGHT_WRIST_YAW"         value="revolute" />
+
+    <!-- RViz uses package:// for the model path. -->
+    <property name="modelPath" value="package://dreamer/models/dreamer" />
+    <property name="gripperModelPath" value="package://dreamer/models/dreamer" />
+
+    <!-- Gazebo uses model:// for the model path. -->
+    <!-- <property name="modelPath" value="model://dreamer" /> -->
+    <!-- <property name="gripperModelPath" value="model://dreamer" /> -->
+
+    <xacro:include filename="$(find dreamer)/models/dreamer/xacro/dreamer_base.xacro" />
+
+</robot>
+

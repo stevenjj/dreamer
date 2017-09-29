@@ -1,0 +1,263 @@
+<?xml version="1.0"?>
+<robot xmlns:sensor="http://playerstage.sourceforge.net/gazebo/xmlschema/#sensor"
+       xmlns:controller="http://playerstage.sourceforge.net/gazebo/xmlschema/#controller"
+       xmlns:interface="http://playerstage.sourceforge.net/gazebo/xmlschema/#interface">
+
+    <property name="M_PI" value="3.1415926535897931" />
+    <!-- INERTIA MATRIX CHANGE BY POLAM, VALUE=0.0011100-->
+
+    <macro name="m3_neck" params="side parent reflect *origin">
+        
+        <joint name="lower_neck_pitch" type="${JOINT_TYPE_LOWER_NECK_PITCH}">
+            <axis xyz="0 -1 0" />
+            <insert_block name="origin" /> <!-- transform from parent link to this joint frame -->
+            <parent link="${parent}"/>
+            <child link="lower_neck_pitch_link"/>
+            <limit effort="100" velocity="${20.0*M_PI/180}" lower="${-40*M_PI/180}" upper="${15*M_PI/180}" />
+        </joint>
+        
+        <link name="lower_neck_pitch_link">
+            <inertial>
+                <mass value="0.940" />
+                <origin xyz="0.000061 0.003310 0.028798"/>
+                <inertia ixx="0.001395"
+                         iyy="0.001345"
+                         izz="0.000392"
+                         ixy="-0.000000"
+                         ixz="-0.000000"
+                         iyz="-0.000085" />
+                </inertial>
+                <visual>
+                    <material name="GreyA" />
+                    <origin xyz="0 0 0" rpy="0 0 0 " />
+                    <geometry name="lower_neck_pitch_link_geom">
+                        <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/S2R1/S2R1_SH1_neckTilt.stl" />
+                    </geometry>
+                </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="0.0 0.0 0.0 " />
+                <geometry name="lower_neck_pitch_link_geom_collison">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_COLL}/S2R1/S2R1_SH1_neckTilt.stl" />
+                </geometry>
+            </collision>
+        </link>
+    
+        <joint name="upper_neck_yaw" type="${JOINT_TYPE_UPPER_NECK_YAW}">
+            <axis xyz="0 0 1"/>
+            <limit effort="100" velocity="${75*M_PI/180}" lower="${-80.919*M_PI/180}" upper="${80.91*M_PI/180}" />
+            <origin xyz="0 0 0.13849" rpy="0 0 0" />
+            <parent link="lower_neck_pitch_link"/>
+            <child link="upper_neck_yaw_link"/>
+        </joint>
+
+        <link name="upper_neck_yaw_link">
+            <inertial>
+                <mass value="0.409" />
+                <origin xyz="0.0 0.0 0.0"/>
+                <inertia ixx="0.0011100"
+                           iyy="0.0011100"
+                           izz="0.0011100"
+                           ixy="0.0"
+                           ixz="0.0"
+                           iyz="0.0"/>
+            </inertial>
+            <visual>
+                <material name="GreyB" />
+                <origin xyz="0 0 0" rpy="0 0 0 " />
+                <geometry name="neck_roll_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/S2R1/S2R1_SH2_neckRoll.stl" />
+                </geometry>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="0.0 0.0 0.0 " />
+                <geometry name="S2R1_SH2_neckRoll_collision">
+                    <box size="0.01 0.01 0.01" />
+                </geometry>
+            </collision>
+        </link>
+    
+        <joint name="upper_neck_roll" type="${JOINT_TYPE_UPPER_NECK_ROLL}">
+            <axis xyz="-1 0 0" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <parent link="upper_neck_yaw_link" />
+            <child link="upper_neck_roll_link"/>
+            <limit effort="100" velocity="${50*M_PI/180}" lower="${-14.94*M_PI/180}" upper="${14.94*M_PI/180}" />
+        </joint>
+
+        <link name="upper_neck_roll_link">
+            <inertial>
+                <mass value="0.496" />
+                <origin xyz="-0.010690 0.053982 0.000045"/>
+                <inertia ixx="0.001094"
+                         iyy="0.000311"
+                         izz="0.001222"
+                         ixy="0.000284"
+                         ixz="0.000000"
+                         iyz="0.000000" />
+            </inertial>
+            <visual>
+                <material name="GreyC" />
+                <origin xyz="0 0 0" rpy="0 0 0 " />
+                <geometry name="S2R1_H3_neckYaw_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/S2R1/S2R1_H3_neckYaw.stl" />
+                </geometry>
+            </visual>
+     
+            <collision>
+                <origin xyz="0 0 0" rpy="0.0 0.0 0.0 " />
+                <geometry name="S2R1_H3_neckYaw_collision">
+                    <box size="0.01 0.01 0.01" />
+                </geometry>
+            </collision>
+        </link>
+    
+        <joint name="upper_neck_pitch" type="${JOINT_TYPE_UPPER_NECK_PITCH}">
+            <axis xyz="0 -1 0" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <parent link="upper_neck_roll_link" />
+            <child link="upper_neck_pitch_link"/>
+            <limit effort="100" velocity="${50*M_PI/180}" lower="${-7.072*M_PI/180}" upper="${37.072*M_PI/180}" />
+        </joint>
+
+        <link name="upper_neck_pitch_link">
+            <inertial>
+                <mass value="3.178" />
+                <origin xyz="0.034944 0.000563 0.058668"/>
+                <inertia ixx="0.022924"
+                         iyy="0.021814"
+                         izz="0.026783"
+                         ixy="-0.000034"
+                         ixz="-0.002929"
+                         iyz="-0.000235" />
+            </inertial>
+            <visual>
+                <material name="GreyA" />
+                <origin xyz="0 0 0" rpy="0 0 0 " />
+                <geometry name="upper_pitch_link_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/S2R1/S2R1_H4_UTA_head.stl" />
+                </geometry>
+            </visual>
+    
+            <collision>
+                <origin xyz="0 0 0" rpy="0.0 0.0 0.0 " />
+                <geometry name="upper_pitch_link_collision">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_COLL}/S2R1/S2R1_H4_UTA_head.stl" />
+                </geometry>
+            </collision>
+        </link>
+
+        <joint name="eye_pitch" type="${EYE_JOINT_TYPE}">
+            <axis xyz="0 -1 0" />
+            <limit effort="100" velocity="${1600*M_PI/180}" lower="${-34.99*M_PI/180}" upper="${34.99*M_PI/180}" />
+            <origin xyz="0.12508 0 0" rpy="0 0 0" />
+            <parent link="upper_neck_pitch_link"/>
+            <child link="eye_pitch_link"/>
+        </joint>
+
+        <link name="eye_pitch_link">
+            <!--Added by Gwen; no inertial data provided by Meka-->
+            <inertial>
+                <mass value="0.00001" />
+                <origin xyz="0.00000 0.0000 0.0000"/>
+                <inertia ixx="0.0011100"
+                         iyy="0.0011100"
+                         izz="0.0011100"
+                         ixy="0.0"
+                         ixz="0.0"
+                         iyz="0.0"/>
+            </inertial>
+            <visual>
+                <material name="GreyC" />
+                <origin xyz="0 0 0" rpy="0 0 0 " />
+                <geometry name="eye_pitch_link_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/S2R1/S2R1_SH5_eyeTilt.stl" />
+                </geometry>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="0.0 0.0 0.0 " />
+                <geometry name="eye_pitch_link_collision">
+                    <box size="0.01 0.01 0.01" />
+                </geometry>
+            </collision>
+        </link>
+    
+        <joint name="right_eye_yaw" type="${EYE_JOINT_TYPE}">
+            <axis xyz="0 0 1" />
+            <limit effort="100" velocity="${1600*M_PI/180}" lower="${-34.21*M_PI/180}" upper="${34.213*M_PI/180}" />
+            <origin xyz="0 -0.053 0" rpy="0 0 0" />
+            <parent link="eye_pitch_link"/>
+            <child link="right_eye_yaw_link"/>
+        </joint>
+        
+        <link name="right_eye_yaw_link">
+            <!--Added by Gwen; no inertial data provided by Meka-->
+            <inertial>
+                <mass value="0.00001" />
+                <origin xyz="0.00000 0.0000 0.0000"/>
+                <inertia ixx="0.0011100"
+                         iyy="0.0011100"
+                         izz="0.0011100"
+                         ixy="0.0"
+                         ixz="0.0"
+                         iyz="0.0"/>
+            </inertial>
+            <visual>
+                <material name="GreyC" />
+                <origin xyz="0 0 0" rpy="0 0 0 " />
+                <geometry name="right_eye_yaw_link_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/S2R1/S2R1_eye.stl" />
+                </geometry>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="0.0 0.0 0.0 " />
+                <geometry name="right_eye_yaw_link_collision">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_COLL}/S2R1/S2R1_eye.stl" />
+                </geometry>
+            </collision>
+        </link>
+    
+        <joint name="left_eye_yaw" type="${EYE_JOINT_TYPE}">
+            <axis xyz="0 0 1" />
+            <limit effort="100" velocity="${1600*M_PI/180}" lower="${-35.12*M_PI/180}" upper="${35.125*M_PI/180}" />
+            <origin xyz="0 0.053 0" rpy="0 0 0" />
+            <parent link="eye_pitch_link"/>
+            <child link="left_eye_yaw_link"/>
+        </joint>
+
+        <link name="left_eye_yaw_link">
+            <!--Added by Gwen; no inertial data provided by Meka-->
+            <inertial>
+                <mass value="0.00001" />
+                <origin xyz="0.00000 0.0000 0.0000"/>
+                <inertia ixx="0.0011100"
+                         iyy="0.0011100"
+                         izz="0.0011100"
+                         ixy="0.0"
+                         ixz="0.0"
+                         iyz="0.0"/>
+            </inertial>
+
+            <visual>
+                <material name="GreyC" />
+                <origin xyz="0 0 0" rpy="0 0 0 " />
+                <geometry name="left_eye_yaw_link_geom">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_QUALITY}/S2R1/S2R1_eye.stl" />
+                </geometry>
+            </visual>
+      
+            <collision>
+                <origin xyz="0 0 0" rpy="0.0 0.0 0.0 " />
+                <geometry name="left_eye_yaw_link_collision">
+                    <mesh filename="${modelPath}/meka_description/meshes/${MESH_COLL}/S2R1/S2R1_eye.stl" />
+                </geometry>
+            </collision>
+        </link>
+    </macro>
+
+
+    <macro name="m3_head" params="side parent reflect *origin">
+        <m3_neck side="${side}" reflect="${reflect}" parent="${parent}">
+            <insert_block name="origin" />
+        </m3_neck>
+    </macro>
+</robot>

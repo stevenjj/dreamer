@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="dreamer">
+
+    <property name="M_PI" value="3.1415926535897931" />
+    <property name="R_ARM" value="ma10" />
+    <property name="L_ARM" value="l_arm" />
+    <property name="R_HAND" value="mh8" />
+    <property name="L_HAND" value="left_hand" />
+    <property name="TORSO" value="mt3" />
+    <property name="HEAD" value="ms2" />
+    <!-- <property name="MESH" value="mid_res" /> -->
+    <property name="MESH_QUALITY" value="optimized" />
+    <property name="MESH_EXTENSION" value="stl" />
+
+    <property name="MESH_COLL" value="low_res" />
+
+    <xacro:include filename="$(find controlit_models_common)/models/generic_models.xml" />
+
+    <!--Torso-->
+    <xacro:include filename="$(find dreamer)/models/dreamer/xacro/dreamer_torso.xacro"/>
+
+    <!-- Arms -->
+    <xacro:include filename="$(find dreamer)/models/dreamer/meka_description/urdf/A2R3_r_arm_defs.urdf.xacro" />
+    <xacro:include filename="$(find dreamer)/models/dreamer/meka_description/urdf/A2R3_l_arm_defs.urdf.xacro" />
+
+    <!-- Meka Hand -->
+    <xacro:include filename="$(find dreamer)/models/dreamer/meka_description/urdf/H2R2_r_hand_defs.urdf.xacro" />
+    <xacro:include filename="$(find dreamer)/models/dreamer/meka_description/urdf/H2R2_l_hand_defs.urdf.xacro" />
+
+
+    <!-- Meka Head -->
+    <xacro:include filename="$(find dreamer)/models/dreamer/meka_description/urdf/S2R1_head_defs.urdf.xacro" />
+
+    <!-- Define various colors -->
+    <material name="GreyA"> <color rgba="0.3 0.3 0.3 1.0"/> </material>
+    <material name="GreyB"> <color rgba="0.5 0.5 0.5 1.0"/> </material>
+    <material name="GreyC"> <color rgba="0.7 0.7 0.7 1.0"/> </material>
+
+    <!-- Add Dreamer's torso and specify the height of the pan plate above the ground. -->
+    <dreamer_torso height="0.8"/>
+
+    <!-- Add left and right arms. -->
+    <m3_r_arm side="r" reflect="1" parent="torso_upper_pitch_link">
+        <origin xyz="0.0 -0.18465 0.2337" rpy="0 0 0" />
+    </m3_r_arm>
+
+    <m3_l_arm side="l" reflect="0" parent="torso_upper_pitch_link">
+        <origin xyz="0.0 0.18465 0.2337" rpy="0 0 0" />
+    </m3_l_arm>
+
+    <!-- Add the head. -->
+    <m3_head side="r" reflect="1" parent="torso_upper_pitch_link">
+        <origin xyz="0.0 0.0 0.31155" rpy="0 0 0" />
+    </m3_head>
+
+    <!-- Add right hand. -->
+    <m3_r_hand side="r" reflect="1" parent="right_wrist_yaw_link">
+        <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+    </m3_r_hand>
+
+    <!--
+    <m3_l_hand side="l" reflect="1" parent="left_wrist_yaw_link">
+        <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+    </m3_l_hand>
+    -->
+
+    <!-- Add PR2 gripper onto end of left arm -->
+    <xacro:include filename="$(find dreamer)/models/dreamer/xacro/gripper_v0/gripper.urdf.xacro" />
+
+    <xacro:pr2_gripper_v0 reflect="1.0" side="l" parent="left_wrist_yaw_link" >
+        <origin xyz="0 0 0" rpy="1.57 1.57 0" />
+    </xacro:pr2_gripper_v0>
+
+</robot>
