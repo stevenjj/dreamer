@@ -444,8 +444,8 @@ Eigen::VectorXd dreamerController::headEyeTrajectoryFollow(minJerkCoordinates& h
 	Eigen::MatrixXd J1 = kinematics.get6D_RightEyeJacobian(Q_cur);
 	Eigen::MatrixXd J2 = kinematics.get6D_LeftEyeJacobian(Q_cur);
 
-	Eigen::MatrixXd J1_block = J1.block(0, 0, 3, J1.cols());
-	Eigen::MatrixXd J2_block = J2.block(0, 0, 3, J2.cols());
+	Eigen::MatrixXd J1_block = J1.block(1, 0, 2, J1.cols());
+	Eigen::MatrixXd J2_block = J2.block(1, 0, 2, J2.cols());
 
 	Eigen::MatrixXd J_eyes(J1_block.rows()+J2_block.rows(), J1_block.cols());
 	J_eyes << J1_block,
@@ -457,14 +457,17 @@ Eigen::VectorXd dreamerController::headEyeTrajectoryFollow(minJerkCoordinates& h
 
 	Eigen::Vector3d dxRE = smoothOrientationError(pRightEyeDesired, Q_cur, initQ, minJerkTimeScaling(currentTime, totalRunTime), "right_eye");
 	Eigen::Vector3d dxLE = smoothOrientationError(pLeftEyeDesired, Q_cur, initQ, minJerkTimeScaling(currentTime, totalRunTime), "left_eye");
-	Eigen::MatrixXd dxEyes(dxRE.rows() + dxLE.rows(), dxRE.cols());
+	
+	Eigen::Vector2d dxRE_block(dxRE(1), dxRE(2));
+	Eigen::Vector2d dxLE_block(dxLE(1), dxLE(2));
+	Eigen::MatrixXd dxEyes(dxRE_block.rows() + dxLE_block.rows(), dxRE_block.cols());
 
-	dxEyes << dxRE,
-			  dxLE;
+	dxEyes << dxRE_block,
+			  dxLE_block;
 
 	int HEAD = 1;
 	int EYES = 2;
-	int PRIORITY = HEAD;
+	int PRIORITY = EYES;
 
 
 	Eigen::MatrixXd dx1;
@@ -493,6 +496,12 @@ Eigen::VectorXd dreamerController::headEyeTrajectoryFollow(minJerkCoordinates& h
 	
 	Eigen::JacobiSVD<Eigen::MatrixXd> J2_N1_Bar(J2_N1, Eigen::ComputeThinU | Eigen::ComputeThinV);
 	Eigen::VectorXd dq2_proposed = J2_N1_Bar.solve(dx2 - J2*dq1_proposed);
+
+
+
+
+
+
 
 
 	Eigen::VectorXd dq_tot = dq1_proposed + dq2_proposed;

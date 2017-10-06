@@ -459,7 +459,7 @@ void dreamerHighLevelController::behaviorLogic(void){
 			behaviorMin = testBehavior();
 
 			Eigen::Vector3d coord = behaviorMin[0].getPosition(0);
-			std::cout << "Coordinate chosen: " << coord << std::endl;
+			
 			double duration = 3;
 
 			std::vector<Waypoint> tempVec;
