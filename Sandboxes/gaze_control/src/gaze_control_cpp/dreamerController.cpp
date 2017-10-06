@@ -27,6 +27,7 @@ const double PI = M_PI;
 const double FOCUS_THRESH = 0.22; // TODO find out why this isn't working
 const double INIT_FOCUS_LENGTH = 0.6;
 const double bufferRegionPercent = 0.05;
+const double jointLimitBufferGain = .01;
 
 const int POS = 1;
 const int NEG = -1;
@@ -156,51 +157,56 @@ dreamerController::~dreamerController(void){}
 void dreamerController::initIntermediateTaskMatrices(void){
 	for(int i=0; i<kinematics.J_num; i++){
 		std::string jointName = kinematics.JIndexToNames[i];
-		jointLimitMax(i) = pub.freeJoints[jointName]["max"];
-		jointLimitMin(i) = pub.freeJoints[jointName]["min"];
+		jointLimitMax(i) = pub.freeJoints[jointName]["max"] * .85;
+		jointLimitMin(i) = pub.freeJoints[jointName]["min"] * .85;
 		
 		double qRange = std::abs(jointLimitMax(i) - jointLimitMin(i));
 		beta(i) = qRange * bufferRegionPercent;
 		jointActivationPos(i) =  jointLimitMax(i) - beta(i);
-		jointActivationNeg(i) =  jointLimitMin(i) - beta(i);
+		jointActivationNeg(i) =  jointLimitMin(i) + beta(i);
 	}
 }
 
 
-void dreamerController::updateIntermediateHMatrix(void){
-	for(int i=0; i<kinematics.J_num; i++){
-		double q_i = kinematics.Jlist(i);
-		double tilde_q_i = jointActivationPos(i);
-		double utilde_q_i = jointActivationNeg(i);
-		double bar_q_i = jointLimitMax(i);
-		double ubar_q_i = jointLimitMin(i);
-		double beta_i = beta(i);
+double dreamerController::updateIntermediateHMatrix(const int jointIndex) {
+	int i = jointIndex;
+	double q_i = kinematics.Jlist(i);
+	double tilde_q_i = jointActivationPos(i);
+	double utilde_q_i = jointActivationNeg(i);
+	double bar_q_i = jointLimitMax(i);
+	double ubar_q_i = jointLimitMin(i);
+	double beta_i = beta(i);
 
-		if(q_i >= bar_q_i){
-			bufferRegionType(i) = POS;
-			IntermediateHMatrix(i,i) = 1.0;
-		}
-		else if((tilde_q_i < q_i) && (q_i < bar_q_i)){
-			bufferRegionType(i) = POS;
-			IntermediateHMatrix(i,i) = 0.5 + 0.5*std::sin( (PI/beta_i) * (q_i - tilde_q_i) - PI/2.0);
-		}
-		else if((utilde_q_i <= q_i) && (q_i <= tilde_q_i)){
-			bufferRegionType(i) = NA;
-			IntermediateHMatrix(i,i) = 0;
-		}
-		else if((ubar_q_i < q_i) && (q_i < utilde_q_i)){
-			bufferRegionType(i) = NEG;
-			IntermediateHMatrix(i,i) = 0.5 + 0.5*std::sin((PI/beta_i)*(q_i - ubar_q_i) + PI/2.0);
-		}
-		else if(q_i <= ubar_q_i){
-			bufferRegionType(i) = NEG;
-			IntermediateHMatrix(i,i) = 1.0;
-		}
-		else{
-			std::cout << "Error in IntermediateHMatrix" << std::endl;
-			ros::shutdown();
-		}
+	if(q_i >= bar_q_i){
+		bufferRegionType(i) = POS;
+		return 1.0;
+		// IntermediateHMatrix(i,i) = 1.0;
 	}
+	else if((tilde_q_i < q_i) && (q_i < bar_q_i)) {
+		bufferRegionType(i) = POS;
+		return  0.5 + 0.5*std::sin( (PI/beta_i) * (q_i - tilde_q_i) - PI/2.0);
+		// IntermediateHMatrix(i,i) = 0.5 + 0.5*std::sin( (PI/beta_i) * (q_i - tilde_q_i) - PI/2.0);
+	}
+	else if((utilde_q_i <= q_i) && (q_i <= tilde_q_i)) {
+		bufferRegionType(i) = NA;
+		return 0;
+		// IntermediateHMatrix(i,i) = 0;
+	}
+	else if((ubar_q_i < q_i) && (q_i < utilde_q_i)) {
+		bufferRegionType(i) = NEG;
+		return 0.5 + 0.5*std::sin((PI/beta_i)*(q_i - ubar_q_i) + PI/2.0);
+		// IntermediateHMatrix(i,i) = 0.5 + 0.5*std::sin((PI/beta_i)*(q_i - ubar_q_i) + PI/2.0);
+	}
+	else if(q_i <= ubar_q_i) {
+		bufferRegionType(i) = NEG;
+		return 1.0;
+		// IntermediateHMatrix(i,i) = 1.0;
+	}
+	else {
+		std::cout << "Error in IntermediateHMatrix" << std::endl;
+		ros::shutdown();
+	}
+	
 }
 
 
@@ -421,7 +427,6 @@ Eigen::Vector3d dreamerController::smoothOrientationError(const Eigen::Vector3d&
  * @param  sTime   start time of task in seconds
  * @return         desired joint configuration
  */
-// TODO Eye priority motion doesn't work
 Eigen::VectorXd dreamerController::headEyeTrajectoryFollow(minJerkCoordinates& headMin, minJerkCoordinates& eyesMin, const Eigen::VectorXd& initQ, const double sTime) {
 	double totalRunTime = headMin.getTotalRunTime();
 	double currentTime = ros::Time::now().toSec() - sTime;
@@ -498,7 +503,31 @@ Eigen::VectorXd dreamerController::headEyeTrajectoryFollow(minJerkCoordinates& h
 	Eigen::VectorXd dq2_proposed = J2_N1_Bar.solve(dx2 - J2*dq1_proposed);
 
 
+	/* Begin Intermediate Tasks fix */
+	std::vector<Eigen::VectorXd> J_limit_tasks;
+	std::vector<double> dx_limit_tasks;
+	std::vector<double> h_limit_list;
+	short jointLimits [3] = {4,5,6};
+	for(int i=0; i<kinematics.J_num; i++) {
+		double q_i = Q_cur(i);
+		double k_i = jointLimitBufferGain;
+		double dx_j;
+		
+		switch(bufferRegionType(i)) {
+			case POS: 	dx_j = k_i*(0-q_i); break;
+			case NEG: 	dx_j = k_i*(0-q_i); break;
+			default: 	dx_j = 0; 			break;
+		}
 
+		dx_limit_tasks.push_back(dx_j);
+		double h_j = updateIntermediateHMatrix(i);
+		h_limit_list.push_back(h_j);
+		Eigen::VectorXd J_joint_lim = Eigen::VectorXd::Zero(kinematics.J_num);
+		J_joint_lim(i) = 1;
+		J_limit_tasks.push_back(J_joint_lim);
+
+		std::cout << "joint:" << i << " h_j:" << h_j << std::endl; 
+	}
 
 
 

@@ -59,7 +59,7 @@ class dreamerController{
 		~dreamerController(void);
 
 		void initIntermediateTaskMatrices(void);
-		void updateIntermediateHMatrix(void);
+		double updateIntermediateHMatrix(const int);
 
 		void resetGazeFocus(void);
 		void updateGazeFocus(const double);

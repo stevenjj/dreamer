@@ -49,17 +49,17 @@ std::vector<minJerkCoordinates> testBehavior(void) {
 	double time = 10;
 	double radius = .3;
 	double distance = 1;
-	y.push_back(Waypoint(Eigen::Vector3d(0,0,0), 0));
-	y.push_back(Waypoint(Eigen::Vector3d(0,0,0), time));
+	y.push_back(Waypoint(0, 0));
+	y.push_back(Waypoint(0, time));
 	
 	std::vector<Waypoint> x;
 	std::vector<Waypoint> z;
-	x.push_back(Waypoint(Eigen::Vector3d(-1 * radius * std::cos(0) + (l2+distance), 0, 0), 0));
-	z.push_back(Waypoint(Eigen::Vector3d(radius * std::sin(0) + l1, 0, 0), 0));
+	x.push_back(Waypoint(-1 * radius * std::cos(0) + (l2+distance), 0.0));
+	z.push_back(Waypoint(radius * std::sin(0) + l1, 0.0));
 	for(int i=0; i<(accuracy+1); i++) {
 		double theta = M_PI * i / (accuracy / 2);
-		x.push_back(Waypoint(Eigen::Vector3d(-1 * radius * std::cos(theta) + (l2+distance), 0, 0), time/accuracy));
-		z.push_back(Waypoint(Eigen::Vector3d(radius * std::sin(theta) + l1, 0, 0), time/accuracy));
+		x.push_back(Waypoint(-1 * radius * std::cos(theta) + (l2+distance), time/accuracy));
+		z.push_back(Waypoint(radius * std::sin(theta) + l1, time/accuracy));
 	}
 	
 	std::vector<minJerkCoordinates> circle_ret;
